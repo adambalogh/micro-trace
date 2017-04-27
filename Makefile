@@ -1,5 +1,5 @@
 compile:
-	gcc -shared -fPIC recv.c -o recv.so
+	gcc -shared -fPIC -I$(shell pwd)/lib recv.c -o recv.so
 
 run:
 	LD_PRELOAD=$(shell pwd)/recv.so python helloworld.py
