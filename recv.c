@@ -48,34 +48,36 @@ int get_parent(const int sockfd) {
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     orig_accept_t orig_accept = (orig_accept_t) orig("accept");
     int ret = orig_accept(sockfd, addr, addrlen);
+    time_t t = time(NULL);
+    printf("@%ld: %d accepted socket: %d\n", t, sockfd, ret);
     if (ret != -1) {
-        time_t t = time(NULL);
-        printf("@%ld: accepted socket: %d\n", t, ret);
         add_parent(ret, ret);
         current_socket = ret;
     }
+
     return ret;
 }
 
 ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
     orig_send_t orig_send = (orig_send_t) orig("send");
     ssize_t ret = orig_send(sockfd, buf, len, flags);
-    printf("%d: sent %ld\n", get_parent(sockfd), ret);
+    printf("%d: sent %ld bytes\n", get_parent(sockfd), ret);
     return ret;
 }
 
 ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                  struct sockaddr *src_addr, socklen_t *addrlen) {
-    current_socket = get_parent(sockfd);
     orig_recvfrom_t orig_recvfrom = (orig_recvfrom_t) orig("recvfrom");
-    return orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+    ssize_t ret =  orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+    printf("%d: received %ld bytes\n", get_parent(sockfd), ret);
+    return ret;
 }
 
 int socket(int domain, int type, int protocol) {
     orig_socket_t orig_socket = (orig_socket_t) orig("socket");
     int ret = orig_socket(domain, type, protocol);
     add_parent(ret, current_socket);
-    /*printf("%d: socket: %d\n", current_socket, ret);*/
+    printf("%d: new socket: %d\n", current_socket, ret);
     return ret;
 }
 
