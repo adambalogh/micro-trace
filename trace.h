@@ -30,6 +30,7 @@ __thread trace_id_t current_trace = UNDEFINED_TRACE;
 
 /* Libc functions */
 
+typedef void (*orig_free_t)(void *ptr);
 typedef int (*orig_socket_t)(int domain, int type, int protocol);
 typedef int (*orig_close_t)(int fd);
 typedef ssize_t (*orig_recvfrom_t)(int sockfd, void *buf, size_t len, int flags,
@@ -64,7 +65,7 @@ typedef struct {
     UT_hash_handle hh; 
 } trace_wrap_t;
 
-
+// TODO make these thread-safe
 socket_entry_t* sockets = NULL;
 trace_wrap_t* trace_wraps = NULL;
 
@@ -84,7 +85,7 @@ void set_current_trace(const trace_id_t trace) {
 
 void set_trace(const int sockfd, const trace_id_t trace) {
     assert(valid_trace(trace));
-    socket_entry_t* entry = (socket_entry_t*) malloc(sizeof(socket_entry_t));
+    socket_entry_t* entry = malloc(sizeof(socket_entry_t));
     entry->fd = sockfd;
     entry->trace = trace;
     HASH_ADD_INT(sockets, fd, entry);
@@ -104,7 +105,14 @@ void del_socket_trace(const int sockfd) {
     HASH_FIND_INT(sockets, &sockfd, entry);  
     if (entry != NULL) {
         HASH_DEL(sockets, entry);  
+        free(entry);
     }
+}
+
+// TODO remove trace when req_ptr is freed
+//
+void add_trace_wrap(trace_wrap_t* trace) {
+    HASH_ADD_PTR(trace_wraps, req_ptr, trace);
 }
 
 trace_wrap_t* get_trace_wrap(void* req_ptr) {
@@ -113,10 +121,12 @@ trace_wrap_t* get_trace_wrap(void* req_ptr) {
     return trace;
 }
 
-// TODO remove trace when req_ptr is freed
-//
-void add_trace_wrap(trace_wrap_t* trace) {
-    HASH_ADD_PTR(trace_wraps, req_ptr, trace);
+void del_trace_wrap(void* req_ptr) {
+    trace_wrap_t* trace = get_trace_wrap(req_ptr);
+    if (trace != NULL) {
+        HASH_DEL(trace_wraps, trace);
+        free(trace);
+    }
 }
 
 #endif

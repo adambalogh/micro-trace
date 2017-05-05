@@ -10,7 +10,7 @@ app.get('/', function (req, res) {
         response.on('data', (chunk) => {});
         response.on('end', () => {
 
-            http.get("http://www.facebook.com", (response) => {
+            http.get("http://www.google.com", (response) => {
                 response.on('data', (chunk) => {});
                 response.on('end', () => {
                     res.send('done');

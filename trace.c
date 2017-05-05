@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <stdlib.h>
 
 #include "uthash.h"
 
@@ -18,7 +19,7 @@
 void handle_accept(const int sockfd) {
     if (sockfd != -1) {
         // Trace ID is just the sockfd for now
-        trace_id_t trace = sockfd;
+        trace_id_t trace = rand() % 10000;
 
         set_trace(sockfd, trace);
         set_current_trace(trace);
@@ -143,7 +144,7 @@ int close(int fd) {
     orig_close_t orig_close = (orig_close_t) orig("close");
     int ret = orig_close(fd);
     if (ret == 0) {
-        del_socket_trace(fd);
+        /*del_socket_trace(fd);*/
     }
     return ret;
 }
@@ -152,11 +153,12 @@ int close(int fd) {
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
     trace_wrap_t* trace = get_trace_wrap(req);
-
     assert(valid_trace(trace->id));
     set_current_trace(trace->id);
-    
-    trace->orig_cb(req, status, res);
+
+    uv_getaddrinfo_cb orig_cb = trace->orig_cb;
+    del_trace_wrap(req);
+    orig_cb(req, status, res);
 }
 
 int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb getaddrinfo_cb,
