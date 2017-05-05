@@ -5,8 +5,6 @@
 
 #include "uv.h"
 
-#define trace_id_t int
-
 #define UNDEFINED_TRACE -2
 
 #define MIN(a, b) ((a)<(b)) ? (a) : (b)
@@ -16,6 +14,8 @@
     printf("[t:%lu %d]: ", thread, current_trace); \
     printf(msg, __VA_ARGS__);         \
     printf("\n");
+
+typedef int trace_id_t;
 
 /* Libc functions */
 
