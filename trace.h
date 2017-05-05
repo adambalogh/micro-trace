@@ -126,6 +126,7 @@ void del_socket_entry(const int sockfd) {
     socket_entry_t* entry = get_socket_entry(sockfd);
     if (entry != NULL) {
         HASH_DEL(sockets, entry);  
+        free(entry->parser);
         free(entry);
     }
 }
