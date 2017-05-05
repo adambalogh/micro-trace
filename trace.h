@@ -2,6 +2,7 @@
 #define _TRACE_H_
 
 #include <pthread.h>
+#include <stdint.h>
 
 #include "uv.h"
 
@@ -21,9 +22,11 @@
 #define DLOG(msg, ...)
 #endif
 
-typedef int trace_id_t;
+#define UNDEFINED_TRACE -2
 
-static const trace_id_t UNDEFINED_TRACE = -2;
+typedef int32_t trace_id_t;
+
+__thread trace_id_t current_trace = UNDEFINED_TRACE;
 
 /* Libc functions */
 
@@ -61,7 +64,6 @@ typedef struct {
     UT_hash_handle hh; 
 } trace_wrap_t;
 
-__thread trace_id_t current_trace = -1;
 
 socket_entry_t* sockets = NULL;
 trace_wrap_t* trace_wraps = NULL;
@@ -70,13 +72,18 @@ void* orig(const char* name) {
     return dlsym(RTLD_NEXT, name);
 }
 
+int valid_trace(const trace_id_t trace) {
+    return trace != UNDEFINED_TRACE && trace != -1;
+}
+
 void set_current_trace(const trace_id_t trace) {
-    if (trace != UNDEFINED_TRACE) {
+    if (valid_trace(trace)) {
         current_trace = trace;
     }
 }
 
 void set_trace(const int sockfd, const trace_id_t trace) {
+    assert(valid_trace(trace));
     socket_entry_t* entry = (socket_entry_t*) malloc(sizeof(socket_entry_t));
     entry->fd = sockfd;
     entry->trace = trace;

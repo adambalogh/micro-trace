@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 
+#include <assert.h>
 #include <errno.h>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -96,8 +97,11 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 /* Write */
 
 void handle_write(const int sockfd, ssize_t len) {
-    set_current_trace(get_trace(sockfd));
-    LOG("%d sent %ld bytes", sockfd, len);
+    trace_id_t trace = get_trace(sockfd);
+    if (valid_trace(trace)) {
+        set_current_trace(trace);
+        LOG("sent %ld bytes", len);
+    }
 }
 
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
@@ -128,8 +132,10 @@ int socket(int domain, int type, int protocol) {
     orig_socket_t orig_socket = (orig_socket_t) orig("socket");
     int ret = orig_socket(domain, type, protocol);
 
-    set_trace(ret, current_trace);
-    DLOG("opened socket: %d", ret);
+    if (current_trace != UNDEFINED_TRACE) {
+        set_trace(ret, current_trace);
+        DLOG("opened socket: %d", ret);
+    }
     return ret;
 }
 
@@ -146,7 +152,8 @@ int close(int fd) {
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
     trace_wrap_t* trace = get_trace_wrap(req);
-    printf("getaddrinfo: %d -> %d\n", current_trace, trace->id);
+
+    assert(valid_trace(trace->id));
     set_current_trace(trace->id);
     
     trace->orig_cb(req, status, res);

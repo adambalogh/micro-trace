@@ -7,12 +7,20 @@ var http = require('http');
 
 app.get('/', function (req, res) {
     http.get("http://www.google.com", (response) => {
-        let rawData = '';
-        response.on('data', (chunk) => { rawData += chunk; });
+        response.on('data', (chunk) => {});
         response.on('end', () => {
-            res.send(rawData);
+
+            http.get("http://www.facebook.com", (response) => {
+                response.on('data', (chunk) => {});
+                response.on('end', () => {
+                    res.send('done');
+                });
+            });
+
         });
     });
+    
+
 })
 
 app.listen(3000, function () {
