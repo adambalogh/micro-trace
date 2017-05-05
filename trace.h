@@ -123,10 +123,9 @@ trace_wrap_t* get_trace_wrap(void* req_ptr) {
 
 void del_trace_wrap(void* req_ptr) {
     trace_wrap_t* trace = get_trace_wrap(req_ptr);
-    if (trace != NULL) {
-        HASH_DEL(trace_wraps, trace);
-        free(trace);
-    }
+    assert(trace != NULL);
+    HASH_DEL(trace_wraps, trace);
+    free(trace);
 }
 
 #endif
