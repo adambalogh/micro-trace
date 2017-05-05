@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "uv.h"
+#include "http_parser.h"
 
 // IMPORTANT evaluating expressions a and b multiple times shouldn't
 // have any side-effect
@@ -59,6 +60,7 @@ typedef struct {
     int fd;
     trace_id_t trace;
     socket_type type;
+    http_parser *parser;
 
     UT_hash_handle hh; 
 } socket_entry_t;
@@ -95,6 +97,10 @@ socket_entry_t* new_socket_entry(const int fd, const trace_id_t trace,
     entry->fd = fd;
     entry->trace = trace;
     entry->type = type;
+    entry->parser = malloc(sizeof(http_parser));
+    http_parser_init(entry->parser, HTTP_REQUEST);
+    entry->parser->data = entry;
+
     return entry;
 }
 

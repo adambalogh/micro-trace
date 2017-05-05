@@ -6,11 +6,11 @@ var http = require('http');
 
 
 app.get('/', function (req, res) {
-    http.get("http://www.google.com", (response) => {
+    http.get("http://google.com", (response) => {
         response.on('data', (chunk) => {});
         response.on('end', () => {
 
-            http.get("http://www.google.com", (response) => {
+            http.get("http://google.com", (response) => {
                 response.on('data', (chunk) => {});
                 response.on('end', () => {
                     res.send('done');
@@ -19,8 +19,6 @@ app.get('/', function (req, res) {
 
         });
     });
-    
-
 })
 
 app.listen(3000, function () {
