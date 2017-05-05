@@ -124,8 +124,6 @@ void del_socket_entry(const int sockfd) {
     }
 }
 
-// TODO remove trace when req_ptr is freed
-//
 void add_trace_wrap(trace_wrap_t* trace) {
     HASH_ADD_PTR(trace_wraps, req_ptr, trace);
 }
@@ -133,6 +131,7 @@ void add_trace_wrap(trace_wrap_t* trace) {
 trace_wrap_t* get_trace_wrap(void* req_ptr) {
     trace_wrap_t* trace;
     HASH_FIND_PTR(trace_wraps, &req_ptr, trace);
+    assert(trace != NULL);
     return trace;
 }
 
