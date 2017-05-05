@@ -21,7 +21,7 @@ void handle_accept(const int sockfd) {
         // Trace ID is just the sockfd for now
         trace_id_t trace = rand() % 10000;
 
-        set_trace(sockfd, trace);
+        add_socket_entry(new_socket_entry(sockfd, trace, SOCKET_ACCEPTED));
         set_current_trace(trace);
     }
     DLOG("accepted socket: %d", sockfd);
@@ -57,7 +57,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 /* Read */ 
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
-    set_current_trace(get_trace(sockfd));
+    set_current_trace(get_socket_trace(sockfd));
     DLOG("%d received %ld bytes", sockfd, ret);
 }
 
@@ -98,9 +98,14 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 /* Write */
 
 void handle_write(const int sockfd, ssize_t len) {
-    trace_id_t trace = get_trace(sockfd);
-    if (valid_trace(trace)) {
-        set_current_trace(trace);
+    const socket_entry_t* entry = get_socket_entry(sockfd);
+    if (entry == NULL) {
+        return;
+    }
+    // We are only interested in write to sockets that we opened to
+    // other servers, aka where we act as the client
+    if (entry->type == SOCKET_OPENED && valid_trace(entry->trace)) {
+        set_current_trace(entry->trace);
         LOG("sent %ld bytes", len);
     }
 }
@@ -129,22 +134,27 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
 
 /* Socket */
 
+// TODO should probably do this at connect() instead to avoid
+// tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
     orig_socket_t orig_socket = (orig_socket_t) orig("socket");
-    int ret = orig_socket(domain, type, protocol);
+    int sockfd = orig_socket(domain, type, protocol);
+    if (sockfd == -1) {
+        return sockfd;
+    }
 
     if (current_trace != UNDEFINED_TRACE) {
-        set_trace(ret, current_trace);
-        DLOG("opened socket: %d", ret);
+        add_socket_entry(new_socket_entry(sockfd, current_trace, SOCKET_OPENED));
+        DLOG("opened socket: %d", sockfd);
     }
-    return ret;
+    return sockfd;
 }
 
 int close(int fd) {
     orig_close_t orig_close = (orig_close_t) orig("close");
     int ret = orig_close(fd);
     if (ret == 0) {
-        /*del_socket_trace(fd);*/
+        del_socket_entry(fd);
     }
     return ret;
 }
@@ -157,7 +167,7 @@ void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res)
     set_current_trace(trace->id);
 
     uv_getaddrinfo_cb orig_cb = trace->orig_cb;
-    del_trace_wrap(req);
+    del_trace_wrap(trace);
     orig_cb(req, status, res);
 }
 

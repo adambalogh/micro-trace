@@ -50,9 +50,15 @@ typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t* loop, uv_getaddrinfo_t* req,
         uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,
         const struct addrinfo* hints);
 
+typedef enum {
+    SOCKET_ACCEPTED, // socket was initiated by client, and accepted by server
+    SOCKET_OPENED // socket was opened by server
+} socket_type;
+
 typedef struct {
     int fd;
     trace_id_t trace;
+    socket_type type;
 
     UT_hash_handle hh; 
 } socket_entry_t;
@@ -83,26 +89,35 @@ void set_current_trace(const trace_id_t trace) {
     }
 }
 
-void set_trace(const int sockfd, const trace_id_t trace) {
-    assert(valid_trace(trace));
+socket_entry_t* new_socket_entry(const int fd, const trace_id_t trace,
+        const socket_type type) {
     socket_entry_t* entry = malloc(sizeof(socket_entry_t));
-    entry->fd = sockfd;
+    entry->fd = fd;
     entry->trace = trace;
+    entry->type = type;
+    return entry;
+}
+
+void add_socket_entry(socket_entry_t* entry) {
     HASH_ADD_INT(sockets, fd, entry);
 }
 
-trace_id_t get_trace(const int sockfd) {
-    const socket_entry_t* entry;
+socket_entry_t* get_socket_entry(const int sockfd) {
+    socket_entry_t* entry;
     HASH_FIND_INT(sockets, &sockfd, entry);
+    return entry;
+}
+
+trace_id_t get_socket_trace(const int sockfd) {
+    const socket_entry_t* entry = get_socket_entry(sockfd);
     if (entry == NULL) {
         return UNDEFINED_TRACE;
     }
     return entry->trace;
 }
 
-void del_socket_trace(const int sockfd) {
-    socket_entry_t* entry;
-    HASH_FIND_INT(sockets, &sockfd, entry);  
+void del_socket_entry(const int sockfd) {
+    socket_entry_t* entry = get_socket_entry(sockfd);
     if (entry != NULL) {
         HASH_DEL(sockets, entry);  
         free(entry);
@@ -121,8 +136,7 @@ trace_wrap_t* get_trace_wrap(void* req_ptr) {
     return trace;
 }
 
-void del_trace_wrap(void* req_ptr) {
-    trace_wrap_t* trace = get_trace_wrap(req_ptr);
+void del_trace_wrap(trace_wrap_t* trace) {
     assert(trace != NULL);
     HASH_DEL(trace_wraps, trace);
     free(trace);
