@@ -104,6 +104,11 @@ socket_entry_t* new_socket_entry(const int fd, const trace_id_t trace,
     return entry;
 }
 
+void free_socket_entry(socket_entry_t* entry) {
+    free(entry->parser);
+    free(entry);
+}
+
 void add_socket_entry(socket_entry_t* entry) {
     HASH_ADD_INT(sockets, fd, entry);
 }
@@ -126,8 +131,7 @@ void del_socket_entry(const int sockfd) {
     socket_entry_t* entry = get_socket_entry(sockfd);
     if (entry != NULL) {
         HASH_DEL(sockets, entry);  
-        free(entry->parser);
-        free(entry);
+        free_socket_entry(entry);
     }
 }
 
