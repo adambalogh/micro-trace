@@ -13,12 +13,66 @@
 
 #include "trace.h"
 
-void handle_recv(const int sockfd, const void* buf, const size_t ret) {
-    int parent_fd = get_parent(sockfd);
-    set_current_socket(parent_fd);
+/* Accept */
+
+void handle_accept(const int sockfd) {
+    time_t t = time(NULL);
+    printf("@%ld: accepted socket: %d\n", t, sockfd);
+    if (sockfd != -1) {
+        // Trace ID is just the sockfd for now
+        trace_id_t trace = sockfd;
+
+        set_trace(sockfd, trace);
+        set_current_trace(trace);
+    }
+}
+
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
+    orig_accept_t orig_accept = (orig_accept_t) orig("accept");
+    int ret = orig_accept(sockfd, addr, addrlen);
+    handle_accept(ret);
+
+    return ret;
+}
+
+int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
+    orig_accept4_t orig_accept = (orig_accept4_t) orig("accept4");
+    int ret = orig_accept(sockfd, addr, addrlen, flags);
+    handle_accept(ret);
+
+    return ret;
+}
+
+int uv_accept(uv_stream_t* server, uv_stream_t* client) {
+    orig_uv_accept_t orig_uv_accept = (orig_uv_accept_t) orig("uv_accept");
+    int ret = orig_uv_accept(server, client);
+    if (ret == 0) {
+        int fd = client->io_watcher.fd;
+        handle_accept(fd);
+    }
+
+    return ret;
+}
+
+/* Read */ 
+
+void handle_read(const int sockfd, const void* buf, const size_t ret) {
+    int parent_fd = get_trace(sockfd);
+    set_current_trace(parent_fd);
     LOG("%d received %ld bytes", sockfd, ret);
     /*fwrite(buf, MIN(ret, 40), 1, stdout);*/
     /*printf("\n");*/
+}
+
+ssize_t read(int fd, void *buf, size_t count) {
+    orig_read_t orig_read = (orig_read_t) orig("read");
+    ssize_t ret = orig_read(fd, buf, count);
+    if (ret == -1) {
+        return ret;
+    }
+
+    handle_read(fd, buf, ret);
+    return ret;
 }
 
 ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
@@ -28,7 +82,7 @@ ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
         return ret;
     }
 
-    handle_recv(sockfd, buf, ret);
+    handle_read(sockfd, buf, ret);
     return ret;
 }
 
@@ -40,33 +94,24 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
         return ret;
     }
 
-    handle_recv(sockfd, buf, ret);
+    handle_read(sockfd, buf, ret);
     return ret;
 }
 
-int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    orig_accept_t orig_accept = (orig_accept_t) orig("accept");
-    int ret = orig_accept(sockfd, addr, addrlen);
-    time_t t = time(NULL);
-    printf("@%ld: %d accepted socket: %d\n", t, sockfd, ret);
-    if (ret != -1) {
-        set_parent(ret, ret);
-        current_socket = ret;
-    }
+/* Write */
 
+ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
+    orig_writev_t orig_writev = (orig_writev_t) orig("writev");
+    ssize_t ret = orig_writev(fd, iov, iovcnt);
+    LOG("%d sent %ld bytes", fd, ret);
     return ret;
 }
 
-int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
-    orig_accept4_t orig_accept = (orig_accept4_t) orig("accept4");
-    int ret = orig_accept(sockfd, addr, addrlen, flags);
-    time_t t = time(NULL);
-    printf("@%ld: %d accepted socket: %d\n", t, sockfd, ret);
-    if (ret != -1) {
-        set_parent(ret, ret);
-        current_socket = ret;
-    }
 
+ssize_t write(int fd, const void *buf, size_t count) {
+    orig_write_t orig_write = (orig_write_t) orig("write");
+    ssize_t ret = orig_write(fd, buf, count);
+    LOG("%d sent %ld bytes", fd, ret);
     return ret;
 }
 
@@ -79,12 +124,14 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
     return ret;
 }
 
+/* Socket */
+
 int socket(int domain, int type, int protocol) {
     orig_socket_t orig_socket = (orig_socket_t) orig("socket");
     int ret = orig_socket(domain, type, protocol);
 
-    set_parent(ret, current_socket);
-    LOG("new socket: %d", ret);
+    set_trace(ret, current_trace);
+    LOG("opened socket: %d", ret);
     return ret;
 }
 
@@ -92,18 +139,31 @@ int close(int fd) {
     orig_close_t orig_close = (orig_close_t) orig("close");
     int ret = orig_close(fd);
     if (ret == 0) {
-        del_parent(fd);
+        del_socket_trace(fd);
     }
     return ret;
 }
 
+/* uv_getaddrinfo */
 
-/*int epoll_wait(int epfd, struct epoll_event *events,                      */
-/*               int maxevents, int timeout) {                              */
-/*    orig_epoll_wait_t orig_epoll = (orig_epoll_wait_t) orig("epoll_wait");*/
-/*    int ret = orig_epoll(epfd, events, maxevents, timeout);               */
-/*    if (ret != 0) {                                                       */
-/*        printf("epoll_wait: %d ready\n", ret);                            */
-/*    }                                                                     */
-/*    return ret;                                                           */
-/*}                                                                         */
+void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
+    trace_wrap_t* trace = get_trace_wrap(req);
+    printf("getaddrinfo: %d -> %d\n", current_trace, trace->id);
+    set_current_trace(trace->id);
+    
+    trace->orig_cb(req, status, res);
+}
+
+int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb getaddrinfo_cb,
+        const char* node, const char* service, const struct addrinfo* hints) {
+    trace_wrap_t* trace = malloc(sizeof(trace_wrap_t));
+    trace->req_ptr = req;
+    trace->orig_cb = getaddrinfo_cb;
+    trace->id = current_trace;
+    add_trace_wrap(trace);
+
+    orig_uv_getaddrinfo_t orig_uv_getaddrinfo =
+        (orig_uv_getaddrinfo_t) orig("uv_getaddrinfo");
+
+    return orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service, hints);
+}
