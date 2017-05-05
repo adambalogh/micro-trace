@@ -5,8 +5,6 @@
 
 #include "uv.h"
 
-#define UNDEFINED_TRACE -2
-
 // IMPORTANT evaluating expressions a and b multiple times shouldn't
 // have any side-effect
 #define MIN(a, b) ((a)<(b)) ? (a) : (b)
@@ -24,6 +22,8 @@
 #endif
 
 typedef int trace_id_t;
+
+static const trace_id_t UNDEFINED_TRACE = -2;
 
 /* Libc functions */
 
