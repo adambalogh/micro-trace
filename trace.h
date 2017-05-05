@@ -7,13 +7,21 @@
 
 #define UNDEFINED_TRACE -2
 
+// IMPORTANT evaluating expressions a and b multiple times shouldn't
+// have any side-effect
 #define MIN(a, b) ((a)<(b)) ? (a) : (b)
 
 #define LOG(msg, ...)                 \
     pthread_t thread =  pthread_self(); \
-    printf("[t:%lu %d]: ", thread, current_trace); \
+    printf("[t:%lu %d]: ", thread % 10000, current_trace); \
     printf(msg, __VA_ARGS__);         \
     printf("\n");
+
+#ifdef DEBUG
+#define DLOG(msg, ...) LOG(msg, __VA_ARGS__)
+#else
+#define DLOG(msg, ...)
+#endif
 
 typedef int trace_id_t;
 
@@ -75,7 +83,7 @@ void set_trace(const int sockfd, const trace_id_t trace) {
     HASH_ADD_INT(sockets, fd, entry);
 }
 
-int get_trace(const int sockfd) {
+trace_id_t get_trace(const int sockfd) {
     const socket_entry_t* entry;
     HASH_FIND_INT(sockets, &sockfd, entry);
     if (entry == NULL) {

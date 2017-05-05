@@ -7,7 +7,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <time.h>
 
 #include "uthash.h"
 
@@ -16,8 +15,6 @@
 /* Accept */
 
 void handle_accept(const int sockfd) {
-    time_t t = time(NULL);
-    printf("@%ld: accepted socket: %d\n", t, sockfd);
     if (sockfd != -1) {
         // Trace ID is just the sockfd for now
         trace_id_t trace = sockfd;
@@ -25,6 +22,7 @@ void handle_accept(const int sockfd) {
         set_trace(sockfd, trace);
         set_current_trace(trace);
     }
+    DLOG("accepted socket: %d", sockfd);
 }
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
@@ -57,11 +55,8 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 /* Read */ 
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
-    int parent_fd = get_trace(sockfd);
-    set_current_trace(parent_fd);
-    LOG("%d received %ld bytes", sockfd, ret);
-    /*fwrite(buf, MIN(ret, 40), 1, stdout);*/
-    /*printf("\n");*/
+    set_current_trace(get_trace(sockfd));
+    DLOG("%d received %ld bytes", sockfd, ret);
 }
 
 ssize_t read(int fd, void *buf, size_t count) {
@@ -100,10 +95,15 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 
 /* Write */
 
+void handle_write(const int sockfd, ssize_t len) {
+    set_current_trace(get_trace(sockfd));
+    LOG("%d sent %ld bytes", sockfd, len);
+}
+
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
     orig_writev_t orig_writev = (orig_writev_t) orig("writev");
     ssize_t ret = orig_writev(fd, iov, iovcnt);
-    LOG("%d sent %ld bytes", fd, ret);
+    handle_write(fd, ret);
     return ret;
 }
 
@@ -111,16 +111,14 @@ ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
 ssize_t write(int fd, const void *buf, size_t count) {
     orig_write_t orig_write = (orig_write_t) orig("write");
     ssize_t ret = orig_write(fd, buf, count);
-    LOG("%d sent %ld bytes", fd, ret);
+    handle_write(fd, ret);
     return ret;
 }
 
 ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
     orig_send_t orig_send = (orig_send_t) orig("send");
     ssize_t ret = orig_send(sockfd, buf, len, flags);
-    LOG("%d sent %ld bytes", sockfd, ret);
-    /*fwrite(buf, MIN(ret, 40), 1, stdout);*/
-    /*printf("\n");                        */
+    handle_write(sockfd, ret);
     return ret;
 }
 
@@ -131,7 +129,7 @@ int socket(int domain, int type, int protocol) {
     int ret = orig_socket(domain, type, protocol);
 
     set_trace(ret, current_trace);
-    LOG("opened socket: %d", ret);
+    DLOG("opened socket: %d", ret);
     return ret;
 }
 
