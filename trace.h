@@ -7,9 +7,7 @@
 #include "uv.h"
 #include "http_parser.h"
 
-// IMPORTANT evaluating expressions a and b multiple times shouldn't
-// have any side-effect
-#define MIN(a, b) ((a)<(b)) ? (a) : (b)
+#include "helpers.h"
 
 #define LOG(msg, ...)                 \
     pthread_t thread =  pthread_self(); \
@@ -60,13 +58,13 @@ typedef struct {
     int fd;
     trace_id_t trace;
     socket_type type;
-    http_parser *parser;
+    OWNS(http_parser *parser);
 
     UT_hash_handle hh; 
 } socket_entry_t;
 
 typedef struct {
-    void* req_ptr;
+    BORROWS(void *req_ptr);
     uv_getaddrinfo_cb orig_cb;
     trace_id_t id;
 
