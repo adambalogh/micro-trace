@@ -1,11 +1,11 @@
 .PHONY: $(OUT)
 
 LIB_NAME = trace.so
-BUILD_DIR = ./build
-OUT = $(addprefix $(BUILD_DIR), $(LIB_NAME))
+BUILD_DIR = build
+OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS = socket.c trace.c
-OBJ = $(addprefix build/,$(SRCS:.c=.o))
+OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.c=.o))
 
 INCLUDES = -I /usr/local/include -I lib/
 LIBS = -L /usr/local/lib -lhttp_parser -lpthread
@@ -21,7 +21,8 @@ $(OUT): $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $@
 
 clean:
-	rm build/*
+	rm $(BUILD_DIR)/*o
+
 
 compile-test:
 	gcc -Wall socket_test.c socket.c -I$(shell pwd)/lib -o build/socket_test -lcheck
