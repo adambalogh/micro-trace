@@ -1,11 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define FAILED_MSG "Failed: "
-     
-#define STR(x) #x
-#define STRINGIFY(x) STR(x)
-
 #define mu_assert(test) \
     mu_assert_msg(#test, test)
 
