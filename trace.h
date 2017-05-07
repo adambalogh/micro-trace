@@ -60,15 +60,23 @@ typedef struct {
     socket_type type;
     OWNS(http_parser *parser);
 
-    UT_hash_handle hh; 
+    UT_hash_handle hh; // name must be hh to work with macros
 } socket_entry_t;
+
+int socket_type_accepted(const socket_entry_t *socket) {
+    return socket->type == SOCKET_ACCEPTED;
+}
+
+int socket_type_opened(const socket_entry_t *socket) {
+    return socket->type == SOCKET_OPENED;
+}
 
 typedef struct {
     BORROWS(void *req_ptr);
     uv_getaddrinfo_cb orig_cb;
     trace_id_t id;
 
-    UT_hash_handle hh; 
+    UT_hash_handle hh; // name must be hh to work with macros
 } trace_wrap_t;
 
 // TODO make these thread-safe
