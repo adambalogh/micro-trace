@@ -54,21 +54,79 @@ typedef enum {
     SOCKET_OPENED // socket was opened by server
 } socket_type;
 
+/* 
+ * Uniquely identifies a connection between to machines.
+ */
+typedef struct {
+    const char* local_ip;
+    unsigned short local_port;
+    const char* peer_ip;
+    unsigned short peer_port;
+} conn_id_t;
+
+/*
+ * A socket_entry_t is assigned to every socket.
+ *
+ * Because of Connection: Keep-Alive, a socket may be reused for several
+ * request-reply sequences, therefore a pair of sockets cannot uniquely
+ * idenfity a trace.
+ *
+ * The assigned socket_entry must be removed if the underlying socket is closed.
+ */
 typedef struct {
     int fd;
     trace_id_t trace;
     socket_type type;
     OWNS(http_parser *parser);
 
+    char addresses_set;
+    struct sockaddr local_addr;
+    size_t local_addr_len;
+    struct sockaddr peer_addr;
+    size_t peer_addr_len;
+
     UT_hash_handle hh; // name must be hh to work with macros
 } socket_entry_t;
 
-int socket_type_accepted(const socket_entry_t *socket) {
-    return socket->type == SOCKET_ACCEPTED;
+socket_entry_t* socket_entry_new(const int fd, const trace_id_t trace,
+        const socket_type type) {
+    socket_entry_t* entry = malloc(sizeof(socket_entry_t));
+    entry->fd = fd;
+    entry->trace = trace;
+    entry->type = type;
+    entry->parser = malloc(sizeof(http_parser));
+    http_parser_init(entry->parser, HTTP_REQUEST);
+    entry->parser->data = entry;
+    entry->addresses_set = false;
+
+    return entry;
 }
 
-int socket_type_opened(const socket_entry_t *socket) {
-    return socket->type == SOCKET_OPENED;
+void socket_entry_free(socket_entry_t* sock) {
+    free(sock->parser);
+    free(sock);
+}
+
+int socket_entry_is_addresses_set(socket_entry_t* sock) {
+    return sock->addresses_set;
+}
+
+void socket_entry_set_addresses(socket_entry_t* sock) {
+    int ret;
+    ret = getaddrname(sock->fd, &sock->local_addr);
+    if (ret != 0) {
+    }
+    ret = getpeername(sock->fd, &sock->peer_addr);
+    if (ret != 0) {
+    }
+}
+
+int socket_type_accepted(const socket_entry_t *sock) {
+    return sock->type == SOCKET_ACCEPTED;
+}
+
+int socket_type_opened(const socket_entry_t *sock) {
+    return sock->type == SOCKET_OPENED;
 }
 
 typedef struct {
@@ -95,24 +153,6 @@ void set_current_trace(const trace_id_t trace) {
     if (valid_trace(trace)) {
         current_trace = trace;
     }
-}
-
-socket_entry_t* new_socket_entry(const int fd, const trace_id_t trace,
-        const socket_type type) {
-    socket_entry_t* entry = malloc(sizeof(socket_entry_t));
-    entry->fd = fd;
-    entry->trace = trace;
-    entry->type = type;
-    entry->parser = malloc(sizeof(http_parser));
-    http_parser_init(entry->parser, HTTP_REQUEST);
-    entry->parser->data = entry;
-
-    return entry;
-}
-
-void free_socket_entry(socket_entry_t* entry) {
-    free(entry->parser);
-    free(entry);
 }
 
 void add_socket_entry(socket_entry_t* entry) {

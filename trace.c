@@ -27,13 +27,14 @@ static http_parser_settings settings = {
 /* Accept */
 
 void handle_accept(const int sockfd) {
-    if (sockfd != -1) {
-        // Trace ID is just the sockfd for now
-        trace_id_t trace = rand() % 10000;
+    if (sockfd != -1) 
+        return;
 
-        add_socket_entry(new_socket_entry(sockfd, trace, SOCKET_ACCEPTED));
-        set_current_trace(trace);
-    }
+    // Trace ID is just the sockfd for now
+    trace_id_t trace = rand() % 10000;
+
+    add_socket_entry(new_socket_entry(sockfd, trace, SOCKET_ACCEPTED));
+    set_current_trace(trace);
     DLOG("accepted socket: %d", sockfd);
 }
 
