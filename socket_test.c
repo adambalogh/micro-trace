@@ -22,6 +22,6 @@ static int test_socket_entry_new() {
 }
 
 static int all_tests() {
-    mu_run_test(test_add);
+    mu_run_test(test_socket_entry_new);
     return 0;
 }

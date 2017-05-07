@@ -26,8 +26,8 @@ socket_entry_t* socket_entry_new(const int fd, const trace_id_t trace,
 
 void socket_entry_free(socket_entry_t* sock) {
     free(sock->parser);
-    free(sock->connid->local_ip);
-    free(sock->connid->peer_ip);
+    free(sock->connid.local_ip);
+    free(sock->connid.peer_ip);
     free(sock);
 }
 
