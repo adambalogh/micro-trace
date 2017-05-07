@@ -1,19 +1,35 @@
-compile:
-	gcc -Wall -shared -fPIC -L/usr/local/lib -lhttp_parser -I$(shell pwd)/lib socket.c trace.c -o trace.so -lpthread
+.PHONY: $(OUT)
 
-cecho:
-	gcc -Wall apps/echo.c -levent -levent_core -L /usr/local/lib -o apps/echo
+LIB_NAME = trace.so
+BUILD_DIR = ./build
+OUT = $(addprefix $(BUILD_DIR), $(LIB_NAME))
 
-echo: cecho
-	./apps/echo
+SRCS = socket.c trace.c
+OBJ = $(addprefix build/,$(SRCS:.c=.o))
 
-tornado:
-	LD_PRELOAD=$(shell pwd)/trace.so python apps/helloworld.py
+INCLUDES = -I /usr/local/include -I lib/
+LIBS = -L /usr/local/lib -lhttp_parser -lpthread
 
-aio:
-	LD_PRELOAD=$(shell pwd)/trace.so python3 apps/async.py
+CC = gcc
+CFLAGS = -Wall -fPIC -shared
+
+
+$(BUILD_DIR)/%.o : %.c
+	$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) -c $< -o $@
+
+$(OUT): $(OBJ)
+	$(CC) $(CFLAGS) $(OBJ) -o $@
+
+clean:
+	rm build/*
+
+compile-test:
+	gcc -Wall socket_test.c socket.c -I$(shell pwd)/lib -o build/socket_test -lcheck
+
+test: compile-test
+	./build/socket_test
 
 node:
-	@LD_PRELOAD=$(shell pwd)/trace.so node apps/frontend.js & \
-	LD_PRELOAD=$(shell pwd)/trace.so node apps/backend.js && \
+	@LD_PRELOAD=$(OUT) node apps/frontend.js & \
+	LD_PRELOAD=$(OUT) node apps/backend.js && \
 	fg
