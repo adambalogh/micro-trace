@@ -11,8 +11,18 @@
 #include <stdlib.h>
 
 #include "uthash.h"
+#include "http_parser.h"
 
 #include "trace.h"
+
+int message_complete(http_parser *parser) {
+    printf("message\n");
+    return 0;
+}
+
+static http_parser_settings settings = {
+    .on_message_complete = &message_complete
+};
 
 /* Accept */
 
@@ -57,7 +67,10 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 /* Read */ 
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
-    set_current_trace(get_socket_trace(sockfd));
+    socket_entry_t *entry = get_socket_entry(sockfd);
+    if (entry == NULL)
+        return;
+    set_current_trace(entry->trace);
     DLOG("%d received %ld bytes", sockfd, ret);
 }
 
@@ -102,9 +115,10 @@ void handle_write(const int sockfd, ssize_t len) {
     if (entry == NULL) {
         return;
     }
+
     // We are only interested in write to sockets that we opened to
     // other servers, aka where we act as the client
-    if (entry->type == SOCKET_OPENED && valid_trace(entry->trace)) {
+    if (socket_type_opened(entry) && valid_trace(entry->trace)) {
         set_current_trace(entry->trace);
         LOG("sent %ld bytes", len);
     }
@@ -121,6 +135,7 @@ ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
 ssize_t write(int fd, const void *buf, size_t count) {
     orig_write_t orig_write = (orig_write_t) orig("write");
     ssize_t ret = orig_write(fd, buf, count);
+
     handle_write(fd, ret);
     return ret;
 }
@@ -128,6 +143,7 @@ ssize_t write(int fd, const void *buf, size_t count) {
 ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
     orig_send_t orig_send = (orig_send_t) orig("send");
     ssize_t ret = orig_send(sockfd, buf, len, flags);
+
     handle_write(sockfd, ret);
     return ret;
 }
