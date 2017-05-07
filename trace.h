@@ -64,6 +64,11 @@ typedef struct {
     unsigned short peer_port;
 } connid_t;
 
+void connid_print(const connid_t *connid) {
+    printf("(%s):%hu -> (%s):%hu\n", connid->local_ip, connid->local_port,
+            connid->peer_ip, connid->peer_port);
+}
+
 /*
  * A socket_entry_t is assigned to every socket.
  *
@@ -119,6 +124,10 @@ unsigned short get_port(const struct sockaddr *sa) {
     return (((struct sockaddr_in6*)sa)->sin6_port);
 }
 
+/*
+ * Should only be called if the socket is connected to an endpoint,
+ * e.g. it has been connect()-ed or accept()-ed
+ */
 void socket_entry_set_connid(socket_entry_t* sock) {
     struct sockaddr addr;
     socklen_t addr_len = sizeof(struct sockaddr);
@@ -130,7 +139,6 @@ void socket_entry_set_connid(socket_entry_t* sock) {
     if (ret != 0) {
         // error
     }
-
     sock->connid.local_port = get_port(&addr);
     dst = inet_ntop(addr.sa_family, &addr, sock->connid.local_ip, INET6_ADDRSTRLEN);
     if (dst == NULL) {
@@ -147,6 +155,8 @@ void socket_entry_set_connid(socket_entry_t* sock) {
     if (dst == NULL) {
         // error
     }
+
+    sock->connid_set = 1;
 }
 
 int socket_type_accepted(const socket_entry_t *sock) {

@@ -27,14 +27,18 @@ static http_parser_settings settings = {
 /* Accept */
 
 void handle_accept(const int sockfd) {
-    if (sockfd != -1) 
+    if (sockfd == -1)  {
         return;
+    }
 
-    // Trace ID is just the sockfd for now
+    // Trace ID is just a random number for now
     trace_id_t trace = rand() % 10000;
-
-    add_socket_entry(socket_entry_new(sockfd, trace, SOCKET_ACCEPTED));
     set_current_trace(trace);
+
+    socket_entry_t* socket_entry = socket_entry_new(sockfd, trace, SOCKET_ACCEPTED);
+    add_socket_entry(socket_entry);
+    socket_entry_set_connid(socket_entry);
+
     DLOG("accepted socket: %d", sockfd);
 }
 
@@ -71,6 +75,13 @@ void handle_read(const int sockfd, const void* buf, const size_t ret) {
     socket_entry_t *entry = get_socket_entry(sockfd);
     if (entry == NULL)
         return;
+
+    // Set connid if it hasn't been set before, e.g. in case of
+    // when a socket was opened using connect().
+    if (!entry->connid_set) {
+        socket_entry_set_connid(entry);
+    }
+
     set_current_trace(entry->trace);
     DLOG("%d received %ld bytes", sockfd, ret);
 }
@@ -112,16 +123,25 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 /* Write */
 
 void handle_write(const int sockfd, ssize_t len) {
-    const socket_entry_t* entry = get_socket_entry(sockfd);
+    socket_entry_t* entry = get_socket_entry(sockfd);
     if (entry == NULL) {
         return;
     }
 
-    // We are only interested in write to sockets that we opened to
-    // other servers, aka where we act as the client
-    if (socket_type_opened(entry) && valid_trace(entry->trace)) {
+    // Set connid if it hasn't been set before, e.g. in case of
+    // when a socket was opened using connect().
+    if (!entry->connid_set) {
+        socket_entry_set_connid(entry);
+    }
+
+    if (valid_trace(entry->trace)) {
         set_current_trace(entry->trace);
-        LOG("sent %ld bytes", len);
+
+        // We are only interested in write to sockets that we opened to
+        // other servers, aka where we act as the client
+        if (socket_type_opened(entry)) {
+            LOG("sent %ld bytes", len);
+        }
     }
 }
 
@@ -201,3 +221,4 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb get
 
     return orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service, hints);
 }
+
