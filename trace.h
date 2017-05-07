@@ -35,16 +35,16 @@ typedef ssize_t (*orig_read_t)(int fd, void *buf, size_t count);
 typedef ssize_t (*orig_write_t)(int fd, const void *buf, size_t count);
 typedef ssize_t (*orig_writev_t)(int fd, const struct iovec *iov, int iovcnt);
 
-static orig_socket_t orig_socket;
-static orig_close_t orig_close;
-static orig_recvfrom_t orig_recvfrom;
-static orig_send_t orig_send;
-static orig_accept_t orig_accept;
-static orig_accept4_t orig_accept4;
-static orig_recv_t orig_recv;
-static orig_read_t orig_read;
-static orig_write_t orig_write;
-static orig_writev_t orig_writev;
+static __thread orig_socket_t orig_socket;
+static __thread orig_close_t orig_close;
+static __thread orig_recvfrom_t orig_recvfrom;
+static __thread orig_send_t orig_send;
+static __thread orig_accept_t orig_accept;
+static __thread orig_accept4_t orig_accept4;
+static __thread orig_recv_t orig_recv;
+static __thread orig_read_t orig_read;
+static __thread orig_write_t orig_write;
+static __thread orig_writev_t orig_writev;
 
 /* Libuv functions */
 
@@ -53,8 +53,8 @@ typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t* loop, uv_getaddrinfo_t* req,
         uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,
         const struct addrinfo* hints);
 
-static orig_uv_accept_t orig_uv_accept;
-static orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
+static __thread orig_uv_accept_t orig_uv_accept;
+static __thread orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
 
 typedef struct {
     BORROWS(void *req_ptr);
