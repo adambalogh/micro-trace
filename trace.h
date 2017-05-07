@@ -58,11 +58,11 @@ typedef enum {
  * Uniquely identifies a connection between to machines.
  */
 typedef struct {
-    const char* local_ip;
+    char* local_ip;
     unsigned short local_port;
-    const char* peer_ip;
+    char* peer_ip;
     unsigned short peer_port;
-} conn_id_t;
+} connid_t;
 
 /*
  * A socket_entry_t is assigned to every socket.
@@ -79,11 +79,8 @@ typedef struct {
     socket_type type;
     OWNS(http_parser *parser);
 
-    char addresses_set;
-    struct sockaddr local_addr;
-    size_t local_addr_len;
-    struct sockaddr peer_addr;
-    size_t peer_addr_len;
+    char connid_set;
+    connid_t connid;
 
     UT_hash_handle hh; // name must be hh to work with macros
 } socket_entry_t;
@@ -94,10 +91,14 @@ socket_entry_t* socket_entry_new(const int fd, const trace_id_t trace,
     entry->fd = fd;
     entry->trace = trace;
     entry->type = type;
+
     entry->parser = malloc(sizeof(http_parser));
     http_parser_init(entry->parser, HTTP_REQUEST);
     entry->parser->data = entry;
-    entry->addresses_set = false;
+
+    entry->connid_set = 0;
+    entry->connid.local_ip = malloc(sizeof(char) * INET6_ADDRSTRLEN);
+    entry->connid.peer_ip = malloc(sizeof(char) * INET6_ADDRSTRLEN);
 
     return entry;
 }
@@ -107,17 +108,44 @@ void socket_entry_free(socket_entry_t* sock) {
     free(sock);
 }
 
-int socket_entry_is_addresses_set(socket_entry_t* sock) {
-    return sock->addresses_set;
+int socket_entry_connid_set(socket_entry_t* sock) {
+    return sock->connid_set == 1;
 }
 
-void socket_entry_set_addresses(socket_entry_t* sock) {
-    int ret;
-    ret = getaddrname(sock->fd, &sock->local_addr);
-    if (ret != 0) {
+unsigned short get_port(const struct sockaddr *sa) {
+    if (sa->sa_family == AF_INET) {
+        return (((struct sockaddr_in*)sa)->sin_port);
     }
-    ret = getpeername(sock->fd, &sock->peer_addr);
+    return (((struct sockaddr_in6*)sa)->sin6_port);
+}
+
+void socket_entry_set_connid(socket_entry_t* sock) {
+    struct sockaddr addr;
+    socklen_t addr_len = sizeof(struct sockaddr);
+
+    int ret;
+    const char* dst;
+
+    ret = getsockname(sock->fd, &addr, &addr_len);
     if (ret != 0) {
+        // error
+    }
+
+    sock->connid.local_port = get_port(&addr);
+    dst = inet_ntop(addr.sa_family, &addr, sock->connid.local_ip, INET6_ADDRSTRLEN);
+    if (dst == NULL) {
+        // error
+    }
+
+    addr_len = sizeof(struct sockaddr);
+    ret = getpeername(sock->fd, &addr, &addr_len);
+    if (ret != 0) {
+        // error
+    }
+    sock->connid.peer_port = get_port(&addr);
+    dst = inet_ntop(addr.sa_family, &addr, sock->connid.peer_ip, INET6_ADDRSTRLEN);
+    if (dst == NULL) {
+        // error
     }
 }
 
@@ -177,7 +205,7 @@ void del_socket_entry(const int sockfd) {
     socket_entry_t* entry = get_socket_entry(sockfd);
     if (entry != NULL) {
         HASH_DEL(sockets, entry);  
-        free_socket_entry(entry);
+        socket_entry_free(entry);
     }
 }
 

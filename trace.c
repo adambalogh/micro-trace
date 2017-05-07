@@ -33,7 +33,7 @@ void handle_accept(const int sockfd) {
     // Trace ID is just the sockfd for now
     trace_id_t trace = rand() % 10000;
 
-    add_socket_entry(new_socket_entry(sockfd, trace, SOCKET_ACCEPTED));
+    add_socket_entry(socket_entry_new(sockfd, trace, SOCKET_ACCEPTED));
     set_current_trace(trace);
     DLOG("accepted socket: %d", sockfd);
 }
@@ -161,7 +161,7 @@ int socket(int domain, int type, int protocol) {
     }
 
     if (current_trace != UNDEFINED_TRACE) {
-        add_socket_entry(new_socket_entry(sockfd, current_trace, SOCKET_OPENED));
+        add_socket_entry(socket_entry_new(sockfd, current_trace, SOCKET_OPENED));
         DLOG("opened socket: %d", sockfd);
     }
     return sockfd;
