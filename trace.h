@@ -9,11 +9,20 @@
 #include "helpers.h"
 #include "socket.h"
 
+#define FIND_ORIG(func, name)       \
+    do {                                \
+        if (func == NULL)            \
+            func = (typeof(func)) orig(name);\
+    } while(0)
+
 __thread trace_id_t current_trace = UNDEFINED_TRACE;
+
+void* orig(const char* name) {
+    return dlsym(RTLD_NEXT, name);
+}
 
 /* Libc functions */
 
-typedef void (*orig_free_t)(void *ptr);
 typedef int (*orig_socket_t)(int domain, int type, int protocol);
 typedef int (*orig_close_t)(int fd);
 typedef ssize_t (*orig_recvfrom_t)(int sockfd, void *buf, size_t len, int flags,
@@ -26,12 +35,26 @@ typedef ssize_t (*orig_read_t)(int fd, void *buf, size_t count);
 typedef ssize_t (*orig_write_t)(int fd, const void *buf, size_t count);
 typedef ssize_t (*orig_writev_t)(int fd, const struct iovec *iov, int iovcnt);
 
+static orig_socket_t orig_socket;
+static orig_close_t orig_close;
+static orig_recvfrom_t orig_recvfrom;
+static orig_send_t orig_send;
+static orig_accept_t orig_accept;
+static orig_accept4_t orig_accept4;
+static orig_recv_t orig_recv;
+static orig_read_t orig_read;
+static orig_write_t orig_write;
+static orig_writev_t orig_writev;
+
 /* Libuv functions */
 
 typedef int (*orig_uv_accept_t)(uv_stream_t* server, uv_stream_t* client);
 typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t* loop, uv_getaddrinfo_t* req,
         uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,
         const struct addrinfo* hints);
+
+static orig_uv_accept_t orig_uv_accept;
+static orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
 
 typedef struct {
     BORROWS(void *req_ptr);
@@ -44,10 +67,6 @@ typedef struct {
 // TODO make these thread-safe
 socket_entry_t* sockets = NULL;
 trace_wrap_t* trace_wraps = NULL;
-
-void* orig(const char* name) {
-    return dlsym(RTLD_NEXT, name);
-}
 
 int valid_trace(const trace_id_t trace) {
     return trace != UNDEFINED_TRACE && trace != -1;

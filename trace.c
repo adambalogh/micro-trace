@@ -44,7 +44,7 @@ void handle_accept(const int sockfd) {
 }
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    orig_accept_t orig_accept = (orig_accept_t) orig("accept");
+    FIND_ORIG(orig_accept, "accept");
     int ret = orig_accept(sockfd, addr, addrlen);
     handle_accept(ret);
 
@@ -52,15 +52,15 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
 }
 
 int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
-    orig_accept4_t orig_accept = (orig_accept4_t) orig("accept4");
-    int ret = orig_accept(sockfd, addr, addrlen, flags);
+    FIND_ORIG(orig_accept4, "accept4");
+    int ret = orig_accept4(sockfd, addr, addrlen, flags);
     handle_accept(ret);
 
     return ret;
 }
 
 int uv_accept(uv_stream_t* server, uv_stream_t* client) {
-    orig_uv_accept_t orig_uv_accept = (orig_uv_accept_t) orig("uv_accept");
+    FIND_ORIG(orig_uv_accept, "uv_accept");
     int ret = orig_uv_accept(server, client);
     if (ret == 0) {
         int fd = client->io_watcher.fd;
@@ -88,7 +88,7 @@ void handle_read(const int sockfd, const void* buf, const size_t ret) {
 }
 
 ssize_t read(int fd, void *buf, size_t count) {
-    orig_read_t orig_read = (orig_read_t) orig("read");
+    FIND_ORIG(orig_read, "read");
     ssize_t ret = orig_read(fd, buf, count);
     if (ret == -1) {
         return ret;
@@ -99,7 +99,7 @@ ssize_t read(int fd, void *buf, size_t count) {
 }
 
 ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
-    orig_recv_t orig_recv = (orig_recv_t) orig("recv");
+    FIND_ORIG(orig_recv, "recv");
     ssize_t ret =  orig_recv(sockfd, buf, len, flags);
     if (ret == -1) {
         return ret;
@@ -111,7 +111,7 @@ ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
 
 ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                  struct sockaddr *src_addr, socklen_t *addrlen) {
-    orig_recvfrom_t orig_recvfrom = (orig_recvfrom_t) orig("recvfrom");
+    FIND_ORIG(orig_recvfrom, "recvfrom");
     ssize_t ret =  orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
     if (ret == -1) {
         return ret;
@@ -147,7 +147,7 @@ void handle_write(const int sockfd, ssize_t len) {
 }
 
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
-    orig_writev_t orig_writev = (orig_writev_t) orig("writev");
+    FIND_ORIG(orig_writev, "writev");
     ssize_t ret = orig_writev(fd, iov, iovcnt);
     handle_write(fd, ret);
     return ret;
@@ -155,7 +155,7 @@ ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
 
 
 ssize_t write(int fd, const void *buf, size_t count) {
-    orig_write_t orig_write = (orig_write_t) orig("write");
+    FIND_ORIG(orig_write, "write");
     ssize_t ret = orig_write(fd, buf, count);
 
     handle_write(fd, ret);
@@ -163,7 +163,7 @@ ssize_t write(int fd, const void *buf, size_t count) {
 }
 
 ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
-    orig_send_t orig_send = (orig_send_t) orig("send");
+    FIND_ORIG(orig_send, "send");
     ssize_t ret = orig_send(sockfd, buf, len, flags);
 
     handle_write(sockfd, ret);
@@ -175,7 +175,7 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
 // TODO should probably do this at connect() instead to avoid
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
-    orig_socket_t orig_socket = (orig_socket_t) orig("socket");
+    FIND_ORIG(orig_socket, "socket");
     int sockfd = orig_socket(domain, type, protocol);
     if (sockfd == -1) {
         return sockfd;
@@ -189,7 +189,7 @@ int socket(int domain, int type, int protocol) {
 }
 
 int close(int fd) {
-    orig_close_t orig_close = (orig_close_t) orig("close");
+    FIND_ORIG(orig_close, "close");
     int ret = orig_close(fd);
     if (ret == 0) {
         del_socket_entry(fd);
@@ -217,8 +217,7 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb get
     trace->id = current_trace;
     add_trace_wrap(trace);
 
-    orig_uv_getaddrinfo_t orig_uv_getaddrinfo =
-        (orig_uv_getaddrinfo_t) orig("uv_getaddrinfo");
+    FIND_ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
 
     return orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service, hints);
 }
