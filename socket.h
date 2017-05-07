@@ -16,9 +16,9 @@
  * Uniquely identifies a connection between to machines.
  */
 typedef struct {
-    char* local_ip;
+    OWNS(char* local_ip);
     unsigned short local_port;
-    char* peer_ip;
+    OWNS(char* peer_ip);
     unsigned short peer_port;
 } connid_t;
 

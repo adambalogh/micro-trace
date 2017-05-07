@@ -1,5 +1,6 @@
 #include "socket.h"
 
+
 void connid_print(const connid_t *connid) {
     printf("(%s):%hu -> (%s):%hu\n", connid->local_ip, connid->local_port,
             connid->peer_ip, connid->peer_port);
@@ -25,6 +26,8 @@ socket_entry_t* socket_entry_new(const int fd, const trace_id_t trace,
 
 void socket_entry_free(socket_entry_t* sock) {
     free(sock->parser);
+    free(sock->connid->local_ip);
+    free(sock->connid->peer_ip);
     free(sock);
 }
 
