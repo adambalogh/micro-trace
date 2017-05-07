@@ -7,28 +7,30 @@ OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 SRCS = socket.c trace.c
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.c=.o))
 
+TESTS = socket_test.c
+TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.c=))
+
 INCLUDES = -I /usr/local/include -I lib/
 LIBS = -L /usr/local/lib -lhttp_parser -lpthread
 
 CC = gcc
-CFLAGS = -Wall -fPIC -shared
-
-
-$(BUILD_DIR)/%.o : %.c
-	$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) -c $< -o $@
+CFLAGS = -Wall
+LIBFLAGS = -fPIC -shared
 
 $(OUT): $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $@
+	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@
+
+$(BUILD_DIR)/%.o : %.c
+	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) $(LIBS) -c $< -o $@
+
+$(BUILD_DIR)/% : %.c $(OBJ)
+	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $(LIBS) -ldl  $< -o $@
 
 clean:
-	rm $(BUILD_DIR)/*o
+	rm $(BUILD_DIR)/*
 
-
-compile-test:
-	gcc -Wall socket_test.c socket.c -I$(shell pwd)/lib -o build/socket_test -lcheck
-
-test: compile-test
-	./build/socket_test
+test: $(TEST_EXEC) ./lib/unittest.h
+	@./build/socket_test
 
 node:
 	@LD_PRELOAD=$(OUT) node apps/frontend.js & \
