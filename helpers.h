@@ -13,4 +13,20 @@
 // have any side-effect
 #define MIN(a, b) ((a)<(b)) ? (a) : (b)
 
+#define LOG(msg, ...)                 \
+    pthread_t thread =  pthread_self(); \
+    printf("[t:%lu %d]: ", thread % 10000, current_trace); \
+    printf(msg, __VA_ARGS__);         \
+    printf("\n");
+
+#ifdef DEBUG
+#define DLOG(msg, ...) LOG(msg, __VA_ARGS__)
+#else
+#define DLOG(msg, ...)
+#endif
+
+#define UNDEFINED_TRACE -2
+
+typedef int32_t trace_id_t;
+
 #endif

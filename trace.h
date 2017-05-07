@@ -5,25 +5,9 @@
 #include <stdint.h>
 
 #include "uv.h"
-#include "http_parser.h"
 
 #include "helpers.h"
-
-#define LOG(msg, ...)                 \
-    pthread_t thread =  pthread_self(); \
-    printf("[t:%lu %d]: ", thread % 10000, current_trace); \
-    printf(msg, __VA_ARGS__);         \
-    printf("\n");
-
-#ifdef DEBUG
-#define DLOG(msg, ...) LOG(msg, __VA_ARGS__)
-#else
-#define DLOG(msg, ...)
-#endif
-
-#define UNDEFINED_TRACE -2
-
-typedef int32_t trace_id_t;
+#include "socket.h"
 
 __thread trace_id_t current_trace = UNDEFINED_TRACE;
 
@@ -48,124 +32,6 @@ typedef int (*orig_uv_accept_t)(uv_stream_t* server, uv_stream_t* client);
 typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t* loop, uv_getaddrinfo_t* req,
         uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,
         const struct addrinfo* hints);
-
-typedef enum {
-    SOCKET_ACCEPTED, // socket was initiated by client, and accepted by server
-    SOCKET_OPENED // socket was opened by server
-} socket_type;
-
-/* 
- * Uniquely identifies a connection between to machines.
- */
-typedef struct {
-    char* local_ip;
-    unsigned short local_port;
-    char* peer_ip;
-    unsigned short peer_port;
-} connid_t;
-
-void connid_print(const connid_t *connid) {
-    printf("(%s):%hu -> (%s):%hu\n", connid->local_ip, connid->local_port,
-            connid->peer_ip, connid->peer_port);
-}
-
-/*
- * A socket_entry_t is assigned to every socket.
- *
- * Because of Connection: Keep-Alive, a socket may be reused for several
- * request-reply sequences, therefore a pair of sockets cannot uniquely
- * idenfity a trace.
- *
- * The assigned socket_entry must be removed if the underlying socket is closed.
- */
-typedef struct {
-    int fd;
-    trace_id_t trace;
-    socket_type type;
-    OWNS(http_parser *parser);
-
-    char connid_set;
-    connid_t connid;
-
-    UT_hash_handle hh; // name must be hh to work with macros
-} socket_entry_t;
-
-socket_entry_t* socket_entry_new(const int fd, const trace_id_t trace,
-        const socket_type type) {
-    socket_entry_t* entry = malloc(sizeof(socket_entry_t));
-    entry->fd = fd;
-    entry->trace = trace;
-    entry->type = type;
-
-    entry->parser = malloc(sizeof(http_parser));
-    http_parser_init(entry->parser, HTTP_REQUEST);
-    entry->parser->data = entry;
-
-    entry->connid_set = 0;
-    entry->connid.local_ip = malloc(sizeof(char) * INET6_ADDRSTRLEN);
-    entry->connid.peer_ip = malloc(sizeof(char) * INET6_ADDRSTRLEN);
-
-    return entry;
-}
-
-void socket_entry_free(socket_entry_t* sock) {
-    free(sock->parser);
-    free(sock);
-}
-
-int socket_entry_connid_set(socket_entry_t* sock) {
-    return sock->connid_set == 1;
-}
-
-unsigned short get_port(const struct sockaddr *sa) {
-    if (sa->sa_family == AF_INET) {
-        return (((struct sockaddr_in*)sa)->sin_port);
-    }
-    return (((struct sockaddr_in6*)sa)->sin6_port);
-}
-
-/*
- * Should only be called if the socket is connected to an endpoint,
- * e.g. it has been connect()-ed or accept()-ed
- */
-void socket_entry_set_connid(socket_entry_t* sock) {
-    struct sockaddr addr;
-    socklen_t addr_len = sizeof(struct sockaddr);
-
-    int ret;
-    const char* dst;
-
-    ret = getsockname(sock->fd, &addr, &addr_len);
-    if (ret != 0) {
-        // error
-    }
-    sock->connid.local_port = get_port(&addr);
-    dst = inet_ntop(addr.sa_family, &addr, sock->connid.local_ip, INET6_ADDRSTRLEN);
-    if (dst == NULL) {
-        // error
-    }
-
-    addr_len = sizeof(struct sockaddr);
-    ret = getpeername(sock->fd, &addr, &addr_len);
-    if (ret != 0) {
-        // error
-    }
-    sock->connid.peer_port = get_port(&addr);
-    dst = inet_ntop(addr.sa_family, &addr, sock->connid.peer_ip, INET6_ADDRSTRLEN);
-    if (dst == NULL) {
-        // error
-    }
-
-    sock->connid_set = 1;
-}
-
-int socket_type_accepted(const socket_entry_t *sock) {
-    return sock->type == SOCKET_ACCEPTED;
-}
-
-int socket_type_opened(const socket_entry_t *sock) {
-    return sock->type == SOCKET_OPENED;
-}
 
 typedef struct {
     BORROWS(void *req_ptr);

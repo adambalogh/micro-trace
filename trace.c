@@ -14,6 +14,7 @@
 #include "http_parser.h"
 
 #include "trace.h"
+#include "socket.h"
 
 int message_complete(http_parser *parser) {
     printf("message\n");

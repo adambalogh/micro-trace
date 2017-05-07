@@ -1,5 +1,5 @@
 compile:
-	gcc -Wall -shared -fPIC -L/usr/local/lib -lhttp_parser -I$(shell pwd)/lib trace.c -o trace.so -lpthread
+	gcc -Wall -shared -fPIC -L/usr/local/lib -lhttp_parser -I$(shell pwd)/lib socket.c trace.c -o trace.so -lpthread
 
 cecho:
 	gcc -Wall apps/echo.c -levent -levent_core -L /usr/local/lib -o apps/echo
