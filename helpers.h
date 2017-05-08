@@ -1,6 +1,8 @@
 #ifndef _HELPERS_H_
 #define _HELPERS_H_
 
+#include <string>
+
 // These macros act as a form of documentation
 //  - OWNS means that the current struct owns ptr, so it must
 //    free it when it's being destroyed.
@@ -26,6 +28,8 @@
 #endif
 
 #define UNDEFINED_TRACE -2
+
+inline char* string_arr(std::string& str) { return &str[0]; }
 
 typedef int32_t trace_id_t;
 
