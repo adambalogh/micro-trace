@@ -1,5 +1,6 @@
 #include "socket_entry.h"
 
+#include <assert.h>
 #include <iostream>
 
 Connid::Connid()
@@ -27,6 +28,8 @@ unsigned short get_port(const struct sockaddr* sa) {
 }
 
 int SocketEntry::SetConnid() {
+    assert(!has_connid());
+
     struct sockaddr addr;
     socklen_t addr_len = sizeof(struct sockaddr);
 

@@ -8,10 +8,12 @@
 #include <string>
 
 #include "http_parser.h"
-#include "uthash.h"
 
 #include "helpers.h"
 
+/*
+ * Uniquely identifies a connection between to machines.
+ */
 struct Connid {
    public:
     Connid();
@@ -24,6 +26,16 @@ struct Connid {
     unsigned short peer_port;
 };
 
+/*
+ * A SocketEntry is assigned to every socket.
+ *
+ * Because of Connection: Keep-Alive, a socket may be reused for several
+ * request-reply sequences, therefore a pair of sockets cannot uniquely
+ * idenfity a trace.
+ *
+ * The assigned socket_entry must be removed if the underlying socket
+ * is closed.
+ */
 class SocketEntry {
    public:
     SocketEntry(const SocketEntry&) = delete;
@@ -33,6 +45,11 @@ class SocketEntry {
     SocketEntry(const int fd, const trace_id_t trace, const socket_type socket);
 
     bool has_connid();
+
+    /*
+     * Should only be called if the socket is connected to an endpoint,
+     * e.g. it has been connect()-ed or accept()-ed
+     */
     int SetConnid();
 
     bool type_accepted() const { return type_ == SOCKET_ACCEPTED; }
