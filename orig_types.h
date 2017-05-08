@@ -1,9 +1,9 @@
 #ifndef _ORIG_TYPES_H_
 #define _ORIG_TYPES_H_
 
-#define FIND_ORIG(func, name)                                \
-    do {                                                     \
-        if (func == NULL) func = (decltype(func))orig(name); \
+#define FIND_ORIG(func, name)                                   \
+    do {                                                        \
+        if (func == nullptr) func = (decltype(func))orig(name); \
     } while (0)
 
 void *orig(const char *name) { return dlsym(RTLD_NEXT, name); }
