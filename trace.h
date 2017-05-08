@@ -16,13 +16,16 @@ extern "C" {
 
 int socket(int domain, int type, int protocol);
 int close(int fd);
-ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-                 struct sockaddr *src_addr, socklen_t *addrlen);
-ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags);
+
 ssize_t recv(int sockfd, void *buf, size_t len, int flags);
 ssize_t read(int fd, void *buf, size_t count);
+ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
+                 struct sockaddr *src_addr, socklen_t *addrlen);
+
+ssize_t send(int sockfd, const void *buf, size_t len, int flags);
 ssize_t write(int fd, const void *buf, size_t count);
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
 }
@@ -59,11 +62,11 @@ void add_socket_entry(std::unique_ptr<SocketEntry> entry) {
 }
 
 SocketEntry *get_socket_entry(const int sockfd) {
-    try {
-        return socket_map_.at(sockfd).get();
-    } catch (std::out_of_range) {
+    auto it = socket_map_.find(sockfd);
+    if (it == socket_map_.end()) {
         return nullptr;
     }
+    return it->second.get();
 }
 
 trace_id_t get_socket_trace(const int sockfd) {
