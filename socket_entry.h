@@ -51,6 +51,9 @@ class SocketEntry {
      *
      * Should only be called if the socket is connected to an endpoint,
      * e.g. it has been connect()-ed or accept()-ed
+     *
+     * On success, it returns 0, otherwise it returns a standard error code,
+     * returned by the Socket API functions.
      */
     int SetConnid();
 
