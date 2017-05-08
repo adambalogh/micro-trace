@@ -1,5 +1,5 @@
-#ifndef _SOCKET_H_
-#define _SOCKET_H_
+#ifndef _SOCKET_ENTRY_H_
+#define _SOCKET_ENTRY_H_
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -17,7 +17,7 @@ struct Connid {
  public:
     Connid();
 
-    void print();
+    void print() const;
 
     std::string local_ip;
     unsigned short local_port;

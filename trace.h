@@ -9,10 +9,9 @@
 #include "uv.h"
 
 #include "helpers.h"
-#include "socket.h"
+#include "SocketEntry.h"
 #include "orig_types.h"
 
-#include "socket.h"
 
 extern "C" {
 

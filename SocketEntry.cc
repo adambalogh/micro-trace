@@ -1,10 +1,10 @@
-#include "socket.h"
+#include "SocketEntry.h"
 
 #include <iostream>
 
 Connid::Connid() : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
 
-void Connid::print() {
+void Connid::print() const {
     std::cout << "(" << local_ip << "):" << local_port << " -> (" <<
         peer_ip << "):" << peer_port << std::endl;
 }

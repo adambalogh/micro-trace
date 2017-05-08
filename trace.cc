@@ -12,7 +12,7 @@
 #include "http_parser.h"
 
 #include "trace.h"
-#include "socket.h"
+#include "SocketEntry.h"
 
 /* Accept */
 
