@@ -64,7 +64,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
     SocketEntry* entry = get_socket_entry(sockfd);
-    if (entry == NULL) return;
+    if (entry == nullptr) return;
 
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
@@ -114,7 +114,7 @@ ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
 
 void handle_write(const int sockfd, ssize_t len) {
     SocketEntry* entry = get_socket_entry(sockfd);
-    if (entry == NULL) {
+    if (entry == nullptr) {
         return;
     }
 
