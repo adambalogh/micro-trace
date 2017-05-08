@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <assert.h>
 #include <errno.h>
 #include <dlfcn.h>
@@ -16,15 +14,6 @@
 #include "trace.h"
 #include "socket.h"
 
-int message_complete(http_parser *parser) {
-    printf("message\n");
-    return 0;
-}
-
-static http_parser_settings settings = {
-    .on_message_complete = &message_complete
-};
-
 /* Accept */
 
 void handle_accept(const int sockfd) {
@@ -36,9 +25,10 @@ void handle_accept(const int sockfd) {
     trace_id_t trace = rand() % 10000;
     set_current_trace(trace);
 
-    socket_entry_t* socket_entry = socket_entry_new(sockfd, trace, SOCKET_ACCEPTED);
-    add_socket_entry(socket_entry);
-    socket_entry_set_connid(socket_entry);
+    std::unique_ptr<SocketEntry> socket(
+            new SocketEntry(sockfd, trace, SocketEntry::SOCKET_ACCEPTED));
+    socket->SetConnid();
+    add_socket_entry(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
 }
@@ -73,17 +63,17 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 /* Read */ 
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
-    socket_entry_t *entry = get_socket_entry(sockfd);
+    SocketEntry* entry = get_socket_entry(sockfd);
     if (entry == NULL)
         return;
 
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
-    if (!entry->connid_set) {
-        socket_entry_set_connid(entry);
+    if (!entry->has_connid()) {
+        entry->SetConnid();
     }
 
-    set_current_trace(entry->trace);
+    set_current_trace(entry->trace());
     DLOG("%d received %ld bytes", sockfd, ret);
 }
 
@@ -124,23 +114,23 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 /* Write */
 
 void handle_write(const int sockfd, ssize_t len) {
-    socket_entry_t* entry = get_socket_entry(sockfd);
+    SocketEntry* entry = get_socket_entry(sockfd);
     if (entry == NULL) {
         return;
     }
 
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
-    if (!entry->connid_set) {
-        socket_entry_set_connid(entry);
+    if (!entry->has_connid()) {
+        entry->SetConnid();
     }
 
-    if (valid_trace(entry->trace)) {
-        set_current_trace(entry->trace);
+    if (valid_trace(entry->trace())) {
+        set_current_trace(entry->trace());
 
         // We are only interested in write to sockets that we opened to
         // other servers, aka where we act as the client
-        if (socket_type_opened(entry)) {
+        if (entry->type_opened()) {
             LOG("sent %ld bytes", len);
         }
     }
@@ -182,7 +172,9 @@ int socket(int domain, int type, int protocol) {
     }
 
     if (current_trace != UNDEFINED_TRACE) {
-        add_socket_entry(socket_entry_new(sockfd, current_trace, SOCKET_OPENED));
+        std::unique_ptr<SocketEntry> socket(new SocketEntry(sockfd, current_trace,
+                    SocketEntry::SOCKET_OPENED));
+        add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }
     return sockfd;
@@ -200,22 +192,22 @@ int close(int fd) {
 /* uv_getaddrinfo */
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
-    trace_wrap_t* trace = get_trace_wrap(req);
-    assert(valid_trace(trace->id));
-    set_current_trace(trace->id);
+    const TraceWrap& trace = get_trace_wrap(req);
+    assert(valid_trace(trace.id));
+    set_current_trace(trace.id);
 
-    uv_getaddrinfo_cb orig_cb = trace->orig_cb;
-    del_trace_wrap(trace);
+    uv_getaddrinfo_cb orig_cb = trace.orig_cb;
+    del_trace_wrap(trace.req_ptr);
     orig_cb(req, status, res);
 }
 
 int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb getaddrinfo_cb,
         const char* node, const char* service, const struct addrinfo* hints) {
-    trace_wrap_t* trace = malloc(sizeof(trace_wrap_t));
+    std::unique_ptr<TraceWrap> trace(new TraceWrap());
     trace->req_ptr = req;
     trace->orig_cb = getaddrinfo_cb;
     trace->id = current_trace;
-    add_trace_wrap(trace);
+    add_trace_wrap(std::move(trace));
 
     FIND_ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
 
