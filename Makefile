@@ -36,7 +36,7 @@ $(BUILD_DIR)/% : %.cc $(OBJ)
 clean:
 	rm $(BUILD_DIR)/*
 
-test: $(TEST_EXEC) ./lib/unittest.h
+test: $(TEST_EXEC)
 	@echo 'done'
 
 run-test: test

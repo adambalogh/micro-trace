@@ -26,15 +26,16 @@ struct Connid {
 
 class SocketEntry {
    public:
+    SocketEntry(const SocketEntry&) = delete;
+
     enum socket_type { SOCKET_OPENED, SOCKET_ACCEPTED };
 
     SocketEntry(const int fd, const trace_id_t trace, const socket_type socket);
 
     bool has_connid();
-    void SetConnid();
+    int SetConnid();
 
     bool type_accepted() const { return type_ == SOCKET_ACCEPTED; }
-
     bool type_opened() const { return type_ == SOCKET_OPENED; }
 
     int fd() const { return fd_; }

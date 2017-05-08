@@ -26,7 +26,7 @@ unsigned short get_port(const struct sockaddr* sa) {
     return ((struct sockaddr_in6*)sa)->sin6_port;
 }
 
-void SocketEntry::SetConnid() {
+int SocketEntry::SetConnid() {
     struct sockaddr addr;
     socklen_t addr_len = sizeof(struct sockaddr);
 
@@ -35,26 +35,27 @@ void SocketEntry::SetConnid() {
 
     ret = getsockname(fd_, &addr, &addr_len);
     if (ret != 0) {
-        // error
+        return ret;
     }
     connid_.local_port = get_port(&addr);
     dst = inet_ntop(addr.sa_family, &addr, &connid_.local_ip[0],
                     connid_.local_ip.size());
     if (dst == NULL) {
-        // error
+        return errno;
     }
 
     addr_len = sizeof(struct sockaddr);
     ret = getpeername(fd_, &addr, &addr_len);
     if (ret != 0) {
-        // error
+        return ret;
     }
     connid_.peer_port = get_port(&addr);
     dst = inet_ntop(addr.sa_family, &addr, &connid_.peer_ip[0],
                     connid_.local_ip.size());
     if (dst == NULL) {
-        // error
+        return errno;
     }
 
     has_connid_ = true;
+    return 0;
 }
