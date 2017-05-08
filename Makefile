@@ -8,8 +8,8 @@ HDRS = socket_entry.h trace.h orig_types.h helpers.h
 SRCS = socket_entry.cc trace.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = socket_test.c
-TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.c=))
+TESTS = socket_entry_test.cc
+TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I lib/
 LIBS = -L /usr/local/lib -lhttp_parser -lpthread
@@ -18,20 +18,29 @@ CC = g++
 CFLAGS = -Wall -std=c++17
 LIBFLAGS = -fPIC -shared
 
+# Shared library build
+
 $(OUT): $(OBJ) $(HDRS)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@
 
+# Library files build
+
 $(BUILD_DIR)/%.o : %.cc
-	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
+
+# Test build
 
 $(BUILD_DIR)/% : %.cc $(OBJ)
-	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $(LIBS) -ldl  $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ $(LIBS) -lgtest -lgtest_main -ldl
 
 clean:
 	rm $(BUILD_DIR)/*
 
 test: $(TEST_EXEC) ./lib/unittest.h
-	@./build/socket_test
+	@echo 'done'
+
+run-test: test
+	@./build/socket_entry_test
 
 node:
 	@LD_PRELOAD=$(OUT) node apps/frontend.js & \
