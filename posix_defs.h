@@ -1,5 +1,5 @@
-#ifndef _ORIG_TYPES_H_
-#define _ORIG_TYPES_H_
+#ifndef _POSIX_DEFS_
+#define _POSIX_DEFS_
 
 #define FIND_ORIG(func, name)                                   \
     do {                                                        \
