@@ -27,17 +27,22 @@ ssize_t write(int fd, const void *buf, size_t count);
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
 }
 
-__thread trace_id_t current_trace = UNDEFINED_TRACE;
+struct TraceWrap;
 
-struct TraceWrap {
-    BORROWS(void *req_ptr);
-    uv_getaddrinfo_cb orig_cb;
-    trace_id_t id;
-};
+__thread trace_id_t current_trace = UNDEFINED_TRACE;
 
 // TODO make these thread-safe
 std::unordered_map<int, std::unique_ptr<SocketEntry>> socket_map_;
 std::unordered_map<void *, std::unique_ptr<TraceWrap>> trace_wraps_;
+
+struct TraceWrap {
+    TraceWrap(void *req_ptr, uv_getaddrinfo_cb orig_cb, trace_id_t id)
+        : req_ptr(req_ptr), orig_cb(orig_cb), id(id) {}
+
+    BORROWS(void *const req_ptr);
+    const uv_getaddrinfo_cb orig_cb;
+    const trace_id_t id;
+};
 
 int valid_trace(const trace_id_t trace) {
     return trace != UNDEFINED_TRACE && trace != -1;

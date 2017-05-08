@@ -27,7 +27,7 @@ void handle_accept(const int sockfd) {
 
     std::unique_ptr<SocketEntry> socket(
         new SocketEntry(sockfd, trace, SocketEntry::SOCKET_ACCEPTED));
-    socket->SetConnid();
+    int ret = socket->SetConnid();
     add_socket_entry(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
@@ -203,10 +203,8 @@ void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
 int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
                    const char* service, const struct addrinfo* hints) {
-    std::unique_ptr<TraceWrap> trace(new TraceWrap());
-    trace->req_ptr = req;
-    trace->orig_cb = getaddrinfo_cb;
-    trace->id = current_trace;
+    std::unique_ptr<TraceWrap> trace(
+        new TraceWrap(req, getaddrinfo_cb, current_trace));
     add_trace_wrap(std::move(trace));
 
     FIND_ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");

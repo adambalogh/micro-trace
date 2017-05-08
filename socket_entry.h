@@ -47,6 +47,8 @@ class SocketEntry {
     bool has_connid();
 
     /*
+     * Sets up the Connection ID of the socket.
+     *
      * Should only be called if the socket is connected to an endpoint,
      * e.g. it has been connect()-ed or accept()-ed
      */
