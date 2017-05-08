@@ -8,9 +8,9 @@
 
 #include "uv.h"
 
-#include "SocketEntry.h"
 #include "helpers.h"
 #include "orig_types.h"
+#include "socket_entry.h"
 
 extern "C" {
 

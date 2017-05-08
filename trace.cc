@@ -11,7 +11,7 @@
 #include "http_parser.h"
 #include "uthash.h"
 
-#include "SocketEntry.h"
+#include "socket_entry.h"
 #include "trace.h"
 
 /* Accept */

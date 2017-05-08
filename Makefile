@@ -4,8 +4,8 @@ LIB_NAME = trace.so
 BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
-HDRS = SocketEntry.h trace.h orig_types.h helpers.h
-SRCS = SocketEntry.cc trace.cc
+HDRS = socket_entry.h trace.h orig_types.h helpers.h
+SRCS = socket_entry.cc trace.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
 TESTS = socket_test.c
