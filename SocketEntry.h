@@ -3,8 +3,8 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <stdio.h>
+#include <sys/socket.h>
 #include <string>
 
 #include "http_parser.h"
@@ -12,9 +12,8 @@
 
 #include "helpers.h"
 
-
 struct Connid {
- public:
+   public:
     Connid();
 
     void print() const;
@@ -26,30 +25,22 @@ struct Connid {
 };
 
 class SocketEntry {
- public:
-    enum socket_type {
-        SOCKET_OPENED,
-        SOCKET_ACCEPTED
-    };
+   public:
+    enum socket_type { SOCKET_OPENED, SOCKET_ACCEPTED };
 
-    SocketEntry(const int fd, const trace_id_t trace,
-            const socket_type socket);
+    SocketEntry(const int fd, const trace_id_t trace, const socket_type socket);
 
     bool has_connid();
     void SetConnid();
 
-    bool type_accepted() const {
-        return type_ == SOCKET_ACCEPTED;
-    }
+    bool type_accepted() const { return type_ == SOCKET_ACCEPTED; }
 
-    bool type_opened() const {
-        return type_ == SOCKET_OPENED;
-    }
+    bool type_opened() const { return type_ == SOCKET_OPENED; }
 
     int fd() const { return fd_; }
     trace_id_t trace() const { return trace_; }
 
- private:
+   private:
     int fd_;
     trace_id_t trace_;
     socket_type type_;
@@ -60,4 +51,3 @@ class SocketEntry {
 };
 
 #endif
-

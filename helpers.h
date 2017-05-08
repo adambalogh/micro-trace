@@ -11,12 +11,12 @@
 
 // IMPORTANT evaluating expressions a and b multiple times shouldn't
 // have any side-effect
-#define MIN(a, b) ((a)<(b)) ? (a) : (b)
+#define MIN(a, b) ((a) < (b)) ? (a) : (b)
 
-#define LOG(msg, ...)                 \
-    pthread_t thread =  pthread_self(); \
+#define LOG(msg, ...)                                      \
+    pthread_t thread = pthread_self();                     \
     printf("[t:%lu %d]: ", thread % 10000, current_trace); \
-    printf(msg, __VA_ARGS__);         \
+    printf(msg, __VA_ARGS__);                              \
     printf("\n");
 
 #ifdef DEBUG

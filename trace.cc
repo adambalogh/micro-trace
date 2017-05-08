@@ -1,23 +1,23 @@
 #include <assert.h>
-#include <errno.h>
 #include <dlfcn.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <stdlib.h>
 
-#include "uthash.h"
 #include "http_parser.h"
+#include "uthash.h"
 
-#include "trace.h"
 #include "SocketEntry.h"
+#include "trace.h"
 
 /* Accept */
 
 void handle_accept(const int sockfd) {
-    if (sockfd == -1)  {
+    if (sockfd == -1) {
         return;
     }
 
@@ -26,14 +26,14 @@ void handle_accept(const int sockfd) {
     set_current_trace(trace);
 
     std::unique_ptr<SocketEntry> socket(
-            new SocketEntry(sockfd, trace, SocketEntry::SOCKET_ACCEPTED));
+        new SocketEntry(sockfd, trace, SocketEntry::SOCKET_ACCEPTED));
     socket->SetConnid();
     add_socket_entry(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
 }
 
-int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
+int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
     FIND_ORIG(orig_accept, "accept");
     int ret = orig_accept(sockfd, addr, addrlen);
     handle_accept(ret);
@@ -41,7 +41,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     return ret;
 }
 
-int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
+int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
     FIND_ORIG(orig_accept4, "accept4");
     int ret = orig_accept4(sockfd, addr, addrlen, flags);
     handle_accept(ret);
@@ -60,12 +60,11 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
     return ret;
 }
 
-/* Read */ 
+/* Read */
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
     SocketEntry* entry = get_socket_entry(sockfd);
-    if (entry == NULL)
-        return;
+    if (entry == NULL) return;
 
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
@@ -77,7 +76,7 @@ void handle_read(const int sockfd, const void* buf, const size_t ret) {
     DLOG("%d received %ld bytes", sockfd, ret);
 }
 
-ssize_t read(int fd, void *buf, size_t count) {
+ssize_t read(int fd, void* buf, size_t count) {
     FIND_ORIG(orig_read, "read");
     ssize_t ret = orig_read(fd, buf, count);
     if (ret == -1) {
@@ -88,9 +87,9 @@ ssize_t read(int fd, void *buf, size_t count) {
     return ret;
 }
 
-ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
+ssize_t recv(int sockfd, void* buf, size_t len, int flags) {
     FIND_ORIG(orig_recv, "recv");
-    ssize_t ret =  orig_recv(sockfd, buf, len, flags);
+    ssize_t ret = orig_recv(sockfd, buf, len, flags);
     if (ret == -1) {
         return ret;
     }
@@ -99,10 +98,10 @@ ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
     return ret;
 }
 
-ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-                 struct sockaddr *src_addr, socklen_t *addrlen) {
+ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
+                 struct sockaddr* src_addr, socklen_t* addrlen) {
     FIND_ORIG(orig_recvfrom, "recvfrom");
-    ssize_t ret =  orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+    ssize_t ret = orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
     if (ret == -1) {
         return ret;
     }
@@ -136,15 +135,14 @@ void handle_write(const int sockfd, ssize_t len) {
     }
 }
 
-ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
+ssize_t writev(int fd, const struct iovec* iov, int iovcnt) {
     FIND_ORIG(orig_writev, "writev");
     ssize_t ret = orig_writev(fd, iov, iovcnt);
     handle_write(fd, ret);
     return ret;
 }
 
-
-ssize_t write(int fd, const void *buf, size_t count) {
+ssize_t write(int fd, const void* buf, size_t count) {
     FIND_ORIG(orig_write, "write");
     ssize_t ret = orig_write(fd, buf, count);
 
@@ -152,7 +150,7 @@ ssize_t write(int fd, const void *buf, size_t count) {
     return ret;
 }
 
-ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
+ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
     FIND_ORIG(orig_send, "send");
     ssize_t ret = orig_send(sockfd, buf, len, flags);
 
@@ -172,8 +170,8 @@ int socket(int domain, int type, int protocol) {
     }
 
     if (current_trace != UNDEFINED_TRACE) {
-        std::unique_ptr<SocketEntry> socket(new SocketEntry(sockfd, current_trace,
-                    SocketEntry::SOCKET_OPENED));
+        std::unique_ptr<SocketEntry> socket(
+            new SocketEntry(sockfd, current_trace, SocketEntry::SOCKET_OPENED));
         add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }
@@ -191,7 +189,8 @@ int close(int fd) {
 
 /* uv_getaddrinfo */
 
-void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
+void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
+                        struct addrinfo* res) {
     const TraceWrap& trace = get_trace_wrap(req);
     assert(valid_trace(trace.id));
     set_current_trace(trace.id);
@@ -201,8 +200,9 @@ void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res)
     orig_cb(req, status, res);
 }
 
-int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb getaddrinfo_cb,
-        const char* node, const char* service, const struct addrinfo* hints) {
+int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
+                   uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
+                   const char* service, const struct addrinfo* hints) {
     std::unique_ptr<TraceWrap> trace(new TraceWrap());
     trace->req_ptr = req;
     trace->orig_cb = getaddrinfo_cb;
@@ -211,6 +211,6 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req, uv_getaddrinfo_cb get
 
     FIND_ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
 
-    return orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service, hints);
+    return orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service,
+                               hints);
 }
-
