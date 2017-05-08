@@ -12,8 +12,13 @@ void Connid::print() const {
 }
 
 SocketEntry::SocketEntry(const int fd, const trace_id_t trace,
-                         const socket_type type)
-    : fd_(fd), trace_(trace), type_(type), has_connid_(false) {
+                         const SocketType type)
+    : fd_(fd),
+      trace_(trace),
+      type_(type),
+      state_(type == SocketType::ACCEPTED ? SocketState::READ
+                                          : SocketState::WRITE),
+      has_connid_(false) {
     http_parser_init(&parser_, HTTP_REQUEST);
     parser_.data = this;
 }

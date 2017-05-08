@@ -16,7 +16,7 @@ TEST(Connid, Init) {
 }
 
 TEST(SocketEntryTest, Init) {
-    SocketEntry socket{FD, TRACE, SocketEntry::SOCKET_OPENED};
+    SocketEntry socket{FD, TRACE, SocketType::OPENED};
 
     EXPECT_EQ(FD, socket.fd());
     EXPECT_EQ(TRACE, socket.trace());
@@ -27,6 +27,6 @@ TEST(SocketEntryTest, Init) {
 TEST(SocketEntryTest, SetConnid) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
-    SocketEntry socket{fd, TRACE, SocketEntry::SOCKET_OPENED};
+    SocketEntry socket{fd, TRACE, SocketType::OPENED};
     int ret = socket.SetConnid();
 }

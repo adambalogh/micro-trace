@@ -25,7 +25,7 @@ void handle_accept(const int sockfd) {
     set_current_trace(trace);
 
     std::unique_ptr<SocketEntry> socket(
-        new SocketEntry(sockfd, trace, SocketEntry::SOCKET_ACCEPTED));
+        new SocketEntry(sockfd, trace, SocketType::ACCEPTED));
     int ret = socket->SetConnid();
     add_socket_entry(std::move(socket));
 
@@ -170,7 +170,7 @@ int socket(int domain, int type, int protocol) {
 
     if (current_trace != UNDEFINED_TRACE) {
         std::unique_ptr<SocketEntry> socket(
-            new SocketEntry(sockfd, current_trace, SocketEntry::SOCKET_OPENED));
+            new SocketEntry(sockfd, current_trace, SocketType::OPENED));
         add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }

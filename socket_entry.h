@@ -26,6 +26,9 @@ struct Connid {
     unsigned short peer_port;
 };
 
+enum class SocketType { OPENED, ACCEPTED };
+enum class SocketState { READ, WRITE };
+
 /*
  * A SocketEntry is assigned to every socket.
  *
@@ -40,9 +43,7 @@ class SocketEntry {
    public:
     SocketEntry(const SocketEntry&) = delete;
 
-    enum socket_type { SOCKET_OPENED, SOCKET_ACCEPTED };
-
-    SocketEntry(const int fd, const trace_id_t trace, const socket_type socket);
+    SocketEntry(const int fd, const trace_id_t trace, const SocketType socket);
 
     bool has_connid();
 
@@ -57,16 +58,22 @@ class SocketEntry {
      */
     int SetConnid();
 
-    bool type_accepted() const { return type_ == SOCKET_ACCEPTED; }
-    bool type_opened() const { return type_ == SOCKET_OPENED; }
+    bool type_accepted() const { return type_ == SocketType::ACCEPTED; }
+    bool type_opened() const { return type_ == SocketType::OPENED; }
 
     int fd() const { return fd_; }
     trace_id_t trace() const { return trace_; }
 
    private:
+    // File descriptor
     int fd_;
+
     trace_id_t trace_;
-    socket_type type_;
+    SocketType type_;
+
+    // Records the most recent operation executed on this socket
+    SocketState state_;
+
     http_parser parser_;
 
     bool has_connid_;
