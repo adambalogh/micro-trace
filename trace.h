@@ -9,7 +9,7 @@
 #include "uv.h"
 
 #include "helpers.h"
-#include "orig_types.h"
+#include "posix_defs.h"
 #include "socket_entry.h"
 
 extern "C" {

@@ -9,7 +9,6 @@
 #include <sys/types.h>
 
 #include "http_parser.h"
-#include "uthash.h"
 
 #include "socket_entry.h"
 #include "trace.h"
