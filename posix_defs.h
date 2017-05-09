@@ -1,11 +1,15 @@
 #pragma once
 
+#include <dlfcn.h>
+
+#include "uv.h"
+
 #define ORIG(func, name)                        \
     do {                                        \
         func = (decltype(func))find_orig(name); \
     } while (0)
 
-void *find_orig(const char *name) { return dlsym(RTLD_NEXT, name); }
+inline void *find_orig(const char *name) { return dlsym(RTLD_NEXT, name); }
 
 /* Libc functions */
 
@@ -66,3 +70,5 @@ struct OriginalFunctions {
 };
 
 static OriginalFunctions orig;
+
+#undef ORIG

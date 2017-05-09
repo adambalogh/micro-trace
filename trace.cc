@@ -13,6 +13,16 @@
 #include "trace.h"
 #include "tracing_socket.h"
 
+#define SOCK_CALL(fd, traced, normal)               \
+    do {                                            \
+        TracingSocket* sock = get_socket_entry(fd); \
+        if (sock == NULL) {                         \
+            return orig.normal;                     \
+        } else {                                    \
+            return sock->traced;                    \
+        }                                           \
+    } while (0)
+
 /* Accept */
 
 void handle_accept(const int sockfd) {
@@ -56,101 +66,6 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
     return ret;
 }
 
-/* Read */
-
-void handle_read(const int sockfd, const void* buf, const size_t ret) {
-    TracingSocket* entry = get_socket_entry(sockfd);
-    if (entry == nullptr) return;
-
-    // Set connid if it hasn't been set before, e.g. in case of
-    // when a socket was opened using connect().
-    if (!entry->has_connid()) {
-        entry->SetConnid();
-    }
-
-    set_current_trace(entry->trace());
-    DLOG("%d received %ld bytes", sockfd, ret);
-}
-
-ssize_t read(int fd, void* buf, size_t count) {
-    ssize_t ret = orig.orig_read(fd, buf, count);
-    if (ret == -1) {
-        return ret;
-    }
-
-    handle_read(fd, buf, ret);
-    return ret;
-}
-
-ssize_t recv(int sockfd, void* buf, size_t len, int flags) {
-    ssize_t ret = orig.orig_recv(sockfd, buf, len, flags);
-    if (ret == -1) {
-        return ret;
-    }
-
-    handle_read(sockfd, buf, ret);
-    return ret;
-}
-
-ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
-                 struct sockaddr* src_addr, socklen_t* addrlen) {
-    ssize_t ret =
-        orig.orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
-    if (ret == -1) {
-        return ret;
-    }
-
-    handle_read(sockfd, buf, ret);
-    return ret;
-}
-
-/* Write */
-
-void handle_write(const int sockfd, ssize_t len) {
-    TracingSocket* entry = get_socket_entry(sockfd);
-    if (entry == nullptr) {
-        return;
-    }
-
-    // Set connid if it hasn't been set before, e.g. in case of
-    // when a socket was opened using connect().
-    if (!entry->has_connid()) {
-        entry->SetConnid();
-    }
-
-    if (valid_trace(entry->trace())) {
-        set_current_trace(entry->trace());
-
-        // We are only interested in write to sockets that we opened to
-        // other servers, aka where we act as the client
-        if (entry->role_client()) {
-            LOG("sent %ld bytes", len);
-        }
-    }
-}
-
-ssize_t writev(int fd, const struct iovec* iov, int iovcnt) {
-    ssize_t ret = orig.orig_writev(fd, iov, iovcnt);
-    handle_write(fd, ret);
-    return ret;
-}
-
-ssize_t write(int fd, const void* buf, size_t count) {
-    ssize_t ret = orig.orig_write(fd, buf, count);
-
-    handle_write(fd, ret);
-    return ret;
-}
-
-ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
-    ssize_t ret = orig.orig_send(sockfd, buf, len, flags);
-
-    handle_write(sockfd, ret);
-    return ret;
-}
-
-/* Socket */
-
 // TODO should probably do this at connect() instead to avoid
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
@@ -166,14 +81,6 @@ int socket(int domain, int type, int protocol) {
         DLOG("opened socket: %d", sockfd);
     }
     return sockfd;
-}
-
-int close(int fd) {
-    int ret = orig.orig_close(fd);
-    if (ret == 0) {
-        del_socket_entry(fd);
-    }
-    return ret;
 }
 
 /* uv_getaddrinfo */
@@ -198,4 +105,47 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
 
     return orig.orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,
                                     service, hints);
+}
+
+/* TracingSocket calls */
+
+ssize_t read(int fd, void* buf, size_t count) {
+    SOCK_CALL(fd, Read(buf, count), orig_read(fd, buf, count));
+}
+
+ssize_t recv(int sockfd, void* buf, size_t len, int flags) {
+    SOCK_CALL(sockfd, Recv(buf, len, flags),
+              orig_recv(sockfd, buf, len, flags));
+}
+
+ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
+                 struct sockaddr* src_addr, socklen_t* addrlen) {
+    SOCK_CALL(sockfd, RecvFrom(buf, len, flags, src_addr, addrlen),
+              orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
+}
+
+ssize_t writev(int fd, const struct iovec* iov, int iovcnt) {
+    SOCK_CALL(fd, Writev(iov, iovcnt), orig_writev(fd, iov, iovcnt));
+}
+
+ssize_t write(int fd, const void* buf, size_t count) {
+    SOCK_CALL(fd, Write(buf, count), orig_write(fd, buf, count));
+}
+
+ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
+    SOCK_CALL(sockfd, Send(buf, len, flags),
+              orig_send(sockfd, buf, len, flags));
+}
+
+int close(int fd) {
+    TracingSocket* sock = get_socket_entry(fd);
+    if (sock == NULL) {
+        return orig.orig_close(fd);
+    }
+
+    int ret = sock->Close();
+    if (ret == 0) {
+        del_socket_entry(fd);
+    }
+    return ret;
 }

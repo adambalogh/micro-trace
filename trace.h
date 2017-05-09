@@ -7,7 +7,7 @@
 
 #include "uv.h"
 
-#include "helpers.h"
+#include "common.h"
 #include "posix_defs.h"
 #include "tracing_socket.h"
 
@@ -31,8 +31,6 @@ ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
 
 struct TraceWrap;
 
-__thread trace_id_t current_trace = UNDEFINED_TRACE;
-
 // TODO make these thread-safe
 std::unordered_map<int, std::unique_ptr<TracingSocket>> socket_map_;
 std::unordered_map<void *, std::unique_ptr<TraceWrap>> trace_wraps_;
@@ -45,16 +43,6 @@ struct TraceWrap {
     const uv_getaddrinfo_cb orig_cb;
     const trace_id_t id;
 };
-
-int valid_trace(const trace_id_t trace) {
-    return trace != UNDEFINED_TRACE && trace != -1;
-}
-
-void set_current_trace(const trace_id_t trace) {
-    if (valid_trace(trace)) {
-        current_trace = trace;
-    }
-}
 
 void add_socket_entry(std::unique_ptr<TracingSocket> entry) {
     socket_map_[entry->fd()] = std::move(entry);

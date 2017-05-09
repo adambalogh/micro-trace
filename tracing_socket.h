@@ -8,7 +8,7 @@
 
 #include "http_parser.h"
 
-#include "helpers.h"
+#include "common.h"
 #include "socket_interface.h"
 
 /*
@@ -58,13 +58,13 @@ class TracingSocket : public SocketInterface {
      */
     int SetConnid();
 
-    ssize_t RecvFrom(int sockfd, void *buf, size_t len, int flags,
+    ssize_t RecvFrom(void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) override;
-    ssize_t Send(int sockfd, const void *buf, size_t len, int flags) override;
-    ssize_t Recv(int sockfd, void *buf, size_t len, int flags) override;
-    ssize_t Read(int fd, void *buf, size_t count) override;
-    ssize_t Write(int fd, const void *buf, size_t count) override;
-    ssize_t Writev(int fd, const struct iovec *iov, int iovcnt) override;
+    ssize_t Send(const void *buf, size_t len, int flags) override;
+    ssize_t Recv(void *buf, size_t len, int flags) override;
+    ssize_t Read(void *buf, size_t count) override;
+    ssize_t Write(const void *buf, size_t count) override;
+    ssize_t Writev(const struct iovec *iov, int iovcnt) override;
     int Close() override;
 
     bool role_server() const { return role_ == SocketRole::SERVER; }
@@ -74,6 +74,16 @@ class TracingSocket : public SocketInterface {
     trace_id_t trace() const { return trace_; }
 
    private:
+    /* Should be called before calling any syscall that reads from the socket */
+    void BeforeRead();
+    /* Should be called after calling any syscall that reads from the socket */
+    void AfterRead(const void *buf, size_t len);
+
+    /* Should be called before calling any syscall that writes to the socket */
+    void BeforeWrite();
+    /* Should be called after calling any syscall that writes to the socket */
+    void AfterWrite(ssize_t ret);
+
     // File descriptor
     int fd_;
 

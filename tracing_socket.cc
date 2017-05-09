@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <iostream>
 
+#include "posix_defs.h"
+
 Connid::Connid()
     : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
 
@@ -66,13 +68,83 @@ int TracingSocket::SetConnid() {
     return 0;
 }
 
-ssize_t TracingSocket::RecvFrom(int sockfd, void *buf, size_t len, int flags,
-                                struct sockaddr *src_addr, socklen_t *addrlen) {
+void TracingSocket::AfterRead(const void *buf, size_t len) {
+    // Set connid if it hasn't been set before, e.g. in case of
+    // when a socket was opened using connect().
+    if (!has_connid()) {
+        SetConnid();
+    }
+
+    set_current_trace(trace());
+    DLOG("%d received %ld bytes", fd(), ret);
 }
-ssize_t TracingSocket::Send(int sockfd, const void *buf, size_t len,
-                            int flags) {}
-ssize_t TracingSocket::Recv(int sockfd, void *buf, size_t len, int flags) {}
-ssize_t TracingSocket::Read(int fd, void *buf, size_t count) {}
-ssize_t TracingSocket::Write(int fd, const void *buf, size_t count) {}
-ssize_t TracingSocket::Writev(int fd, const struct iovec *iov, int iovcnt) {}
-int TracingSocket::Close() {}
+
+void TracingSocket::AfterWrite(ssize_t len) {
+    // Set connid if it hasn't been set before, e.g. in case of
+    // when a socket was opened using connect().
+    if (!has_connid()) {
+        SetConnid();
+    }
+
+    if (valid_trace(trace())) {
+        set_current_trace(trace());
+
+        // We are only interested in write to sockets that we opened to
+        // other servers, aka where we act as the client
+        if (role_client()) {
+            LOG("sent %ld bytes", len);
+        }
+    }
+}
+
+ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
+                                struct sockaddr *src_addr, socklen_t *addrlen) {
+    ssize_t ret = orig.orig_recvfrom(fd(), buf, len, flags, src_addr, addrlen);
+    if (ret == -1) {
+        return ret;
+    }
+
+    AfterRead(buf, ret);
+    return ret;
+}
+
+ssize_t TracingSocket::Recv(void *buf, size_t len, int flags) {
+    ssize_t ret = orig.orig_recv(fd(), buf, len, flags);
+    if (ret == -1) {
+        return ret;
+    }
+    AfterRead(buf, ret);
+    return ret;
+}
+
+ssize_t TracingSocket::Read(void *buf, size_t count) {
+    ssize_t ret = orig.orig_read(fd(), buf, count);
+    if (ret == -1) {
+        return ret;
+    }
+    AfterRead(buf, ret);
+    return ret;
+}
+
+ssize_t TracingSocket::Send(const void *buf, size_t len, int flags) {
+    ssize_t ret = orig.orig_send(fd(), buf, len, flags);
+    AfterWrite(ret);
+    return ret;
+}
+
+ssize_t TracingSocket::Write(const void *buf, size_t count) {
+    ssize_t ret = orig.orig_write(fd(), buf, count);
+    AfterWrite(ret);
+    return ret;
+}
+
+ssize_t TracingSocket::Writev(const struct iovec *iov, int iovcnt) {
+    ssize_t ret = orig.orig_writev(fd(), iov, iovcnt);
+    AfterWrite(ret);
+    return ret;
+}
+
+int TracingSocket::Close() {
+    int ret = orig.orig_close(fd());
+    return ret;
+}
