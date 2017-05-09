@@ -10,8 +10,8 @@
 
 #include "http_parser.h"
 
-#include "socket_entry.h"
 #include "trace.h"
+#include "tracing_socket.h"
 
 /* Accept */
 
@@ -24,8 +24,8 @@ void handle_accept(const int sockfd) {
     trace_id_t trace = rand() % 10000;
     set_current_trace(trace);
 
-    std::unique_ptr<SocketEntry> socket(
-        new SocketEntry(sockfd, trace, SocketType::ACCEPTED));
+    std::unique_ptr<TracingSocket> socket(
+        new TracingSocket(sockfd, trace, SocketRole::SERVER));
     int ret = socket->SetConnid();
     add_socket_entry(std::move(socket));
 
@@ -62,7 +62,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 /* Read */
 
 void handle_read(const int sockfd, const void* buf, const size_t ret) {
-    SocketEntry* entry = get_socket_entry(sockfd);
+    TracingSocket* entry = get_socket_entry(sockfd);
     if (entry == nullptr) return;
 
     // Set connid if it hasn't been set before, e.g. in case of
@@ -112,7 +112,7 @@ ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
 /* Write */
 
 void handle_write(const int sockfd, ssize_t len) {
-    SocketEntry* entry = get_socket_entry(sockfd);
+    TracingSocket* entry = get_socket_entry(sockfd);
     if (entry == nullptr) {
         return;
     }
@@ -128,7 +128,7 @@ void handle_write(const int sockfd, ssize_t len) {
 
         // We are only interested in write to sockets that we opened to
         // other servers, aka where we act as the client
-        if (entry->type_opened()) {
+        if (entry->role_client()) {
             LOG("sent %ld bytes", len);
         }
     }
@@ -169,8 +169,8 @@ int socket(int domain, int type, int protocol) {
     }
 
     if (current_trace != UNDEFINED_TRACE) {
-        std::unique_ptr<SocketEntry> socket(
-            new SocketEntry(sockfd, current_trace, SocketType::OPENED));
+        std::unique_ptr<TracingSocket> socket(
+            new TracingSocket(sockfd, current_trace, SocketRole::CLIENT));
         add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }

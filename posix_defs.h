@@ -1,5 +1,4 @@
-#ifndef _POSIX_DEFS_H_
-#define _POSIX_DEFS_H_
+#pragma once
 
 #define FIND_ORIG(func, name)                                   \
     do {                                                        \
@@ -47,5 +46,3 @@ typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t *loop, uv_getaddrinfo_t *req,
 
 static __thread orig_uv_accept_t orig_uv_accept;
 static __thread orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
-
-#endif

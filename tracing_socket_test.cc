@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "socket_entry.h"
+#include "tracing_socket.h"
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -15,18 +15,18 @@ TEST(Connid, Init) {
     EXPECT_EQ(INET6_ADDRSTRLEN, cid.peer_ip.size());
 }
 
-TEST(SocketEntryTest, Init) {
-    SocketEntry socket{FD, TRACE, SocketType::OPENED};
+TEST(TracingSocketTest, Init) {
+    TracingSocket socket{FD, TRACE, SocketRole::CLIENT};
 
     EXPECT_EQ(FD, socket.fd());
     EXPECT_EQ(TRACE, socket.trace());
-    EXPECT_TRUE(socket.type_opened());
+    EXPECT_TRUE(socket.role_client());
     EXPECT_FALSE(socket.has_connid());
 }
 
-TEST(SocketEntryTest, SetConnid) {
+TEST(TracingSocketTest, SetConnid) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
-    SocketEntry socket{fd, TRACE, SocketType::OPENED};
+    TracingSocket socket{fd, TRACE, SocketRole::CLIENT};
     int ret = socket.SetConnid();
 }

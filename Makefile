@@ -4,11 +4,11 @@ LIB_NAME = trace.so
 BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
-HDRS = socket_entry.h trace.h posix_defs.h helpers.h
-SRCS = socket_entry.cc trace.cc
+HDRS = tracing_socket.h trace.h posix_defs.h helpers.h socket_interface.h
+SRCS = tracing_socket.cc trace.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = socket_entry_test.cc
+TESTS = tracing_socket_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I lib/
@@ -40,7 +40,7 @@ test: $(TEST_EXEC)
 	@echo 'done'
 
 run-test: test
-	@./build/socket_entry_test
+	@./build/tracing_socket_test
 
 node:
 	@LD_PRELOAD=$(OUT) node apps/frontend.js & \

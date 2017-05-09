@@ -1,5 +1,4 @@
-#ifndef _TRACE_H_
-#define _TRACE_H_
+#pragma once
 
 #include <pthread.h>
 #include <stdint.h>
@@ -10,7 +9,7 @@
 
 #include "helpers.h"
 #include "posix_defs.h"
-#include "socket_entry.h"
+#include "tracing_socket.h"
 
 extern "C" {
 
@@ -35,7 +34,7 @@ struct TraceWrap;
 __thread trace_id_t current_trace = UNDEFINED_TRACE;
 
 // TODO make these thread-safe
-std::unordered_map<int, std::unique_ptr<SocketEntry>> socket_map_;
+std::unordered_map<int, std::unique_ptr<TracingSocket>> socket_map_;
 std::unordered_map<void *, std::unique_ptr<TraceWrap>> trace_wraps_;
 
 struct TraceWrap {
@@ -57,11 +56,11 @@ void set_current_trace(const trace_id_t trace) {
     }
 }
 
-void add_socket_entry(std::unique_ptr<SocketEntry> entry) {
+void add_socket_entry(std::unique_ptr<TracingSocket> entry) {
     socket_map_[entry->fd()] = std::move(entry);
 }
 
-SocketEntry *get_socket_entry(const int sockfd) {
+TracingSocket *get_socket_entry(const int sockfd) {
     auto it = socket_map_.find(sockfd);
     if (it == socket_map_.end()) {
         return nullptr;
@@ -70,7 +69,7 @@ SocketEntry *get_socket_entry(const int sockfd) {
 }
 
 trace_id_t get_socket_trace(const int sockfd) {
-    const SocketEntry *entry = get_socket_entry(sockfd);
+    const TracingSocket *entry = get_socket_entry(sockfd);
     if (entry == nullptr) {
         return UNDEFINED_TRACE;
     }
@@ -88,5 +87,3 @@ const TraceWrap &get_trace_wrap(void *req_ptr) {
 }
 
 void del_trace_wrap(void *req_ptr) { trace_wraps_.erase(req_ptr); }
-
-#endif

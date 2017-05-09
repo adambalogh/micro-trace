@@ -1,4 +1,4 @@
-#include "socket_entry.h"
+#include "tracing_socket.h"
 
 #include <assert.h>
 #include <iostream>
@@ -11,33 +11,33 @@ void Connid::print() const {
               << "):" << peer_port << std::endl;
 }
 
-SocketEntry::SocketEntry(const int fd, const trace_id_t trace,
-                         const SocketType type)
+TracingSocket::TracingSocket(const int fd, const trace_id_t trace,
+                             const SocketRole role)
     : fd_(fd),
       trace_(trace),
-      type_(type),
-      state_(type == SocketType::ACCEPTED ? SocketState::READ
-                                          : SocketState::WRITE),
+      role_(role),
+      state_(role_ == SocketRole::SERVER ? SocketState::WILL_READ
+                                         : SocketState::WILL_WRITE),
       has_connid_(false) {
     http_parser_init(&parser_, HTTP_REQUEST);
     parser_.data = this;
 }
 
-bool SocketEntry::has_connid() { return has_connid_; }
+bool TracingSocket::has_connid() { return has_connid_; }
 
-unsigned short get_port(const struct sockaddr* sa) {
+unsigned short get_port(const struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
-        return ((struct sockaddr_in*)sa)->sin_port;
+        return ((struct sockaddr_in *)sa)->sin_port;
     }
-    return ((struct sockaddr_in6*)sa)->sin6_port;
+    return ((struct sockaddr_in6 *)sa)->sin6_port;
 }
 
-int SocketEntry::SetConnid() {
+int TracingSocket::SetConnid() {
     struct sockaddr addr;
     socklen_t addr_len = sizeof(struct sockaddr);
 
     int ret;
-    const char* dst;
+    const char *dst;
 
     ret = getsockname(fd_, &addr, &addr_len);
     if (ret != 0) {
@@ -65,3 +65,14 @@ int SocketEntry::SetConnid() {
     has_connid_ = true;
     return 0;
 }
+
+ssize_t TracingSocket::RecvFrom(int sockfd, void *buf, size_t len, int flags,
+                                struct sockaddr *src_addr, socklen_t *addrlen) {
+}
+ssize_t TracingSocket::Send(int sockfd, const void *buf, size_t len,
+                            int flags) {}
+ssize_t TracingSocket::Recv(int sockfd, void *buf, size_t len, int flags) {}
+ssize_t TracingSocket::Read(int fd, void *buf, size_t count) {}
+ssize_t TracingSocket::Write(int fd, const void *buf, size_t count) {}
+ssize_t TracingSocket::Writev(int fd, const struct iovec *iov, int iovcnt) {}
+int TracingSocket::Close() {}

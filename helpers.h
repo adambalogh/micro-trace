@@ -1,5 +1,4 @@
-#ifndef _HELPERS_H_
-#define _HELPERS_H_
+#pragma once
 
 #include <string>
 
@@ -32,5 +31,3 @@
 inline char* string_arr(std::string& str) { return &str[0]; }
 
 typedef int32_t trace_id_t;
-
-#endif
