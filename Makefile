@@ -25,7 +25,7 @@ $(OUT): $(OBJ) $(HDRS)
 
 # Library files build
 
-$(BUILD_DIR)/%.o : %.cc
+$(BUILD_DIR)/%.o : %.cc $(HDRS)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build
