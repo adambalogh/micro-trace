@@ -70,7 +70,7 @@ class TracingSocket : public SocketInterface {
     bool role_server() const { return role_ == SocketRole::SERVER; }
     bool role_client() const { return role_ == SocketRole::CLIENT; }
 
-    int fd() const { return fd_; }
+    int fd() const override { return fd_; }
     trace_id_t trace() const { return trace_; }
 
    private:
