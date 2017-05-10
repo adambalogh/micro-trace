@@ -4,3 +4,4 @@ build/
 *.swp
 lib/
 apps/node_modules
+*.pyc
