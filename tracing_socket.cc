@@ -11,9 +11,11 @@ Connid::Connid()
 
 std::string Connid::to_string() const {
     std::string str;
-    str += "(" + local_ip + "):" + std::to_string(local_port);
-    str += " -> ";
-    str += "(" + peer_ip + "):" + std::to_string(peer_port);
+    str += "[";
+    str += "local: " + local_ip + ":" + std::to_string(local_port);
+    str += ", ";
+    str += "peer: " + peer_ip + ":" + std::to_string(peer_port);
+    str += "]";
     return str;
 }
 
@@ -60,7 +62,9 @@ int TracingSocket::SetConnid() {
     // inet_ntop puts a null terminated string into local_ip
     connid_.local_ip.resize(strlen(string_arr(connid_.local_ip)));
 
+    memset(&addr, 0, sizeof(addr));
     addr_len = sizeof(struct sockaddr);
+
     ret = getpeername(fd_, &addr, &addr_len);
     if (ret != 0) {
         return ret;
@@ -81,7 +85,7 @@ int TracingSocket::SetConnid() {
 void TracingSocket::BeforeRead() {}
 
 void TracingSocket::AfterRead(const void *buf, size_t len) {
-    set_current_trace(trace());
+    assert(len >= 0);
 
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
@@ -89,103 +93,104 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
         SetConnid();
     }
 
-    if (role_server()) {
-        if (state_ == SocketState::WILL_READ || state_ == SocketState::WRITE) {
+    set_current_trace(trace());
+
+    if (len > 0) {
+        if (role_server() && (state_ == SocketState::WILL_READ ||
+                              state_ == SocketState::WRITE)) {
+            std::cout << "server read ";
             connid_.print();
         }
-    }
 
-    DLOG("%d received %ld bytes", fd(), ret);
-    state_ = SocketState::READ;
+        DLOG("%d received %ld bytes", fd(), ret);
+        state_ = SocketState::READ;
+    }
 }
 
 void TracingSocket::BeforeWrite() {}
 
 void TracingSocket::AfterWrite(ssize_t len) {
+    assert(len >= 0);
+
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!has_connid()) {
         SetConnid();
     }
 
-    if (role_client()) {
-        if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-            connid_.print();
-        }
-    }
+    set_current_trace(trace());
 
-    if (valid_trace(trace())) {
-        set_current_trace(trace());
-
+    if (len > 0) {
         // We are only interested in write to sockets that we opened to
         // other servers, aka where we act as the client
         if (role_client()) {
-            LOG("sent %ld bytes", len);
+            DLOG("sent %ld bytes", len);
         }
-    }
 
-    state_ = SocketState::WRITE;
+        if (role_client() && (state_ == SocketState::WILL_WRITE ||
+                              state_ == SocketState::READ)) {
+            std::cout << "client send ";
+            connid_.print();
+        }
+
+        DLOG("%d received %ld bytes", fd(), ret);
+        state_ = SocketState::WRITE;
+    }
 }
 
+// TODO handle special case when len == 0
 ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
                                 struct sockaddr *src_addr, socklen_t *addrlen) {
     BeforeRead();
     ssize_t ret = orig.orig_recvfrom(fd(), buf, len, flags, src_addr, addrlen);
-    if (ret == -1) {
-        return ret;
+    if (ret != -1) {
+        AfterRead(buf, ret);
     }
-
-    AfterRead(buf, ret);
     return ret;
 }
 
 ssize_t TracingSocket::Recv(void *buf, size_t len, int flags) {
     BeforeRead();
     ssize_t ret = orig.orig_recv(fd(), buf, len, flags);
-    if (ret == -1) {
-        return ret;
+    if (ret != -1) {
+        AfterRead(buf, ret);
     }
-    AfterRead(buf, ret);
     return ret;
 }
 
 ssize_t TracingSocket::Read(void *buf, size_t count) {
     BeforeRead();
     ssize_t ret = orig.orig_read(fd(), buf, count);
-    if (ret == -1) {
-        return ret;
+    if (ret != -1) {
+        AfterRead(buf, ret);
     }
-    AfterRead(buf, ret);
     return ret;
 }
 
 ssize_t TracingSocket::Send(const void *buf, size_t len, int flags) {
     BeforeWrite();
     ssize_t ret = orig.orig_send(fd(), buf, len, flags);
-    if (ret == -1) {
-        return ret;
+    if (ret != -1) {
+        AfterWrite(ret);
     }
-    AfterWrite(ret);
     return ret;
 }
 
 ssize_t TracingSocket::Write(const void *buf, size_t count) {
     BeforeWrite();
     ssize_t ret = orig.orig_write(fd(), buf, count);
-    if (ret == -1) {
-        return ret;
+    if (ret != -1) {
+        AfterWrite(ret);
     }
-    AfterWrite(ret);
     return ret;
 }
 
 ssize_t TracingSocket::Writev(const struct iovec *iov, int iovcnt) {
     BeforeWrite();
     ssize_t ret = orig.orig_writev(fd(), iov, iovcnt);
-    if (ret == -1) {
-        return ret;
+    if (ret != -1) {
+        AfterWrite(ret);
     }
-    AfterWrite(ret);
     return ret;
 }
 
