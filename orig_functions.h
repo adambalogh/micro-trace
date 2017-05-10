@@ -69,6 +69,6 @@ struct OriginalFunctions {
     orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
 };
 
-static OriginalFunctions orig;
+extern OriginalFunctions &orig();
 
 #undef ORIG

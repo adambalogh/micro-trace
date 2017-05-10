@@ -17,7 +17,7 @@
     do {                                            \
         TracingSocket* sock = get_socket_entry(fd); \
         if (sock == NULL) {                         \
-            return orig.normal;                     \
+            return orig().normal;                   \
         } else {                                    \
             return sock->traced;                    \
         }                                           \
@@ -43,21 +43,21 @@ void handle_accept(const int sockfd) {
 }
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    int ret = orig.orig_accept(sockfd, addr, addrlen);
+    int ret = orig().orig_accept(sockfd, addr, addrlen);
     handle_accept(ret);
 
     return ret;
 }
 
 int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
-    int ret = orig.orig_accept4(sockfd, addr, addrlen, flags);
+    int ret = orig().orig_accept4(sockfd, addr, addrlen, flags);
     handle_accept(ret);
 
     return ret;
 }
 
 int uv_accept(uv_stream_t* server, uv_stream_t* client) {
-    int ret = orig.orig_uv_accept(server, client);
+    int ret = orig().orig_uv_accept(server, client);
     if (ret == 0) {
         int fd = client->io_watcher.fd;
         handle_accept(fd);
@@ -69,7 +69,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 // TODO should probably do this at connect() instead to avoid
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
-    int sockfd = orig.orig_socket(domain, type, protocol);
+    int sockfd = orig().orig_socket(domain, type, protocol);
     if (sockfd == -1) {
         return sockfd;
     }
@@ -103,8 +103,8 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
         new TraceWrap(req, getaddrinfo_cb, current_trace));
     add_trace_wrap(std::move(trace));
 
-    return orig.orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,
-                                    service, hints);
+    return orig().orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,
+                                      service, hints);
 }
 
 /* TracingSocket calls */
@@ -129,6 +129,7 @@ ssize_t writev(int fd, const struct iovec* iov, int iovcnt) {
 }
 
 ssize_t write(int fd, const void* buf, size_t count) {
+    printf("write\n");
     SOCK_CALL(fd, Write(buf, count), orig_write(fd, buf, count));
 }
 
@@ -140,7 +141,7 @@ ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
 int close(int fd) {
     TracingSocket* sock = get_socket_entry(fd);
     if (sock == NULL) {
-        return orig.orig_close(fd);
+        return orig().orig_close(fd);
     }
 
     int ret = sock->Close();

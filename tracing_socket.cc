@@ -4,7 +4,7 @@
 #include <string.h>
 #include <iostream>
 
-#include "posix_defs.h"
+#include "orig_functions.h"
 
 Connid::Connid()
     : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
@@ -105,6 +105,7 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
 void TracingSocket::BeforeWrite() {}
 
 void TracingSocket::AfterWrite(ssize_t len) {
+    printf("write\n");
     assert(len >= 0);
 
     // Set connid if it hasn't been set before, e.g. in case of
@@ -136,7 +137,8 @@ void TracingSocket::AfterWrite(ssize_t len) {
 ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
                                 struct sockaddr *src_addr, socklen_t *addrlen) {
     BeforeRead();
-    ssize_t ret = orig.orig_recvfrom(fd(), buf, len, flags, src_addr, addrlen);
+    ssize_t ret =
+        orig().orig_recvfrom(fd(), buf, len, flags, src_addr, addrlen);
     if (ret != -1) {
         AfterRead(buf, ret);
     }
@@ -145,7 +147,7 @@ ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
 
 ssize_t TracingSocket::Recv(void *buf, size_t len, int flags) {
     BeforeRead();
-    ssize_t ret = orig.orig_recv(fd(), buf, len, flags);
+    ssize_t ret = orig().orig_recv(fd(), buf, len, flags);
     if (ret != -1) {
         AfterRead(buf, ret);
     }
@@ -154,7 +156,7 @@ ssize_t TracingSocket::Recv(void *buf, size_t len, int flags) {
 
 ssize_t TracingSocket::Read(void *buf, size_t count) {
     BeforeRead();
-    ssize_t ret = orig.orig_read(fd(), buf, count);
+    ssize_t ret = orig().orig_read(fd(), buf, count);
     if (ret != -1) {
         AfterRead(buf, ret);
     }
@@ -163,7 +165,7 @@ ssize_t TracingSocket::Read(void *buf, size_t count) {
 
 ssize_t TracingSocket::Send(const void *buf, size_t len, int flags) {
     BeforeWrite();
-    ssize_t ret = orig.orig_send(fd(), buf, len, flags);
+    ssize_t ret = orig().orig_send(fd(), buf, len, flags);
     if (ret != -1) {
         AfterWrite(ret);
     }
@@ -172,7 +174,7 @@ ssize_t TracingSocket::Send(const void *buf, size_t len, int flags) {
 
 ssize_t TracingSocket::Write(const void *buf, size_t count) {
     BeforeWrite();
-    ssize_t ret = orig.orig_write(fd(), buf, count);
+    ssize_t ret = orig().orig_write(fd(), buf, count);
     if (ret != -1) {
         AfterWrite(ret);
     }
@@ -181,7 +183,7 @@ ssize_t TracingSocket::Write(const void *buf, size_t count) {
 
 ssize_t TracingSocket::Writev(const struct iovec *iov, int iovcnt) {
     BeforeWrite();
-    ssize_t ret = orig.orig_writev(fd(), iov, iovcnt);
+    ssize_t ret = orig().orig_writev(fd(), iov, iovcnt);
     if (ret != -1) {
         AfterWrite(ret);
     }
@@ -189,6 +191,6 @@ ssize_t TracingSocket::Writev(const struct iovec *iov, int iovcnt) {
 }
 
 int TracingSocket::Close() {
-    int ret = orig.orig_close(fd());
+    int ret = orig().orig_close(fd());
     return ret;
 }
