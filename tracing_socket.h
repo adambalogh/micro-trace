@@ -6,8 +6,6 @@
 #include <sys/socket.h>
 #include <string>
 
-#include "http_parser.h"
-
 #include "common.h"
 #include "socket_interface.h"
 
@@ -98,7 +96,7 @@ class TracingSocket : public SocketInterface {
     // Records the most recent operation executed on this socket
     SocketState state_;
 
-    http_parser parser_;
+    int num_requests_;
 
     bool has_connid_;
     Connid connid_;

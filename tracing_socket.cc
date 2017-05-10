@@ -28,10 +28,7 @@ TracingSocket::TracingSocket(const int fd, const trace_id_t trace,
       role_(role),
       state_(role_ == SocketRole::SERVER ? SocketState::WILL_READ
                                          : SocketState::WILL_WRITE),
-      has_connid_(false) {
-    http_parser_init(&parser_, HTTP_REQUEST);
-    parser_.data = this;
-}
+      has_connid_(false) {}
 
 bool TracingSocket::has_connid() { return has_connid_; }
 
@@ -62,7 +59,6 @@ int TracingSocket::SetConnid() {
     // inet_ntop puts a null terminated string into local_ip
     connid_.local_ip.resize(strlen(string_arr(connid_.local_ip)));
 
-    memset(&addr, 0, sizeof(addr));
     addr_len = sizeof(struct sockaddr);
 
     ret = getpeername(fd_, &addr, &addr_len);
@@ -98,7 +94,6 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
     if (len > 0) {
         if (role_server() && (state_ == SocketState::WILL_READ ||
                               state_ == SocketState::WRITE)) {
-            std::cout << "server read ";
             connid_.print();
         }
 
@@ -124,12 +119,11 @@ void TracingSocket::AfterWrite(ssize_t len) {
         // We are only interested in write to sockets that we opened to
         // other servers, aka where we act as the client
         if (role_client()) {
-            DLOG("sent %ld bytes", len);
+            LOG("sent %ld bytes", len);
         }
 
         if (role_client() && (state_ == SocketState::WILL_WRITE ||
                               state_ == SocketState::READ)) {
-            std::cout << "client send ";
             connid_.print();
         }
 
