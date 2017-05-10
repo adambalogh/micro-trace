@@ -57,7 +57,6 @@ int TracingSocket::SetConnid() {
     if (dst == NULL) {
         return errno;
     }
-
     // inet_ntop puts a null terminated string into local_ip
     connid_.local_ip.resize(strlen(string_arr(connid_.local_ip)));
 
@@ -68,11 +67,10 @@ int TracingSocket::SetConnid() {
     }
     connid_.peer_port = get_port(&addr);
     dst = inet_ntop(addr.sa_family, &addr, string_arr(connid_.peer_ip),
-                    connid_.local_ip.size());
+                    connid_.peer_ip.size());
     if (dst == NULL) {
         return errno;
     }
-
     // inet_ntop puts a null terminated string into peer_ip
     connid_.peer_ip.resize(strlen(string_arr(connid_.peer_ip)));
 
@@ -80,36 +78,42 @@ int TracingSocket::SetConnid() {
     return 0;
 }
 
-void TracingSocket::BeforeRead() {
-    // Set connid if it hasn't been set before, e.g. in case of
-    // when a socket was opened using connect().
-    if (!has_connid()) {
-        SetConnid();
-    }
-}
+void TracingSocket::BeforeRead() {}
 
 void TracingSocket::AfterRead(const void *buf, size_t len) {
     set_current_trace(trace());
-    DLOG("%d received %ld bytes", fd(), ret);
 
-    state_ = SocketState::READ;
-}
-
-void TracingSocket::BeforeWrite() {
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!has_connid()) {
         SetConnid();
     }
 
-    if (!role_client()) return;
-
-    if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-        connid_.print();
+    if (role_server()) {
+        if (state_ == SocketState::WILL_READ || state_ == SocketState::WRITE) {
+            connid_.print();
+        }
     }
+
+    DLOG("%d received %ld bytes", fd(), ret);
+    state_ = SocketState::READ;
 }
 
+void TracingSocket::BeforeWrite() {}
+
 void TracingSocket::AfterWrite(ssize_t len) {
+    // Set connid if it hasn't been set before, e.g. in case of
+    // when a socket was opened using connect().
+    if (!has_connid()) {
+        SetConnid();
+    }
+
+    if (role_client()) {
+        if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+            connid_.print();
+        }
+    }
+
     if (valid_trace(trace())) {
         set_current_trace(trace());
 
@@ -125,6 +129,7 @@ void TracingSocket::AfterWrite(ssize_t len) {
 
 ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
                                 struct sockaddr *src_addr, socklen_t *addrlen) {
+    BeforeRead();
     ssize_t ret = orig.orig_recvfrom(fd(), buf, len, flags, src_addr, addrlen);
     if (ret == -1) {
         return ret;
@@ -135,6 +140,7 @@ ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
 }
 
 ssize_t TracingSocket::Recv(void *buf, size_t len, int flags) {
+    BeforeRead();
     ssize_t ret = orig.orig_recv(fd(), buf, len, flags);
     if (ret == -1) {
         return ret;
@@ -144,6 +150,7 @@ ssize_t TracingSocket::Recv(void *buf, size_t len, int flags) {
 }
 
 ssize_t TracingSocket::Read(void *buf, size_t count) {
+    BeforeRead();
     ssize_t ret = orig.orig_read(fd(), buf, count);
     if (ret == -1) {
         return ret;
@@ -155,6 +162,9 @@ ssize_t TracingSocket::Read(void *buf, size_t count) {
 ssize_t TracingSocket::Send(const void *buf, size_t len, int flags) {
     BeforeWrite();
     ssize_t ret = orig.orig_send(fd(), buf, len, flags);
+    if (ret == -1) {
+        return ret;
+    }
     AfterWrite(ret);
     return ret;
 }
@@ -162,6 +172,9 @@ ssize_t TracingSocket::Send(const void *buf, size_t len, int flags) {
 ssize_t TracingSocket::Write(const void *buf, size_t count) {
     BeforeWrite();
     ssize_t ret = orig.orig_write(fd(), buf, count);
+    if (ret == -1) {
+        return ret;
+    }
     AfterWrite(ret);
     return ret;
 }
@@ -169,6 +182,9 @@ ssize_t TracingSocket::Write(const void *buf, size_t count) {
 ssize_t TracingSocket::Writev(const struct iovec *iov, int iovcnt) {
     BeforeWrite();
     ssize_t ret = orig.orig_writev(fd(), iov, iovcnt);
+    if (ret == -1) {
+        return ret;
+    }
     AfterWrite(ret);
     return ret;
 }

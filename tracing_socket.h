@@ -75,14 +75,18 @@ class TracingSocket : public SocketInterface {
     trace_id_t trace() const { return trace_; }
 
    private:
-    /* Should be called before calling any syscall that reads from the socket */
+    // Should be called before a read operation on the socket
     void BeforeRead();
-    /* Should be called after calling any syscall that reads from the socket */
+
+    // Should be called after a *successful* read operation on the socket, e.g.
+    // len >= 0
     void AfterRead(const void *buf, size_t len);
 
-    /* Should be called before calling any syscall that writes to the socket */
+    // Should be called before a write operation on the socket
     void BeforeWrite();
-    /* Should be called after calling any syscall that writes to the socket */
+
+    // Should be called after a *successful* write operation on the socket, e.g.
+    // ret >= 0
     void AfterWrite(ssize_t ret);
 
     // File descriptor
