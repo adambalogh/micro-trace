@@ -27,6 +27,8 @@ ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
 ssize_t send(int sockfd, const void *buf, size_t len, int flags);
 ssize_t write(int fd, const void *buf, size_t count);
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
+ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
+               const struct sockaddr *dest_addr, socklen_t addrlen);
 }
 
 struct TraceWrap;

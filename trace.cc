@@ -37,6 +37,8 @@ void handle_accept(const int sockfd) {
     std::unique_ptr<TracingSocket> socket(
         new TracingSocket(sockfd, trace, SocketRole::SERVER));
     int ret = socket->SetConnid();
+    if (ret != 0) {
+    }
     add_socket_entry(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
@@ -120,6 +122,7 @@ ssize_t recv(int sockfd, void* buf, size_t len, int flags) {
 
 ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
                  struct sockaddr* src_addr, socklen_t* addrlen) {
+    printf("recvfrom\n");
     SOCK_CALL(sockfd, RecvFrom(buf, len, flags, src_addr, addrlen),
               orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
 }
@@ -136,6 +139,12 @@ ssize_t write(int fd, const void* buf, size_t count) {
 ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
     SOCK_CALL(sockfd, Send(buf, len, flags),
               orig_send(sockfd, buf, len, flags));
+}
+
+ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
+               const struct sockaddr* dest_addr, socklen_t addrlen) {
+    SOCK_CALL(sockfd, SendTo(sockfd, buf, len, flags, dest_addr, addrlen),
+              orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen));
 }
 
 int close(int fd) {

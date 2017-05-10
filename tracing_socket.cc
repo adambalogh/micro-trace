@@ -190,6 +190,18 @@ ssize_t TracingSocket::Writev(const struct iovec *iov, int iovcnt) {
     return ret;
 }
 
+ssize_t TracingSocket::SendTo(int sockfd, const void *buf, size_t len,
+                              int flags, const struct sockaddr *dest_addr,
+                              socklen_t addrlen) {
+    BeforeWrite();
+    ssize_t ret =
+        orig().orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+    if (ret != -1) {
+        AfterWrite(ret);
+    }
+    return ret;
+}
+
 int TracingSocket::Close() {
     int ret = orig().orig_close(fd());
     return ret;
