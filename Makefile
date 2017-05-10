@@ -12,7 +12,7 @@ TESTS = tracing_socket_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I lib/
-LIBS = -L /usr/local/lib -lhttp_parser -lpthread
+LIBS = -L /usr/local/lib -lhttp_parser -lpthread -ldl
 
 CC = g++
 CFLAGS = -Wall -std=c++17
@@ -21,7 +21,7 @@ LIBFLAGS = -fPIC -shared
 # Shared library build
 
 $(OUT): $(OBJ) $(HDRS)
-	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@
+	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@ $(LIBS)
 
 # Library files build
 
@@ -43,6 +43,4 @@ run-test: test
 	@./build/tracing_socket_test
 
 node:
-	@LD_PRELOAD=$(OUT) node apps/frontend.js & \
-	LD_PRELOAD=$(OUT) node apps/backend.js && \
-	fg
+	LD_PRELOAD=$(OUT) node apps/frontend.js & LD_PRELOAD=$(OUT) node apps/backend.js & LD_PRELOAD=$(OUT) flask run && fg
