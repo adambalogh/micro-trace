@@ -18,6 +18,7 @@ struct Connid {
    public:
     Connid();
 
+    std::string to_string() const;
     void print() const;
 
     std::string local_ip;

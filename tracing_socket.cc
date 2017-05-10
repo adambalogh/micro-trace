@@ -1,6 +1,7 @@
 #include "tracing_socket.h"
 
 #include <assert.h>
+#include <string.h>
 #include <iostream>
 
 #include "posix_defs.h"
@@ -8,10 +9,15 @@
 Connid::Connid()
     : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
 
-void Connid::print() const {
-    std::cout << "(" << local_ip << "):" << local_port << " -> (" << peer_ip
-              << "):" << peer_port << std::endl;
+std::string Connid::to_string() const {
+    std::string str;
+    str += "(" + local_ip + "):" + std::to_string(local_port);
+    str += " -> ";
+    str += "(" + peer_ip + "):" + std::to_string(peer_port);
+    return str;
 }
+
+void Connid::print() const { std::cout << to_string() << std::endl; }
 
 TracingSocket::TracingSocket(const int fd, const trace_id_t trace,
                              const SocketRole role)
@@ -52,6 +58,9 @@ int TracingSocket::SetConnid() {
         return errno;
     }
 
+    // inet_ntop puts a null terminated string into local_ip
+    connid_.local_ip.resize(strlen(string_arr(connid_.local_ip)));
+
     addr_len = sizeof(struct sockaddr);
     ret = getpeername(fd_, &addr, &addr_len);
     if (ret != 0) {
@@ -64,19 +73,22 @@ int TracingSocket::SetConnid() {
         return errno;
     }
 
+    // inet_ntop puts a null terminated string into peer_ip
+    connid_.peer_ip.resize(strlen(string_arr(connid_.peer_ip)));
+
     has_connid_ = true;
     return 0;
 }
 
-void TracingSocket::BeforeRead() {}
-
-void TracingSocket::AfterRead(const void *buf, size_t len) {
+void TracingSocket::BeforeRead() {
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!has_connid()) {
         SetConnid();
     }
+}
 
+void TracingSocket::AfterRead(const void *buf, size_t len) {
     set_current_trace(trace());
     DLOG("%d received %ld bytes", fd(), ret);
 
@@ -84,20 +96,20 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
 }
 
 void TracingSocket::BeforeWrite() {
-    if (!role_client()) return;
-
-    if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-        printf("writing start of new message\n");
-    }
-}
-
-void TracingSocket::AfterWrite(ssize_t len) {
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!has_connid()) {
         SetConnid();
     }
 
+    if (!role_client()) return;
+
+    if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+        connid_.print();
+    }
+}
+
+void TracingSocket::AfterWrite(ssize_t len) {
     if (valid_trace(trace())) {
         set_current_trace(trace());
 
