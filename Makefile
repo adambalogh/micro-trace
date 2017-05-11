@@ -18,10 +18,27 @@ CC = g++
 CFLAGS = -Wall -std=c++17
 LIBFLAGS = -fPIC -shared
 
+PROTO_GEN_DIR = $(BUILD_DIR)/gen
+PROTO_DIR = proto
+PROTOS = request_log.proto
+PROTO_OBJ = $(addprefix $(BUILD_DIR)/,$(PROTOS:.proto=.pb.o))
+
+PROTOC = protoc
+PROTOLIB = -lprotobuf
+
+
 # Shared library build
 
-$(OUT): $(OBJ) $(HDRS)
+$(OUT): $(OBJ) $(HDRS) $(PROTO_OBJ)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@ $(LIBS)
+
+# Protoc compile
+$(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
+	$(PROTOC) --cpp_out=$(PROTO_GEN_DIR) --proto_path=$(PROTO_DIR) $<
+
+# Compile generated protobuf
+$(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
+	$(CC) $(CFLAGS) -c $< -o $@ $(PROTOLIB)
 
 # Library files build
 
@@ -34,7 +51,9 @@ $(BUILD_DIR)/% : %.cc $(OBJ)
 	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ $(LIBS) -lgtest -lgtest_main -ldl
 
 clean:
-	rm $(BUILD_DIR)/*
+	@rm -f $(BUILD_DIR)/*.o
+	@rm -f $(BUILD_DIR)/*.so
+	@rm -f $(PROTO_GEN_DIR)/*.pb.*
 
 test: $(TEST_EXEC)
 	@echo 'done'
@@ -42,5 +61,7 @@ test: $(TEST_EXEC)
 run-test: test
 	@./build/tracing_socket_test
 
-node:
+export FLASK_APP=apps/backend.py
+
+node: 
 	LD_PRELOAD=$(OUT) node apps/frontend.js & LD_PRELOAD=$(OUT) node apps/backend.js & LD_PRELOAD=$(OUT) flask run && fg
