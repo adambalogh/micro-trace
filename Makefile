@@ -4,9 +4,12 @@ LIB_NAME = trace.so
 BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
-HDRS = tracing_socket.h trace.h common.h orig_functions.h socket_interface.h
+SRCS_DIR = instrument
 SRCS = tracing_socket.cc trace.cc orig_functions.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
+HDR_NAMES = tracing_socket.h trace.h common.h orig_functions.h socket_interface.h
+HDRS = $(addprefix $(SRCS_DIR)/,$(HDR_FILES))
+
 
 TESTS = tracing_socket_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
@@ -40,7 +43,7 @@ $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
 	$(CC) $(CFLAGS) -c $< -o $@ $(PROTOLIB)
 
 # Library files build
-$(BUILD_DIR)/%.o : %.cc $(HDRS)
+$(BUILD_DIR)/%.o : $(SRCS_DIR)/%.cc $(HDRS) $(PROTO_OBJ)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build

@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "orig_functions.h"
+#include "request_log.pb.h"
 
 Connid::Connid()
     : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
