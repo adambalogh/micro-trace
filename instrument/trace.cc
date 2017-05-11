@@ -7,6 +7,8 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <chrono>
+#include <random>
 
 #include "http_parser.h"
 
@@ -30,8 +32,11 @@ void handle_accept(const int sockfd) {
         return;
     }
 
+    static std::mt19937 eng{
+        std::chrono::high_resolution_clock::now().time_since_epoch().count()};
+
     // Trace ID is just a random number for now
-    trace_id_t trace = rand() % 10000;
+    trace_id_t trace = std::uniform_int_distribution<>(1, 1000000)(eng);
     set_current_trace(trace);
 
     std::unique_ptr<TracingSocket> socket(
