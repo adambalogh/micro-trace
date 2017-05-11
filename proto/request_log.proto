@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-message ConnectionId {
+message Connection {
     required string server_ip = 1;
     required uint32 server_port = 2;
     required string client_ip = 3;
@@ -12,7 +12,21 @@ message ConnectionId {
 
 message RequestLog {
     required string trace_id = 1;
+
+    // The number of seconds since epoch this request was sent/received
     required int64 time = 2;
-    required ConnectionId conn_id = 3;
+
+    required Connection conn = 3;
+
+    // The number of requests that were sent through conn,
+    // including this one
     required uint32 req_count = 4;
+
+    // Indicates whether the server that created the log sent or received
+    // the request
+    enum Role {
+        SENT = 0;
+        RECEIVED = 1;
+    }
+    required Role role = 5;
 }

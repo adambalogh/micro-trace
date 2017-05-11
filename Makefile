@@ -28,7 +28,7 @@ PROTOLIB = -lprotobuf
 
 
 # Shared library build
-$(OUT): $(OBJ) $(PROTO_OBJ)
+$(OUT): $(OBJ)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@ $(LIBS)
 
 # Protoc compile
