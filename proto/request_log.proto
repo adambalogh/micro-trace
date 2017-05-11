@@ -1,0 +1,16 @@
+message ConnectionId {
+    required string server_ip = 1;
+    required uint32 server_port = 2;
+    required string client_ip = 3;
+    required uint32 client_port = 4;
+
+    optional string client_service_name = 5;
+    optional string server_service_name = 6;
+}
+
+message RequestLog {
+    required string trace_id = 1;
+    required int64 time = 2;
+    required ConnectionId conn_id = 3;
+    required uint32 req_count = 4;
+}
