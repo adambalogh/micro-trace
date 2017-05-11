@@ -25,6 +25,48 @@
         }                                           \
     } while (0)
 
+static auto& socket_map() {
+    static std::unordered_map<int, std::unique_ptr<TracingSocket>> socket_map;
+    return socket_map;
+}
+
+static auto& trace_wraps() {
+    static std::unordered_map<void*, std::unique_ptr<TraceWrap>> trace_wraps;
+    return trace_wraps;
+}
+
+void add_socket_entry(std::unique_ptr<TracingSocket> entry) {
+    socket_map()[entry->fd()] = std::move(entry);
+}
+
+TracingSocket* get_socket_entry(const int sockfd) {
+    auto it = socket_map().find(sockfd);
+    if (it == socket_map().end()) {
+        return nullptr;
+    }
+    return it->second.get();
+}
+
+trace_id_t get_socket_trace(const int sockfd) {
+    const TracingSocket* entry = get_socket_entry(sockfd);
+    if (entry == nullptr) {
+        return UNDEFINED_TRACE;
+    }
+    return entry->fd();
+}
+
+void del_socket_entry(const int sockfd) { socket_map().erase(sockfd); }
+
+void add_trace_wrap(std::unique_ptr<TraceWrap> trace) {
+    trace_wraps()[trace->req_ptr] = std::move(trace);
+}
+
+const TraceWrap& get_trace_wrap(void* req_ptr) {
+    return *(trace_wraps().at(req_ptr));
+}
+
+void del_trace_wrap(void* req_ptr) { trace_wraps().erase(req_ptr); }
+
 /* Accept */
 
 void handle_accept(const int sockfd) {
@@ -95,6 +137,8 @@ int socket(int domain, int type, int protocol) {
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
                         struct addrinfo* res) {
     const TraceWrap& trace = get_trace_wrap(req);
+
+    // TODO uv_getaddrinfo might be called before a socket is opened
     assert(valid_trace(trace.id));
     set_current_trace(trace.id);
 
