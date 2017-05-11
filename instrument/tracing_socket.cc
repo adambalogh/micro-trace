@@ -97,11 +97,9 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
         if (role_server() && (state_ == SocketState::WILL_READ ||
                               state_ == SocketState::WRITE)) {
             ++num_requests_;
-            std::cout << "[" << current_trace << "]: ";
-            connid_.print();
         }
 
-        DLOG("%d received %ld bytes", fd(), ret);
+        DLOG("%d received %ld bytes", fd(), len);
         state_ = SocketState::READ;
     }
 }
@@ -120,20 +118,12 @@ void TracingSocket::AfterWrite(ssize_t len) {
     set_current_trace(trace());
 
     if (len > 0) {
-        // We are only interested in write to sockets that we opened to
-        // other servers, aka where we act as the client
-        if (role_client()) {
-            DLOG("sent %ld bytes", len);
-        }
-
         if (role_client() && (state_ == SocketState::WILL_WRITE ||
                               state_ == SocketState::READ)) {
             ++num_requests_;
-            std::cout << "[" << current_trace << "]: ";
-            connid_.print();
         }
 
-        DLOG("%d received %ld bytes", fd(), ret);
+        DLOG("%d wrote %ld bytes", fd(), len);
         state_ = SocketState::WRITE;
     }
 }

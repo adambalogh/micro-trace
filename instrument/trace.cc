@@ -81,9 +81,9 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (current_trace != UNDEFINED_TRACE) {
+    if (get_current_trace() != UNDEFINED_TRACE) {
         std::unique_ptr<TracingSocket> socket(
-            new TracingSocket(sockfd, current_trace, SocketRole::CLIENT));
+            new TracingSocket(sockfd, get_current_trace(), SocketRole::CLIENT));
         add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }
@@ -107,7 +107,7 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
                    const char* service, const struct addrinfo* hints) {
     std::unique_ptr<TraceWrap> trace(
-        new TraceWrap(req, getaddrinfo_cb, current_trace));
+        new TraceWrap(req, getaddrinfo_cb, get_current_trace()));
     add_trace_wrap(std::move(trace));
 
     return orig().orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,

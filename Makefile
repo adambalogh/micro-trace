@@ -5,7 +5,7 @@ BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = instrument
-SRCS = tracing_socket.cc trace.cc orig_functions.cc
+SRCS = tracing_socket.cc trace.cc orig_functions.cc common.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 HDR_NAMES = tracing_socket.h trace.h common.h orig_functions.h socket_interface.h
 HDRS = $(addprefix $(SRCS_DIR)/,$(HDR_FILES))

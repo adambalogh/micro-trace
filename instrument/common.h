@@ -1,11 +1,12 @@
 #pragma once
 
+#include <assert.h>
 #include <string>
 
-#define LOG(msg, ...)                                      \
-    pthread_t thread = pthread_self();                     \
-    printf("[t:%lu %d]: ", thread % 10000, current_trace); \
-    printf(msg, __VA_ARGS__);                              \
+#define LOG(msg, ...)                                \
+    pthread_t thread = pthread_self();               \
+    printf("[t:%lu %d]: ", thread, __current_trace); \
+    printf(msg, __VA_ARGS__);                        \
     printf("\n");
 
 #ifdef DEBUG
@@ -20,14 +21,16 @@ inline char* string_arr(std::string& str) { return &str[0]; }
 
 typedef int32_t trace_id_t;
 
-static __thread trace_id_t current_trace = UNDEFINED_TRACE;
+extern thread_local trace_id_t __current_trace;
 
-static inline int valid_trace(const trace_id_t trace) {
+inline int valid_trace(const trace_id_t trace) {
     return trace != UNDEFINED_TRACE && trace != -1;
 }
 
-static inline void set_current_trace(const trace_id_t trace) {
+inline trace_id_t get_current_trace() { return __current_trace; }
+
+inline void set_current_trace(const trace_id_t trace) {
     if (valid_trace(trace)) {
-        current_trace = trace;
+        __current_trace = trace;
     }
 }
