@@ -28,6 +28,7 @@ TracingSocket::TracingSocket(const int fd, const trace_id_t trace,
       role_(role),
       state_(role_ == SocketRole::SERVER ? SocketState::WILL_READ
                                          : SocketState::WILL_WRITE),
+      num_requests_(0),
       has_connid_(false) {}
 
 bool TracingSocket::has_connid() { return has_connid_; }
@@ -95,6 +96,9 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
         if (role_server() && (state_ == SocketState::WILL_READ ||
                               state_ == SocketState::WRITE)) {
             connid_.print();
+            ++num_requests_;
+            std::cout << num_requests_ << ": ";
+            connid_.print();
         }
 
         DLOG("%d received %ld bytes", fd(), ret);
@@ -105,7 +109,6 @@ void TracingSocket::AfterRead(const void *buf, size_t len) {
 void TracingSocket::BeforeWrite() {}
 
 void TracingSocket::AfterWrite(ssize_t len) {
-    printf("write\n");
     assert(len >= 0);
 
     // Set connid if it hasn't been set before, e.g. in case of
@@ -125,6 +128,8 @@ void TracingSocket::AfterWrite(ssize_t len) {
 
         if (role_client() && (state_ == SocketState::WILL_WRITE ||
                               state_ == SocketState::READ)) {
+            ++num_requests_;
+            std::cout << num_requests_ << ": ";
             connid_.print();
         }
 
