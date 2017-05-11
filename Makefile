@@ -17,7 +17,7 @@ INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -lhttp_parser -lpthread -ldl
 
 CC = g++
-CFLAGS = -Wall -std=c++17
+CFLAGS = -Wall -std=c++17 -MP -MD
 LIBFLAGS = -fPIC -shared
 
 PROTO_GEN_DIR = $(BUILD_DIR)/gen
@@ -41,8 +41,10 @@ $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
 $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
 	$(CC) $(CFLAGS) -c $< -o $@ $(PROTOLIB)
 
+-include $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.d))
+
 # Library files build
-$(BUILD_DIR)/%.o : $(SRCS_DIR)/%.cc $(HDRS) $(PROTO_OBJ)
+$(BUILD_DIR)/%.o : $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build
