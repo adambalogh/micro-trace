@@ -10,7 +10,6 @@ OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 HDR_NAMES = tracing_socket.h trace.h common.h orig_functions.h socket_interface.h
 HDRS = $(addprefix $(SRCS_DIR)/,$(HDR_FILES))
 
-
 TESTS = tracing_socket_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 

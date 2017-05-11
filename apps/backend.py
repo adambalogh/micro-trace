@@ -1,3 +1,5 @@
+import requests
+
 from flask import Flask
 app = Flask(__name__)
 
@@ -7,10 +9,9 @@ log.setLevel(logging.ERROR)
 
 @app.route("/")
 def hello():
-    total = 0
-    for i in range(10000):
-        total += i
-    return str(total)
+    r = requests.get('http://localhost:3131')
+    return r.text
 
 if __name__ == "__main__":
     app.run()
+
