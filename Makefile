@@ -11,7 +11,7 @@ OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 TESTS = tracing_socket_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
-INCLUDES = -I /usr/local/include -I lib/
+INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -lhttp_parser -lpthread -ldl
 
 CC = g++
@@ -28,7 +28,6 @@ PROTOLIB = -lprotobuf
 
 
 # Shared library build
-
 $(OUT): $(OBJ) $(HDRS) $(PROTO_OBJ)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@ $(LIBS)
 
@@ -41,12 +40,10 @@ $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
 	$(CC) $(CFLAGS) -c $< -o $@ $(PROTOLIB)
 
 # Library files build
-
 $(BUILD_DIR)/%.o : %.cc $(HDRS)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build
-
 $(BUILD_DIR)/% : %.cc $(OBJ)
 	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ $(LIBS) -lgtest -lgtest_main -ldl
 
