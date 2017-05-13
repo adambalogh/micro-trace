@@ -38,7 +38,7 @@ TEST(TracingSocket, Init) {
 TEST(TracingSocketTest, SocketApiCalls) {
     Mock<OriginalFunctions> mock;
     Method(mock, socket) = RET;
-    Method(mock, close) = RET;
+    Method(mock, close) = SUCCESSFUL_CLOSE;
     Method(mock, accept) = RET;
     Method(mock, accept4) = RET;
     Method(mock, recv) = RET;
@@ -57,6 +57,8 @@ TEST(TracingSocketTest, SocketApiCalls) {
         mock_orig};
 
     EXPECT_EQ(RET, socket.Read(BUF, LEN));
+    Verify(Method(mock, read).Using(FD, BUF, LEN));
+
     EXPECT_EQ(RET, socket.Recv(BUF, LEN, FLAGS));
     EXPECT_EQ(RET, socket.RecvFrom(BUF, LEN, FLAGS, SOCKADDR, ADDRLEN_PTR));
     EXPECT_EQ(RET, socket.Write(BUF, LEN));
