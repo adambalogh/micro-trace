@@ -53,5 +53,3 @@ struct OriginalFunctions {
 };
 
 extern OriginalFunctions &orig();
-
-#undef ORIG
