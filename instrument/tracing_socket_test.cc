@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <iostream>
+#include "fakeit.hpp"
 
 #include "orig_functions.h"
 #include "test_util.h"
@@ -20,74 +21,12 @@
 #define IOVCNT 0
 #define SUCCESSFUL_CLOSE 0
 
+using namespace fakeit;
+
 const int FD = 9943;
 const trace_id_t TRACE = 43242;
 
-OriginalFunctions mock_orig = []() {
-    OriginalFunctions orig;
-    orig.orig_recvfrom = [](int fd, void* buf, size_t len, int flags,
-                            struct sockaddr* src_addr,
-                            socklen_t* addrlen) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(BUF, buf);
-        EXPECT_EQ(LEN, len);
-        EXPECT_EQ(FLAGS, flags);
-        EXPECT_EQ(SOCKADDR, src_addr);
-        EXPECT_EQ(ADDRLEN_PTR, addrlen);
-        return RET;
-    };
-    orig.orig_recv = [](int fd, void* buf, size_t len, int flags) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(BUF, buf);
-        EXPECT_EQ(LEN, len);
-        EXPECT_EQ(FLAGS, flags);
-        return RET;
-    };
-    orig.orig_read = [](int fd, void* buf, size_t len) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(BUF, buf);
-        EXPECT_EQ(LEN, len);
-        return RET;
-    };
-    orig.orig_write = [](int fd, const void* buf, size_t len) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(BUF, buf);
-        EXPECT_EQ(LEN, len);
-        return RET;
-    };
-    orig.orig_writev = [](int fd, const struct iovec* iov,
-                          int iovcnt) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(IOVEC, iov);
-        EXPECT_EQ(IOVCNT, iovcnt);
-        return RET;
-    };
-    orig.orig_send = [](int fd, const void* buf, size_t len,
-                        int flags) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(BUF, buf);
-        EXPECT_EQ(LEN, len);
-        EXPECT_EQ(FLAGS, flags);
-        return RET;
-    };
-    orig.orig_sendto = [](int fd, const void* buf, size_t len, int flags,
-                          const struct sockaddr* dest_addr,
-                          socklen_t addrlen) -> ssize_t {
-        EXPECT_EQ(FD, fd);
-        EXPECT_EQ(BUF, buf);
-        EXPECT_EQ(LEN, len);
-        EXPECT_EQ(FLAGS, flags);
-        EXPECT_EQ(SOCKADDR, dest_addr);
-        EXPECT_EQ(ADDRLEN, addrlen);
-        return RET;
-    };
-    orig.orig_close = [](int fd) -> int {
-        EXPECT_EQ(FD, fd);
-        return SUCCESSFUL_CLOSE;
-    };
-
-    return orig;
-}();
+const EmptyOriginalFunctions empty_orig;
 
 TEST(TracingSocket, Init) {
     TracingSocket socket{
@@ -98,6 +37,22 @@ TEST(TracingSocket, Init) {
 }
 
 TEST(TracingSocketTest, SocketApiCalls) {
+    Mock<OriginalFunctions> mock;
+    Method(mock, socket) = RET;
+    Method(mock, close) = RET;
+    Method(mock, accept) = RET;
+    Method(mock, accept4) = RET;
+    Method(mock, recv) = RET;
+    Method(mock, read) = RET;
+    Method(mock, recvfrom) = RET;
+    Method(mock, write) = RET;
+    Method(mock, writev) = RET;
+    Method(mock, send) = RET;
+    Method(mock, sendto) = RET;
+    Method(mock, uv_accept) = RET;
+    Method(mock, uv_getaddrinfo) = RET;
+
+    OriginalFunctions& mock_orig = mock.get();
     TracingSocket socket{
         FD, MakeEmptySocketEventHandler(FD, TRACE, SocketRole::CLIENT),
         mock_orig};

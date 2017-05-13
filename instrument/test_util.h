@@ -3,7 +3,7 @@
 #include "orig_functions.h"
 #include "socket_event_handler.h"
 
-class EmptyOriginalFunctions {
+class EmptyOriginalFunctions : public OriginalFunctions {
    public:
     int socket(int domain, int type, int protocol) const { return -1; }
     int close(int fd) const { return -1; }
