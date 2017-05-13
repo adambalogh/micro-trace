@@ -9,6 +9,9 @@
 
 class OriginalFunctions;
 
+/*
+ * Returns a global instance of OriginalFunctionsImpl
+ */
 extern OriginalFunctions &orig();
 
 class OriginalFunctions {
@@ -21,7 +24,8 @@ class OriginalFunctions {
                        socklen_t *addrlen) const = 0;
     virtual int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen,
                         int flags) const = 0;
-    virtual ssize_t recv(int sockfd, void *buf, size_t len, int flags) const;
+    virtual ssize_t recv(int sockfd, void *buf, size_t len,
+                         int flags) const = 0;
     virtual ssize_t read(int fd, void *buf, size_t count) const = 0;
     virtual ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                              struct sockaddr *src_addr,
