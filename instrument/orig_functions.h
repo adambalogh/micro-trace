@@ -4,13 +4,6 @@
 
 #include "uv.h"
 
-#define ORIG(func, name)                        \
-    do {                                        \
-        func = (decltype(func))find_orig(name); \
-    } while (0)
-
-inline void *find_orig(const char *name) { return dlsym(RTLD_NEXT, name); }
-
 /* Libc functions */
 
 typedef int (*orig_socket_t)(int domain, int type, int protocol);
@@ -44,22 +37,7 @@ typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t *loop, uv_getaddrinfo_t *req,
                                      const struct addrinfo *hints);
 
 struct OriginalFunctions {
-    OriginalFunctions() {
-        ORIG(orig_socket, "socket");
-        ORIG(orig_close, "close");
-        ORIG(orig_recvfrom, "recvfrom");
-        ORIG(orig_accept, "accept");
-        ORIG(orig_accept4, "accept4");
-        ORIG(orig_recv, "recv");
-        ORIG(orig_read, "read");
-        ORIG(orig_write, "write");
-        ORIG(orig_writev, "writev");
-        ORIG(orig_send, "send");
-        ORIG(orig_sendto, "sendto");
-
-        ORIG(orig_uv_accept, "uv_accept");
-        ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
-    }
+    OriginalFunctions();
 
     orig_socket_t orig_socket;
     orig_close_t orig_close;
