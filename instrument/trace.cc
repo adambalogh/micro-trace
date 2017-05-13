@@ -134,8 +134,8 @@ void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
     const GetAddrinfoCbWrap& cb_wrap = GetGetAddrinfoCb(req);
 
     // TODO uv_getaddrinfo might be called before a socket is opened
-    assert(valid_trace(cb_wrap.id));
-    set_current_trace(cb_wrap.id);
+    assert(valid_trace(cb_wrap.trace));
+    set_current_trace(cb_wrap.trace);
 
     uv_getaddrinfo_cb orig_cb = cb_wrap.orig_cb;
     DeleteGetAddrinfoCb(cb_wrap.req_ptr);
