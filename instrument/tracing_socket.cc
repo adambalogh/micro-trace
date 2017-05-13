@@ -83,6 +83,8 @@ ssize_t TracingSocket::SendTo(int sockfd, const void *buf, size_t len,
 }
 
 int TracingSocket::Close() {
+    event_handler_->BeforeClose();
     int ret = orig().orig_close(fd());
+    event_handler_->AfterClose(ret);
     return ret;
 }
