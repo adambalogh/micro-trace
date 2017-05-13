@@ -37,15 +37,20 @@ class SocketEventHandler {
     ~SocketEventHandler() {}
 
     /*
-         * Sets up the Connection ID of the socket.
-         *
-         * Should only be called if the socket is connected to an endpoint,
-         * e.g. it has been connect()-ed or accept()-ed
-         *
-         * On success, it returns 0, otherwise it returns a standard error code,
-         * returned by the Socket API functions.
-         */
+     * Sets up the Connection ID of the socket.
+     *
+     * Should only be called if the socket is connected to an endpoint,
+     * e.g. it has been connect()-ed or accept()-ed
+     *
+     * On success, it returns 0, otherwise it returns a standard error code,
+     * returned by the Socket API functions.
+     */
     int SetConnection();
+
+    // Should be called after the socket was accepted.
+    //
+    // Note: this method will not be called if the socket was open()-ed.
+    void AfterAccept();
 
     // Should be called before a read operation on the socket
     void BeforeRead();

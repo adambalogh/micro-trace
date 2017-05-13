@@ -11,6 +11,8 @@ TracingSocket::TracingSocket(const int fd, const trace_id_t trace,
     event_handler_.reset(new SocketEventHandler(*this, trace, role));
 }
 
+void TracingSocket::Accept() { event_handler_->AfterAccept(); }
+
 // TODO handle special case when len == 0
 ssize_t TracingSocket::RecvFrom(void *buf, size_t len, int flags,
                                 struct sockaddr *src_addr, socklen_t *addrlen) {

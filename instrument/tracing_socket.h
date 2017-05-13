@@ -23,6 +23,8 @@ class TracingSocket : public SocketInterface {
 
     TracingSocket(const int fd, const trace_id_t trace, const SocketRole role);
 
+    void Accept();
+
     ssize_t RecvFrom(void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) override;
     ssize_t Recv(void *buf, size_t len, int flags) override;

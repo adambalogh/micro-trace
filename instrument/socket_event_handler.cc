@@ -24,6 +24,8 @@ std::string Connection::to_string() const {
 
 void Connection::print() const { std::cout << to_string() << std::endl; }
 
+void SocketEventHandler::AfterAccept() { assert(role_ == SocketRole::SERVER); }
+
 unsigned short get_port(const struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return ((struct sockaddr_in*)sa)->sin_port;

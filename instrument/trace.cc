@@ -32,6 +32,7 @@ static auto& trace_wraps() {
     return trace_wraps;
 }
 
+// TODO make these thread safe
 void add_socket_entry(std::unique_ptr<TracingSocket> entry) {
     socket_map()[entry->fd()] = std::move(entry);
 }
@@ -66,7 +67,7 @@ void del_trace_wrap(void* req_ptr) { trace_wraps().erase(req_ptr); }
 
 /* Accept */
 
-void handle_accept(const int sockfd) {
+void HandleAccept(const int sockfd) {
     if (sockfd == -1) {
         return;
     }
@@ -80,6 +81,7 @@ void handle_accept(const int sockfd) {
 
     auto socket =
         std::make_unique<TracingSocket>(sockfd, trace, SocketRole::SERVER);
+    socket->Accept();
     add_socket_entry(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
@@ -87,14 +89,14 @@ void handle_accept(const int sockfd) {
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
     int ret = orig().orig_accept(sockfd, addr, addrlen);
-    handle_accept(ret);
+    HandleAccept(ret);
 
     return ret;
 }
 
 int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
     int ret = orig().orig_accept4(sockfd, addr, addrlen, flags);
-    handle_accept(ret);
+    HandleAccept(ret);
 
     return ret;
 }
@@ -103,7 +105,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
     int ret = orig().orig_uv_accept(server, client);
     if (ret == 0) {
         int fd = client->io_watcher.fd;
-        handle_accept(fd);
+        HandleAccept(fd);
     }
 
     return ret;

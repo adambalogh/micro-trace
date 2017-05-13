@@ -33,7 +33,6 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 
 struct TraceWrap;
 
-// TODO make these thread-safe
 struct TraceWrap {
     TraceWrap(void *req_ptr, uv_getaddrinfo_cb orig_cb, trace_id_t id)
         : req_ptr(req_ptr), orig_cb(orig_cb), id(id) {}
