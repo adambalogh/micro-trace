@@ -42,23 +42,24 @@ $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
 -include $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.d))
 
 # Library files build
-$(BUILD_DIR)/%.o : $(SRCS_DIR)/%.cc $(PROTO_OBJ)
+$(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build
-$(BUILD_DIR)/% : %.cc $(OBJ)
-	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ $(LIBS) -lgtest -lgtest_main -ldl
+$(BUILD_DIR)/%: $(SRCS_DIR)/%.cc 
+	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ $(LIBS) -lgtest -lgtest_main
 
 clean:
 	@rm -f $(BUILD_DIR)/*.o
+	@rm -f $(BUILD_DIR)/*.d
 	@rm -f $(BUILD_DIR)/*.so
 	@rm -f $(PROTO_GEN_DIR)/*.pb.*
 
 test: $(TEST_EXEC)
-	@echo 'done'
+	@echo 'tests compiled'
 
 run-test: test
-	@./build/tracing_socket_test
+	./build/tracing_socket_test
 
 export FLASK_APP=apps/backend.py
 
