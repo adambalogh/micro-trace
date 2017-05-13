@@ -10,20 +10,19 @@
 #include "orig_functions.h"
 #include "test_util.h"
 
-#define LEN 10
-#define FLAGS 4543
-#define RET 8885
-#define BUF nullptr
-#define SOCKADDR nullptr
-#define ADDRLEN 19
-#define ADDRLEN_PTR nullptr
-#define IOVEC nullptr
-#define IOVCNT 0
-#define SUCCESSFUL_CLOSE 0
-
 using namespace fakeit;
 
 const int FD = 9943;
+const int FLAGS = 99;
+const size_t LEN = 11;
+void* BUF = nullptr;
+struct sockaddr* SOCKADDR = nullptr;
+socklen_t ADDRLEN = 10;
+socklen_t* ADDRLEN_PTR = nullptr;
+const int SUCCESSFUL_CLOSE = 1;
+const struct iovec* IOVEC = nullptr;
+const int IOVCNT = 0;
+const int RET = 1000;
 const trace_id_t TRACE = 43242;
 
 const EmptyOriginalFunctions empty_orig;
