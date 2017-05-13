@@ -5,7 +5,7 @@ BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = instrument
-SRCS = tracing_socket.cc trace.cc orig_functions.cc common.cc
+SRCS = tracing_socket.cc trace.cc orig_functions.cc common.cc socket_event_handler.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
 TESTS = tracing_socket_test.cc

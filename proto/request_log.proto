@@ -1,5 +1,7 @@
 syntax = "proto2";
 
+package proto;
+
 message Connection {
     required string server_ip = 1;
     required uint32 server_port = 2;

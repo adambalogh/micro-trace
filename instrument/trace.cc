@@ -1,10 +1,7 @@
 #include <assert.h>
-#include <dlfcn.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdlib.h>
-#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
@@ -81,11 +78,8 @@ void handle_accept(const int sockfd) {
     trace_id_t trace = std::uniform_int_distribution<>(1, 1000000)(eng);
     set_current_trace(trace);
 
-    std::unique_ptr<TracingSocket> socket(
-        new TracingSocket(sockfd, trace, SocketRole::SERVER));
-    int ret = socket->SetConnid();
-    if (ret != 0) {
-    }
+    auto socket =
+        std::make_unique<TracingSocket>(sockfd, trace, SocketRole::SERVER);
     add_socket_entry(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
