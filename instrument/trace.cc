@@ -79,8 +79,8 @@ void HandleAccept(const int sockfd) {
     trace_id_t trace = std::uniform_int_distribution<>(1, 1000000)(eng);
     set_current_trace(trace);
 
-    auto socket =
-        std::make_unique<TracingSocket>(sockfd, trace, SocketRole::SERVER);
+    auto socket = std::make_unique<TracingSocket>(sockfd, trace,
+                                                  SocketRole::SERVER, orig());
     socket->Accept();
     add_socket_entry(std::move(socket));
 
@@ -120,8 +120,8 @@ int socket(int domain, int type, int protocol) {
     }
 
     if (get_current_trace() != UNDEFINED_TRACE) {
-        std::unique_ptr<TracingSocket> socket(
-            new TracingSocket(sockfd, get_current_trace(), SocketRole::CLIENT));
+        auto socket = std::make_unique<TracingSocket>(
+            sockfd, get_current_trace(), SocketRole::CLIENT, orig());
         add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }
@@ -186,7 +186,7 @@ ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
 
 ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr* dest_addr, socklen_t addrlen) {
-    SOCK_CALL(sockfd, SendTo(sockfd, buf, len, flags, dest_addr, addrlen),
+    SOCK_CALL(sockfd, SendTo(buf, len, flags, dest_addr, addrlen),
               orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen));
 }
 

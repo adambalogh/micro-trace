@@ -7,6 +7,8 @@
 #include "socket_event_handler.h"
 #include "socket_interface.h"
 
+struct OriginalFunctions;
+
 /*
  * A TracingSocket is a wrapper around a regular socket.
  *
@@ -21,7 +23,8 @@ class TracingSocket : public SocketInterface {
    public:
     TracingSocket(const TracingSocket &) = delete;
 
-    TracingSocket(const int fd, const trace_id_t trace, const SocketRole role);
+    TracingSocket(const int fd, const trace_id_t trace, const SocketRole role,
+                  const OriginalFunctions &orig);
 
     void Accept();
     ssize_t RecvFrom(void *buf, size_t len, int flags,
@@ -31,7 +34,7 @@ class TracingSocket : public SocketInterface {
     ssize_t Write(const void *buf, size_t count) override;
     ssize_t Writev(const struct iovec *iov, int iovcnt) override;
     ssize_t Send(const void *buf, size_t len, int flags) override;
-    ssize_t SendTo(int sockfd, const void *buf, size_t len, int flags,
+    ssize_t SendTo(const void *buf, size_t len, int flags,
                    const struct sockaddr *dest_addr,
                    socklen_t addrlen) override;
     int Close() override;
@@ -52,4 +55,6 @@ class TracingSocket : public SocketInterface {
 
     // Cache for iovec struct
     struct iovec iov;
+
+    const OriginalFunctions &orig_;
 };
