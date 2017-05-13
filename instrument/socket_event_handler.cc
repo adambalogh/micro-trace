@@ -7,8 +7,6 @@
 #include <iostream>
 #include <string>
 
-#include "tracing_socket.h"
-
 Connection::Connection()
     : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
 
@@ -40,7 +38,7 @@ int SocketEventHandler::SetConnection() {
     int ret;
     const char* dst;
 
-    ret = getsockname(socket_.fd(), &addr, &addr_len);
+    ret = getsockname(sockfd_, &addr, &addr_len);
     if (ret != 0) {
         return ret;
     }
@@ -55,7 +53,7 @@ int SocketEventHandler::SetConnection() {
 
     addr_len = sizeof(struct sockaddr);
 
-    ret = getpeername(socket_.fd(), &addr, &addr_len);
+    ret = getpeername(sockfd_, &addr, &addr_len);
     if (ret != 0) {
         return ret;
     }
@@ -91,7 +89,7 @@ void SocketEventHandler::AfterRead(const void* buf, size_t ret) {
             ++num_requests_;
         }
 
-        DLOG("%d received %ld bytes", socket_.fd(), ret);
+        DLOG("%d received %ld bytes", sockfd_, ret);
         state_ = SocketState::READ;
     }
 }
@@ -116,7 +114,7 @@ void SocketEventHandler::AfterWrite(const struct iovec* iov, int iovcnt,
             ++num_requests_;
         }
 
-        DLOG("%d wrote %ld bytes", socket_.fd(), ret);
+        DLOG("%d wrote %ld bytes", sockfd_, ret);
         state_ = SocketState::WRITE;
     }
 }

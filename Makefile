@@ -52,6 +52,7 @@ $(BUILD_DIR)/%: $(SRCS_DIR)/%.cc
 clean:
 	@rm -f $(BUILD_DIR)/*.o
 	@rm -f $(BUILD_DIR)/*.d
+	@rm -f $(BUILD_DIR)/*_test
 	@rm -f $(BUILD_DIR)/*.so
 	@rm -f $(PROTO_GEN_DIR)/*.pb.*
 

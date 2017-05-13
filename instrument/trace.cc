@@ -79,8 +79,10 @@ void HandleAccept(const int sockfd) {
     trace_id_t trace = std::uniform_int_distribution<>(1, 1000000)(eng);
     set_current_trace(trace);
 
-    auto socket = std::make_unique<TracingSocket>(sockfd, trace,
-                                                  SocketRole::SERVER, orig());
+    auto event_handler =
+        std::make_unique<SocketEventHandler>(sockfd, trace, SocketRole::SERVER);
+    auto socket = std::make_unique<TracingSocket>(
+        sockfd, std::move(event_handler), orig());
     socket->Accept();
     add_socket_entry(std::move(socket));
 
@@ -88,21 +90,21 @@ void HandleAccept(const int sockfd) {
 }
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    int ret = orig().orig_accept(sockfd, addr, addrlen);
+    int ret = orig().accept(sockfd, addr, addrlen);
     HandleAccept(ret);
 
     return ret;
 }
 
 int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
-    int ret = orig().orig_accept4(sockfd, addr, addrlen, flags);
+    int ret = orig().accept4(sockfd, addr, addrlen, flags);
     HandleAccept(ret);
 
     return ret;
 }
 
 int uv_accept(uv_stream_t* server, uv_stream_t* client) {
-    int ret = orig().orig_uv_accept(server, client);
+    int ret = orig().uv_accept(server, client);
     if (ret == 0) {
         int fd = client->io_watcher.fd;
         HandleAccept(fd);
@@ -114,14 +116,16 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 // TODO should probably do this at connect() instead to avoid
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
-    int sockfd = orig().orig_socket(domain, type, protocol);
+    int sockfd = orig().socket(domain, type, protocol);
     if (sockfd == -1) {
         return sockfd;
     }
 
     if (get_current_trace() != UNDEFINED_TRACE) {
+        auto event_handler = std::make_unique<SocketEventHandler>(
+            sockfd, get_current_trace(), SocketRole::CLIENT);
         auto socket = std::make_unique<TracingSocket>(
-            sockfd, get_current_trace(), SocketRole::CLIENT, orig());
+            sockfd, std::move(event_handler), orig());
         add_socket_entry(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }
@@ -150,50 +154,48 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
         new TraceWrap(req, getaddrinfo_cb, get_current_trace()));
     add_trace_wrap(std::move(trace));
 
-    return orig().orig_uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,
-                                      service, hints);
+    return orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service,
+                                 hints);
 }
 
 /* TracingSocket calls */
 
 ssize_t read(int fd, void* buf, size_t count) {
-    SOCK_CALL(fd, Read(buf, count), orig_read(fd, buf, count));
+    SOCK_CALL(fd, Read(buf, count), read(fd, buf, count));
 }
 
 ssize_t recv(int sockfd, void* buf, size_t len, int flags) {
-    SOCK_CALL(sockfd, Recv(buf, len, flags),
-              orig_recv(sockfd, buf, len, flags));
+    SOCK_CALL(sockfd, Recv(buf, len, flags), recv(sockfd, buf, len, flags));
 }
 
 ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags,
                  struct sockaddr* src_addr, socklen_t* addrlen) {
     SOCK_CALL(sockfd, RecvFrom(buf, len, flags, src_addr, addrlen),
-              orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
+              recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
 }
 
 ssize_t writev(int fd, const struct iovec* iov, int iovcnt) {
-    SOCK_CALL(fd, Writev(iov, iovcnt), orig_writev(fd, iov, iovcnt));
+    SOCK_CALL(fd, Writev(iov, iovcnt), writev(fd, iov, iovcnt));
 }
 
 ssize_t write(int fd, const void* buf, size_t count) {
-    SOCK_CALL(fd, Write(buf, count), orig_write(fd, buf, count));
+    SOCK_CALL(fd, Write(buf, count), write(fd, buf, count));
 }
 
 ssize_t send(int sockfd, const void* buf, size_t len, int flags) {
-    SOCK_CALL(sockfd, Send(buf, len, flags),
-              orig_send(sockfd, buf, len, flags));
+    SOCK_CALL(sockfd, Send(buf, len, flags), send(sockfd, buf, len, flags));
 }
 
 ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr* dest_addr, socklen_t addrlen) {
     SOCK_CALL(sockfd, SendTo(buf, len, flags, dest_addr, addrlen),
-              orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen));
+              sendto(sockfd, buf, len, flags, dest_addr, addrlen));
 }
 
 int close(int fd) {
     TracingSocket* sock = get_socket_entry(fd);
     if (sock == NULL) {
-        return orig().orig_close(fd);
+        return orig().close(fd);
     }
 
     int ret = sock->Close();

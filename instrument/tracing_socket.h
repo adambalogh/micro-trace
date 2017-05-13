@@ -23,7 +23,8 @@ class TracingSocket : public SocketInterface {
    public:
     TracingSocket(const TracingSocket &) = delete;
 
-    TracingSocket(const int fd, const trace_id_t trace, const SocketRole role,
+    TracingSocket(const int fd,
+                  std::unique_ptr<SocketEventHandler> event_handler,
                   const OriginalFunctions &orig);
 
     void Accept();

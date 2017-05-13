@@ -36,6 +36,52 @@ typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t *loop, uv_getaddrinfo_t *req,
 struct OriginalFunctions {
     OriginalFunctions();
 
+    int socket(int domain, int type, int protocol) const {
+        return orig_socket(domain, type, protocol);
+    }
+    int close(int fd) const { return orig_close(fd); }
+    int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) const {
+        return orig_accept(sockfd, addr, addrlen);
+    }
+    int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen,
+                int flags) const {
+        return orig_accept4(sockfd, addr, addrlen, flags);
+    }
+    ssize_t recv(int sockfd, void *buf, size_t len, int flags) const {
+        return orig_recv(sockfd, buf, len, flags);
+    }
+    ssize_t read(int fd, void *buf, size_t count) const {
+        return orig_read(fd, buf, count);
+    }
+    ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
+                     struct sockaddr *src_addr, socklen_t *addrlen) const {
+        return orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+    }
+    ssize_t write(int fd, const void *buf, size_t count) const {
+        return orig_write(fd, buf, count);
+    }
+    ssize_t writev(int fd, const struct iovec *iov, int iovcnt) const {
+        return orig_writev(fd, iov, iovcnt);
+    }
+    ssize_t send(int sockfd, const void *buf, size_t len, int flags) const {
+        return orig_send(sockfd, buf, len, flags);
+    }
+    ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
+                   const struct sockaddr *dest_addr, socklen_t addrlen) const {
+        return orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+    }
+    int uv_accept(uv_stream_t *server, uv_stream_t *client) const {
+        return orig_uv_accept(server, client);
+    }
+    int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
+                       uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
+                       const char *service,
+                       const struct addrinfo *hints) const {
+        return orig_uv_getaddrinfo(loop, req, getaddrinfo_cb, node, service,
+                                   hints);
+    }
+
+   private:
     orig_socket_t orig_socket;
     orig_close_t orig_close;
     orig_recvfrom_t orig_recvfrom;

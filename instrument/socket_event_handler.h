@@ -24,9 +24,9 @@ enum class SocketState { WILL_READ, READ, WILL_WRITE, WRITE };
 
 class SocketEventHandler {
    public:
-    SocketEventHandler(TracingSocket& socket, const trace_id_t trace,
+    SocketEventHandler(int sockfd, const trace_id_t trace,
                        const SocketRole role)
-        : socket_(socket),
+        : sockfd_(sockfd),
           trace_(trace),
           role_(role),
           state_(role_ == SocketRole::SERVER ? SocketState::WILL_READ
@@ -34,7 +34,7 @@ class SocketEventHandler {
           num_requests_(0),
           conn_init_(false) {}
 
-    ~SocketEventHandler() {}
+    virtual ~SocketEventHandler() {}
 
     /*
      * Sets up the Connection ID of the socket.
@@ -50,28 +50,30 @@ class SocketEventHandler {
     // Should be called after the socket was accepted.
     //
     // Note: this method will not be called if the socket was open()-ed.
-    void AfterAccept();
+    virtual void AfterAccept();
 
     // Should be called before a read operation on the socket
-    void BeforeRead();
+    virtual void BeforeRead();
 
     // Should be called after a *successful* read operation on the socket, e.g.
     // len > 0
-    void AfterRead(const void* buf, size_t ret);
+    virtual void AfterRead(const void* buf, size_t ret);
 
     // Should be called before a write operation on the socket
-    void BeforeWrite();
+    virtual void BeforeWrite();
 
     // Should be called after a *successful* write operation on the socket, e.g.
     // ret > 0
-    void AfterWrite(const struct iovec* iov, int iovcnt, ssize_t ret);
+    virtual void AfterWrite(const struct iovec* iov, int iovcnt, ssize_t ret);
 
     // Should be called before a socket is closed
-    void BeforeClose();
+    virtual void BeforeClose();
 
     // Should be called after close has been called on the socket,
     // regardless of being successful or not.
-    void AfterClose(int ret);
+    virtual void AfterClose(int ret);
+
+    int fd() const { return sockfd_; }
 
    protected:
     bool role_server() const { return role_ == SocketRole::SERVER; }
@@ -80,7 +82,7 @@ class SocketEventHandler {
     trace_id_t trace() const { return trace_; }
 
    protected:
-    TracingSocket& socket_;
+    const int sockfd_;
 
     trace_id_t trace_;
     SocketRole role_;
