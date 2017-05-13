@@ -16,6 +16,7 @@ LIBS = -L /usr/local/lib -lhttp_parser -lpthread -ldl
 
 CC = g++
 CFLAGS = -Wall -std=c++17 -MP -MD
+OVERRIDE_WARNING = -Wsuggest-override
 LIBFLAGS = -fPIC -shared
 
 PROTO_GEN_DIR = $(BUILD_DIR)/gen

@@ -27,7 +27,7 @@ class TracingSocket : public SocketInterface {
                   std::unique_ptr<SocketEventHandler> event_handler,
                   const OriginalFunctions &orig);
 
-    void Accept();
+    void Accept() override;
     ssize_t RecvFrom(void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) override;
     ssize_t Recv(void *buf, size_t len, int flags) override;
