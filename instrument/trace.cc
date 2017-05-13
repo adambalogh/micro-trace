@@ -22,6 +22,16 @@
         }                                    \
     } while (0)
 
+template <class CbType>
+struct CallbackWrap {
+    CallbackWrap(void* req_ptr, uv_getaddrinfo_cb orig_cb, trace_id_t trace)
+        : req_ptr(req_ptr), orig_cb(orig_cb), trace(trace) {}
+
+    void* const req_ptr;
+    const CbType orig_cb;
+    const trace_id_t trace;
+};
+
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
 static auto& socket_map() {
@@ -64,7 +74,7 @@ static void DeleteGetAddrinfoCb(void* req_ptr) {
 
 /* Accept */
 
-void HandleAccept(const int sockfd) {
+static void HandleAccept(const int sockfd) {
     if (sockfd == -1) {
         return;
     }

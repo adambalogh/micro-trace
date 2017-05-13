@@ -30,13 +30,3 @@ ssize_t writev(int fd, const struct iovec *iov, int iovcnt);
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen);
 }
-
-template <class CbType>
-struct CallbackWrap {
-    CallbackWrap(void *req_ptr, uv_getaddrinfo_cb orig_cb, trace_id_t trace)
-        : req_ptr(req_ptr), orig_cb(orig_cb), trace(trace) {}
-
-    void *const req_ptr;
-    const CbType orig_cb;
-    const trace_id_t trace;
-};
