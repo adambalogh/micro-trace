@@ -7,6 +7,10 @@
 
 #include "uv.h"
 
+class OriginalFunctions;
+
+extern OriginalFunctions &orig();
+
 class OriginalFunctions {
    public:
     virtual ~OriginalFunctions() {}
@@ -113,5 +117,3 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     orig_uv_accept_t orig_uv_accept;
     orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
 };
-
-extern OriginalFunctions &orig();
