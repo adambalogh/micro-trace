@@ -8,11 +8,11 @@
 void *find_orig(const char *name) { return dlsym(RTLD_NEXT, name); }
 
 OriginalFunctions &orig() {
-    static OriginalFunctions o;
+    static OriginalFunctionsImpl o;
     return o;
 }
 
-OriginalFunctions::OriginalFunctions() {
+OriginalFunctionsImpl::OriginalFunctionsImpl() {
     ORIG(orig_socket, "socket");
     ORIG(orig_close, "close");
     ORIG(orig_recvfrom, "recvfrom");
@@ -29,65 +29,68 @@ OriginalFunctions::OriginalFunctions() {
     ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
 }
 
-int OriginalFunctions::socket(int domain, int type, int protocol) const {
+int OriginalFunctionsImpl::socket(int domain, int type, int protocol) const {
     return orig_socket(domain, type, protocol);
 }
 
-int OriginalFunctions::close(int fd) const { return orig_close(fd); }
+int OriginalFunctionsImpl::close(int fd) const { return orig_close(fd); }
 
-int OriginalFunctions::accept(int sockfd, struct sockaddr *addr,
-                              socklen_t *addrlen) const {
+int OriginalFunctionsImpl::accept(int sockfd, struct sockaddr *addr,
+                                  socklen_t *addrlen) const {
     return orig_accept(sockfd, addr, addrlen);
 }
 
-int OriginalFunctions::accept4(int sockfd, struct sockaddr *addr,
-                               socklen_t *addrlen, int flags) const {
+int OriginalFunctionsImpl::accept4(int sockfd, struct sockaddr *addr,
+                                   socklen_t *addrlen, int flags) const {
     return orig_accept4(sockfd, addr, addrlen, flags);
 }
 
-ssize_t OriginalFunctions::recv(int sockfd, void *buf, size_t len,
-                                int flags) const {
+ssize_t OriginalFunctionsImpl::recv(int sockfd, void *buf, size_t len,
+                                    int flags) const {
     return orig_recv(sockfd, buf, len, flags);
 }
 
-ssize_t OriginalFunctions::read(int fd, void *buf, size_t count) const {
+ssize_t OriginalFunctionsImpl::read(int fd, void *buf, size_t count) const {
     return orig_read(fd, buf, count);
 }
 
-ssize_t OriginalFunctions::recvfrom(int sockfd, void *buf, size_t len,
-                                    int flags, struct sockaddr *src_addr,
-                                    socklen_t *addrlen) const {
+ssize_t OriginalFunctionsImpl::recvfrom(int sockfd, void *buf, size_t len,
+                                        int flags, struct sockaddr *src_addr,
+                                        socklen_t *addrlen) const {
     return orig_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
 }
 
-ssize_t OriginalFunctions::write(int fd, const void *buf, size_t count) const {
+ssize_t OriginalFunctionsImpl::write(int fd, const void *buf,
+                                     size_t count) const {
     return orig_write(fd, buf, count);
 }
 
-ssize_t OriginalFunctions::writev(int fd, const struct iovec *iov,
-                                  int iovcnt) const {
+ssize_t OriginalFunctionsImpl::writev(int fd, const struct iovec *iov,
+                                      int iovcnt) const {
     return orig_writev(fd, iov, iovcnt);
 }
 
-ssize_t OriginalFunctions::send(int sockfd, const void *buf, size_t len,
-                                int flags) const {
+ssize_t OriginalFunctionsImpl::send(int sockfd, const void *buf, size_t len,
+                                    int flags) const {
     return orig_send(sockfd, buf, len, flags);
 }
 
-ssize_t OriginalFunctions::sendto(int sockfd, const void *buf, size_t len,
-                                  int flags, const struct sockaddr *dest_addr,
-                                  socklen_t addrlen) const {
+ssize_t OriginalFunctionsImpl::sendto(int sockfd, const void *buf, size_t len,
+                                      int flags,
+                                      const struct sockaddr *dest_addr,
+                                      socklen_t addrlen) const {
     return orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 }
 
-int OriginalFunctions::uv_accept(uv_stream_t *server,
-                                 uv_stream_t *client) const {
+int OriginalFunctionsImpl::uv_accept(uv_stream_t *server,
+                                     uv_stream_t *client) const {
     return orig_uv_accept(server, client);
 }
 
-int OriginalFunctions::uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
-                                      uv_getaddrinfo_cb getaddrinfo_cb,
-                                      const char *node, const char *service,
-                                      const struct addrinfo *hints) const {
+int OriginalFunctionsImpl::uv_getaddrinfo(uv_loop_t *loop,
+                                          uv_getaddrinfo_t *req,
+                                          uv_getaddrinfo_cb getaddrinfo_cb,
+                                          const char *node, const char *service,
+                                          const struct addrinfo *hints) const {
     return orig_uv_getaddrinfo(loop, req, getaddrinfo_cb, node, service, hints);
 }
