@@ -12,32 +12,35 @@
 #include "trace.h"
 #include "tracing_socket.h"
 
-#define SOCK_CALL(fd, traced, normal)               \
-    do {                                            \
-        TracingSocket* sock = get_socket_entry(fd); \
-        if (sock == NULL) {                         \
-            return orig().normal;                   \
-        } else {                                    \
-            return sock->traced;                    \
-        }                                           \
+#define SOCK_CALL(fd, traced, normal)        \
+    do {                                     \
+        TracingSocket* sock = GetSocket(fd); \
+        if (sock == NULL) {                  \
+            return orig().normal;            \
+        } else {                             \
+            return sock->traced;             \
+        }                                    \
     } while (0)
+
+typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
 static auto& socket_map() {
     static std::unordered_map<int, std::unique_ptr<TracingSocket>> socket_map;
     return socket_map;
 }
 
-static auto& trace_wraps() {
-    static std::unordered_map<void*, std::unique_ptr<TraceWrap>> trace_wraps;
-    return trace_wraps;
+static auto& getaddrinfo_cbs() {
+    static std::unordered_map<void*, std::unique_ptr<GetAddrinfoCbWrap>>
+        getaddrinfo_cbs;
+    return getaddrinfo_cbs;
 }
 
 // TODO make these thread safe
-void add_socket_entry(std::unique_ptr<TracingSocket> entry) {
+static void SaveSocket(std::unique_ptr<TracingSocket> entry) {
     socket_map()[entry->fd()] = std::move(entry);
 }
 
-TracingSocket* get_socket_entry(const int sockfd) {
+static TracingSocket* GetSocket(const int sockfd) {
     auto it = socket_map().find(sockfd);
     if (it == socket_map().end()) {
         return nullptr;
@@ -45,25 +48,19 @@ TracingSocket* get_socket_entry(const int sockfd) {
     return it->second.get();
 }
 
-trace_id_t get_socket_trace(const int sockfd) {
-    const TracingSocket* entry = get_socket_entry(sockfd);
-    if (entry == nullptr) {
-        return UNDEFINED_TRACE;
-    }
-    return entry->fd();
+static void DeleteSocket(const int sockfd) { socket_map().erase(sockfd); }
+
+static void SaveGetAddrinfoCb(std::unique_ptr<GetAddrinfoCbWrap> wrap) {
+    getaddrinfo_cbs()[wrap->req_ptr] = std::move(wrap);
 }
 
-void del_socket_entry(const int sockfd) { socket_map().erase(sockfd); }
-
-void add_trace_wrap(std::unique_ptr<TraceWrap> trace) {
-    trace_wraps()[trace->req_ptr] = std::move(trace);
+static const GetAddrinfoCbWrap& GetGetAddrinfoCb(void* req_ptr) {
+    return *(getaddrinfo_cbs().at(req_ptr));
 }
 
-const TraceWrap& get_trace_wrap(void* req_ptr) {
-    return *(trace_wraps().at(req_ptr));
+static void DeleteGetAddrinfoCb(void* req_ptr) {
+    getaddrinfo_cbs().erase(req_ptr);
 }
-
-void del_trace_wrap(void* req_ptr) { trace_wraps().erase(req_ptr); }
 
 /* Accept */
 
@@ -84,7 +81,7 @@ void HandleAccept(const int sockfd) {
     auto socket = std::make_unique<TracingSocket>(
         sockfd, std::move(event_handler), orig());
     socket->Accept();
-    add_socket_entry(std::move(socket));
+    SaveSocket(std::move(socket));
 
     DLOG("accepted socket: %d", sockfd);
 }
@@ -92,14 +89,12 @@ void HandleAccept(const int sockfd) {
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
     int ret = orig().accept(sockfd, addr, addrlen);
     HandleAccept(ret);
-
     return ret;
 }
 
 int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
     int ret = orig().accept4(sockfd, addr, addrlen, flags);
     HandleAccept(ret);
-
     return ret;
 }
 
@@ -126,7 +121,7 @@ int socket(int domain, int type, int protocol) {
             sockfd, get_current_trace(), SocketRole::CLIENT);
         auto socket = std::make_unique<TracingSocket>(
             sockfd, std::move(event_handler), orig());
-        add_socket_entry(std::move(socket));
+        SaveSocket(std::move(socket));
         DLOG("opened socket: %d", sockfd);
     }
     return sockfd;
@@ -136,24 +131,23 @@ int socket(int domain, int type, int protocol) {
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
                         struct addrinfo* res) {
-    const TraceWrap& trace = get_trace_wrap(req);
+    const GetAddrinfoCbWrap& cb_wrap = GetGetAddrinfoCb(req);
 
     // TODO uv_getaddrinfo might be called before a socket is opened
-    assert(valid_trace(trace.id));
-    set_current_trace(trace.id);
+    assert(valid_trace(cb_wrap.id));
+    set_current_trace(cb_wrap.id);
 
-    uv_getaddrinfo_cb orig_cb = trace.orig_cb;
-    del_trace_wrap(trace.req_ptr);
+    uv_getaddrinfo_cb orig_cb = cb_wrap.orig_cb;
+    DeleteGetAddrinfoCb(cb_wrap.req_ptr);
     orig_cb(req, status, res);
 }
 
 int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
                    const char* service, const struct addrinfo* hints) {
-    std::unique_ptr<TraceWrap> trace(
-        new TraceWrap(req, getaddrinfo_cb, get_current_trace()));
-    add_trace_wrap(std::move(trace));
-
+    auto cb_wrap = std::make_unique<GetAddrinfoCbWrap>(req, getaddrinfo_cb,
+                                                       get_current_trace());
+    SaveGetAddrinfoCb(std::move(cb_wrap));
     return orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service,
                                  hints);
 }
@@ -193,14 +187,14 @@ ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
 }
 
 int close(int fd) {
-    TracingSocket* sock = get_socket_entry(fd);
+    TracingSocket* sock = GetSocket(fd);
     if (sock == NULL) {
         return orig().close(fd);
     }
 
     int ret = sock->Close();
     if (ret == 0) {
-        del_socket_entry(fd);
+        DeleteSocket(fd);
     }
     return ret;
 }
