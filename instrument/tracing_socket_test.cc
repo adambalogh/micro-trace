@@ -13,17 +13,20 @@
 using namespace fakeit;
 
 const int FD = 9943;
-const int FLAGS = 99;
-const size_t LEN = 11;
-void* BUF = nullptr;
-struct sockaddr* SOCKADDR = nullptr;
-socklen_t ADDRLEN = 10;
-socklen_t* ADDRLEN_PTR = nullptr;
-const int SUCCESSFUL_CLOSE = 1;
-const struct iovec* IOVEC = nullptr;
-const int IOVCNT = 0;
-const int RET = 1000;
 const trace_id_t TRACE = 43242;
+
+const size_t LEN = 11;
+void* BUF = new char[LEN];
+const int FLAGS = 99;
+struct sockaddr sa;
+struct sockaddr* SOCKADDR = &sa;
+socklen_t ADDRLEN = 10;
+socklen_t* ADDRLEN_PTR = &ADDRLEN;
+const int SUCCESSFUL_CLOSE = 1;
+struct iovec iov;
+const struct iovec* IOVEC = &iov;
+const int IOVCNT = 1;
+const int RET = 55;
 
 const EmptyOriginalFunctions empty_orig;
 
@@ -60,12 +63,28 @@ TEST(TracingSocketTest, SocketApiCalls) {
     Verify(Method(mock, read).Using(FD, BUF, LEN));
 
     EXPECT_EQ(RET, socket.Recv(BUF, LEN, FLAGS));
+    Verify(Method(mock, recv).Using(FD, BUF, LEN, FLAGS));
+
     EXPECT_EQ(RET, socket.RecvFrom(BUF, LEN, FLAGS, SOCKADDR, ADDRLEN_PTR));
+    Verify(Method(mock, recvfrom)
+               .Using(FD, BUF, LEN, FLAGS, SOCKADDR, ADDRLEN_PTR));
+
     EXPECT_EQ(RET, socket.Write(BUF, LEN));
+    Verify(Method(mock, write).Using(FD, BUF, LEN));
+
     EXPECT_EQ(RET, socket.Writev(IOVEC, IOVCNT));
+    Verify(Method(mock, writev).Using(FD, IOVEC, IOVCNT));
+
     EXPECT_EQ(RET, socket.Send(BUF, LEN, FLAGS));
+    Verify(Method(mock, send).Using(FD, BUF, LEN, FLAGS));
+
     EXPECT_EQ(RET, socket.SendTo(BUF, LEN, FLAGS, SOCKADDR, ADDRLEN));
+    Verify(Method(mock, sendto).Using(FD, BUF, LEN, FLAGS, SOCKADDR, ADDRLEN));
 
     // Make sure to do this last
     EXPECT_EQ(SUCCESSFUL_CLOSE, socket.Close());
+    Verify(Method(mock, close).Using(FD));
+
+    // Verify that no other syscall was called
+    VerifyNoOtherInvocations(mock);
 }
