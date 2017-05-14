@@ -6,7 +6,7 @@
  */
 class SocketInterface {
    public:
-    virtual ~SocketInterface() {}
+    virtual ~SocketInterface() = default;
 
     virtual int fd() const = 0;
 

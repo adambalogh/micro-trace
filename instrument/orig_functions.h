@@ -16,7 +16,7 @@ extern OriginalFunctions &orig();
 
 class OriginalFunctions {
    public:
-    virtual ~OriginalFunctions() {}
+    virtual ~OriginalFunctions() = default;
 
     virtual int socket(int domain, int type, int protocol) const = 0;
     virtual int close(int fd) const = 0;

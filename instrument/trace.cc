@@ -204,7 +204,6 @@ int close(int fd) {
     if (sock == NULL) {
         return orig().close(fd);
     }
-
     int ret = sock->Close();
     if (ret == 0) {
         DeleteSocket(fd);
