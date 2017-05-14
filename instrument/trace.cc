@@ -87,7 +87,6 @@ static void HandleAccept(const int sockfd) {
 
     // Trace ID is just a random number for now
     trace_id_t trace = std::uniform_int_distribution<>(1, 1000000)(eng);
-    set_current_trace(trace);
 
     auto event_handler =
         std::make_unique<SocketCallback>(sockfd, trace, SocketRole::SERVER);
