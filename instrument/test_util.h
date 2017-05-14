@@ -44,6 +44,12 @@ class EmptyOriginalFunctions : public OriginalFunctions {
 
 class EmptySocketEventHandler : public SocketEventHandler {
    public:
+    static std::unique_ptr<SocketEventHandler> New(int fd,
+                                                   const trace_id_t trace,
+                                                   const SocketRole role) {
+        return std::make_unique<EmptySocketEventHandler>(fd, trace, role);
+    }
+
     EmptySocketEventHandler(int fd, const trace_id_t trace,
                             const SocketRole role)
         : SocketEventHandler(fd, trace, role) {}
@@ -58,8 +64,3 @@ class EmptySocketEventHandler : public SocketEventHandler {
     virtual void BeforeClose() override {}
     virtual void AfterClose(int ret) override {}
 };
-
-std::unique_ptr<SocketEventHandler> MakeEmptySocketEventHandler(
-    int fd, const trace_id_t trace, const SocketRole role) {
-    return std::make_unique<EmptySocketEventHandler>(fd, trace, role);
-}

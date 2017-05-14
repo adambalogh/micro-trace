@@ -16,14 +16,14 @@ const int FD = 9943;
 const trace_id_t TRACE = 43242;
 
 const size_t LEN = 11;
-void* BUF = new char[LEN];
+void* const BUF = new char[LEN];
 const int FLAGS = 99;
-struct sockaddr sa;
+struct sockaddr sa = {};
 struct sockaddr* SOCKADDR = &sa;
 socklen_t ADDRLEN = 10;
-socklen_t* ADDRLEN_PTR = &ADDRLEN;
+socklen_t* const ADDRLEN_PTR = &ADDRLEN;
 const int SUCCESSFUL_CLOSE = 1;
-struct iovec iov;
+const struct iovec iov = {};
 const struct iovec* IOVEC = &iov;
 const int IOVCNT = 1;
 const int RET = 55;
@@ -32,7 +32,7 @@ const EmptyOriginalFunctions empty_orig;
 
 TEST(TracingSocket, Init) {
     TracingSocket socket{
-        FD, MakeEmptySocketEventHandler(FD, TRACE, SocketRole::CLIENT),
+        FD, EmptySocketEventHandler::New(FD, TRACE, SocketRole::CLIENT),
         empty_orig};
 
     EXPECT_EQ(FD, socket.fd());
@@ -51,7 +51,7 @@ TEST(TracingSocketTest, SocketApiCalls) {
 
     OriginalFunctions& mock_orig = mock.get();
     TracingSocket socket{
-        FD, MakeEmptySocketEventHandler(FD, TRACE, SocketRole::CLIENT),
+        FD, EmptySocketEventHandler::New(FD, TRACE, SocketRole::CLIENT),
         mock_orig};
 
     EXPECT_EQ(RET, socket.Read(BUF, LEN));
