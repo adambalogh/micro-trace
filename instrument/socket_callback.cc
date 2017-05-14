@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 
+#include "logger.h"
+
 Connection::Connection()
     : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
 
