@@ -127,6 +127,10 @@ int socket(int domain, int type, int protocol) {
     if (sockfd == -1) {
         return sockfd;
     }
+    // We only track IP sockets
+    if (domain != AF_INET || domain != AF_INET6) {
+        return sockfd;
+    }
 
     if (get_current_trace() != UNDEFINED_TRACE) {
         auto event_handler = std::make_unique<SocketCallback>(
