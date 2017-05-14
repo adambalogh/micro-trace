@@ -10,14 +10,14 @@
 #include "logger.h"
 
 Connection::Connection()
-    : local_ip('.', INET6_ADDRSTRLEN), peer_ip('.', INET6_ADDRSTRLEN) {}
+    : client_ip('.', INET6_ADDRSTRLEN), server_ip('.', INET6_ADDRSTRLEN) {}
 
 std::string Connection::to_string() const {
     std::string str;
     str += "[";
-    str += "local: " + local_ip + ":" + std::to_string(local_port);
+    str += "client: " + client_ip + ":" + std::to_string(client_port);
     str += ", ";
-    str += "peer: " + peer_ip + ":" + std::to_string(peer_port);
+    str += "server: " + server_ip + ":" + std::to_string(server_port);
     str += "]";
     return str;
 }
@@ -58,10 +58,21 @@ void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
 }
 
 int SocketCallback::SetConnection() {
-    SetConnectionEndPoint(sockfd_, &conn_.local_ip, &conn_.local_port,
-                          getsockname);
-    SetConnectionEndPoint(sockfd_, &conn_.peer_ip, &conn_.peer_port,
-                          getpeername);
+    if (role_server()) {
+        // Client is the peer
+        SetConnectionEndPoint(sockfd_, &conn_.client_ip, &conn_.client_port,
+                              getpeername);
+        // We are the server
+        SetConnectionEndPoint(sockfd_, &conn_.server_ip, &conn_.server_port,
+                              getsockname);
+    } else {
+        // Server is the peer
+        SetConnectionEndPoint(sockfd_, &conn_.server_ip, &conn_.server_port,
+                              getpeername);
+        // We are the client
+        SetConnectionEndPoint(sockfd_, &conn_.client_ip, &conn_.client_port,
+                              getsockname);
+    }
 
     conn_init_ = true;
     return 0;

@@ -7,6 +7,11 @@
 /*
  * Identifies a unique connection between two machines.
  *
+ * Sockets can be divided into 2 groups: server and client (see SocketRole for
+ * explanation). Since both sockets in a connection know their role, the
+ * connection objects should look the same on both endpoints. This makes it
+ * easier to match logs.
+ *
  * Note: connnections are not unique in time.
  */
 struct Connection {
@@ -16,13 +21,25 @@ struct Connection {
     std::string to_string() const;
     void print() const;
 
-    std::string local_ip;
-    unsigned short local_port;
-    std::string peer_ip;
-    unsigned short peer_port;
+    std::string client_ip;
+    unsigned short client_port;
+    std::string server_ip;
+    unsigned short server_port;
 };
 
+/*
+ * We require applications to use a request-response-based communication method
+ * with a client-server model, which means that certain sockets will only
+ * receive requests, these are Server sockets, and other sockets will only send
+ * requests, these are Client sockets. As a result, we can divide sockets into
+ * these 2 groups. We know that a socket is a Client if it was connect()-ed to
+ * and endpoint, and a Server if it was accept()-ed.
+ *
+ * In addition, if a socket is a Client, we know that its first operation will
+ * be a write(), and if it is a Server, it will do a read() first.
+ */
 enum class SocketRole { CLIENT, SERVER };
+
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
 class SocketCallback {
@@ -38,9 +55,7 @@ class SocketCallback {
 
     virtual ~SocketCallback() = default;
 
-    // Should be called after the socket was accepted.
-    //
-    // Note: this method will not be called if the socket was open()-ed.
+    // Should be called after the socket was accepted, if it was accepted.
     virtual void AfterAccept();
 
     // Should be called before a read operation on the socket
