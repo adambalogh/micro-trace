@@ -98,11 +98,12 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
         return;
     }
 
+    // If we get to this point, it means that the connection is open,
+    // and a buffer was handed to the kernel.
     assert(ret > 0);
 
-    // Set connid if it hasn't been set before, e.g. in case of when a socket
-    // was opened using connect(). At this point ret is > 0, which means that
-    // the connection is open, so SetConnection should succeed.
+    // At this point ret is > 0, which means that the connection is open, so
+    // SetConnection should succeed.
     if (!conn_init_) {
         SetConnection();
     }
@@ -133,11 +134,12 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
         return;
     }
 
+    // If we get to this point, it means that the connection is open,
+    // and a buffer was handed to the kernel.
     assert(ret > 0);
 
-    // Set connid if it hasn't been set before, e.g. in case of when a socket
-    // was opened using connect(). At this point ret is > 0, which means that
-    // the connection is open, so SetConnection should succeed.
+    // At this point ret is > 0, which means that the connection is open, so
+    // SetConnection should succeed.
     if (!conn_init_) {
         SetConnection();
     }

@@ -36,7 +36,8 @@ struct Connection {
  * receive requests, these are Server sockets, and other sockets will only send
  * requests, these are Client sockets. As a result, we can divide sockets into
  * these 2 groups. We know that a socket is a Client if it was connect()-ed to
- * and endpoint, and a Server if it was accept()-ed.
+ * and endpoint, and a Server if it was accept()-ed. As an example, it wouldn't
+ * work with WebSockets which supports server-sent events.
  *
  * In addition, if a socket is a Client, we know that its first operation will
  * be a write(), and if it is a Server, it will do a read() first.
