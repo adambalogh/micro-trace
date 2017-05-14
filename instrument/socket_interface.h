@@ -10,9 +10,12 @@ class SocketInterface {
 
     virtual int fd() const = 0;
 
-    // This method is only here for managing the life-cycle of the socket, it
-    // shouldn't call any Socket API methods
+    /*
+     * This method is only here for managing the life-cycle of the socket, it
+     * shouldn't call any Socket API methods
+     */
     virtual void Accept() = 0;
+
     virtual ssize_t RecvFrom(void *buf, size_t len, int flags,
                              struct sockaddr *src_addr, socklen_t *addrlen) = 0;
     virtual ssize_t Recv(void *buf, size_t len, int flags) = 0;

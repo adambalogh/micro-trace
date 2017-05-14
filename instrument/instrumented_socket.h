@@ -10,11 +10,10 @@
 struct OriginalFunctions;
 
 /*
- * A InstrumentedSocket is a wrapper around a regular socket.
+ * A InstrumentedSocket is a wrapper around a regular socket, with callbacks
+ * that allow tracking the socket's lifecycle.
  *
- * Because of Connection: Keep-Alive, a socket may be reused for several
- * request-reply sequences, therefore a pair of sockets cannot uniquely
- * idenfity a trace.
+ * It must not alter the behaviour of the socket.
  */
 class InstrumentedSocket : public SocketInterface {
    public:
@@ -46,12 +45,13 @@ class InstrumentedSocket : public SocketInterface {
         return &iov;
     }
 
-    // File descriptor
-    int fd_;
+    const int fd_;
 
-    std::unique_ptr<SocketCallback> callback_;
+    const std::unique_ptr<SocketCallback> callback_;
 
-    // Cache for iovec struct
+    /*
+     * Cache for iovec struct
+     */
     struct iovec iov;
 
     const OriginalFunctions &orig_;

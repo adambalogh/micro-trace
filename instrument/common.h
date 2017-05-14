@@ -25,6 +25,12 @@ inline int valid_trace(const trace_id_t trace) {
     return trace != UNDEFINED_TRACE && trace != -1;
 }
 
+/*
+ * Returns the calling thread's currently associated trace.
+ */
 trace_id_t get_current_trace();
 
+/*
+ * Sets the trace for the calling thread.
+ */
 void set_current_trace(const trace_id_t trace);

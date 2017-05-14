@@ -10,10 +10,14 @@
 class OriginalFunctions;
 
 /*
- * Returns a global instance of OriginalFunctionsImpl
+ * Returns a global instance of OriginalFunctionsImpl, which is thread-safe.
  */
 extern OriginalFunctions &orig();
 
+/*
+ * Contains the actual implementations of the functions that we instrument
+ * using LD_PRELOAD.
+ */
 class OriginalFunctions {
    public:
     virtual ~OriginalFunctions() = default;

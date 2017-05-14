@@ -4,6 +4,8 @@
 
 /*
  * These are the functions that we instrument in order to trace requests.
+ *
+ * These functions will be preloaded for the dynamic linker using LD_PRELOAD.
  */
 extern "C" {
 
