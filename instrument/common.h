@@ -9,8 +9,6 @@
     printf(msg, __VA_ARGS__);                            \
     printf("\n");
 
-#define DEBUG
-
 #ifdef DEBUG
 #define DLOG(msg, ...) LOG(msg, __VA_ARGS__)
 #else

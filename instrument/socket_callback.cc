@@ -26,44 +26,41 @@ void SocketCallback::AfterAccept() { assert(role_ == SocketRole::SERVER); }
 
 static unsigned short get_port(const struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
-        return ((struct sockaddr_in*)sa)->sin_port;
+        return ntohs(((sockaddr_in*)sa)->sin_port);
+    } else {
+        return ntohs(((sockaddr_in6*)sa)->sin6_port);
     }
-    return ((struct sockaddr_in6*)sa)->sin6_port;
 }
 
-int SocketCallback::SetConnection() {
-    struct sockaddr addr;
-    socklen_t addr_len = sizeof(struct sockaddr);
+int SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
+                          int (*fn)(int, struct sockaddr*, socklen_t*)) {
+    sockaddr_storage tmp_sockaddr;
+    socklen_t addr_len = sizeof(tmp_sockaddr);
 
     int ret;
     const char* dst;
 
-    ret = getsockname(sockfd_, &addr, &addr_len);
+    ret = fn(fd, (sockaddr*)&tmp_sockaddr, &addr_len);
     if (ret != 0) {
         return errno;
     }
-    conn_.local_port = get_port(&addr);
-    dst = inet_ntop(addr.sa_family, &addr, string_arr(conn_.local_ip),
-                    conn_.local_ip.size());
+    *port = get_port((sockaddr*)&tmp_sockaddr);
+    dst = inet_ntop(tmp_sockaddr.ss_family, (sockaddr*)&tmp_sockaddr,
+                    string_arr(*ip), ip->size());
     if (dst == NULL) {
         return errno;
     }
-    // inet_ntop puts a null terminated string into local_ip
-    conn_.local_ip.resize(strlen(string_arr(conn_.local_ip)));
 
-    addr_len = sizeof(struct sockaddr);
-    ret = getpeername(sockfd_, &addr, &addr_len);
-    if (ret != 0) {
-        return errno;
-    }
-    conn_.peer_port = get_port(&addr);
-    dst = inet_ntop(addr.sa_family, &addr, string_arr(conn_.peer_ip),
-                    conn_.peer_ip.size());
-    if (dst == NULL) {
-        return errno;
-    }
-    // inet_ntop puts a null terminated string into peer_ip
-    conn_.peer_ip.resize(strlen(string_arr(conn_.peer_ip)));
+    // inet_ntop puts a null terminated string into ip
+    ip->resize(strlen(string_arr(*ip)));
+    return 0;
+}
+
+int SocketCallback::SetConnection() {
+    SetConnectionEndPoint(sockfd_, &conn_.local_ip, &conn_.local_port,
+                          getsockname);
+    SetConnectionEndPoint(sockfd_, &conn_.peer_ip, &conn_.peer_port,
+                          getpeername);
 
     conn_init_ = true;
     return 0;

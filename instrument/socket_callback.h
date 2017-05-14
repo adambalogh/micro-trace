@@ -31,7 +31,7 @@ class SocketCallback {
           num_requests_(0),
           conn_init_(false) {}
 
-    virtual ~SocketCallback() {}
+    virtual ~SocketCallback() = default;
 
     // Should be called after the socket was accepted.
     //
