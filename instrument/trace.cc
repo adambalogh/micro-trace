@@ -1,25 +1,27 @@
 #include <assert.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
+#include <memory>
 #include <random>
+#include <unordered_map>
 
 #include "http_parser.h"
 
+#include "instrumented_socket.h"
+#include "orig_functions.h"
 #include "trace.h"
-#include "tracing_socket.h"
 
-#define SOCK_CALL(fd, traced, normal)        \
-    do {                                     \
-        TracingSocket* sock = GetSocket(fd); \
-        if (sock == NULL) {                  \
-            return orig().normal;            \
-        } else {                             \
-            return sock->traced;             \
-        }                                    \
+#define SOCK_CALL(fd, traced, normal)             \
+    do {                                          \
+        InstrumentedSocket* sock = GetSocket(fd); \
+        if (sock == NULL) {                       \
+            return orig().normal;                 \
+        } else {                                  \
+            return sock->traced;                  \
+        }                                         \
     } while (0)
 
 template <class CbType>
@@ -35,7 +37,8 @@ struct CallbackWrap {
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
 static auto& socket_map() {
-    static std::unordered_map<int, std::unique_ptr<TracingSocket>> socket_map;
+    static std::unordered_map<int, std::unique_ptr<InstrumentedSocket>>
+        socket_map;
     return socket_map;
 }
 
@@ -46,11 +49,11 @@ static auto& getaddrinfo_cbs() {
 }
 
 // TODO make these thread safe
-static void SaveSocket(std::unique_ptr<TracingSocket> entry) {
+static void SaveSocket(std::unique_ptr<InstrumentedSocket> entry) {
     socket_map()[entry->fd()] = std::move(entry);
 }
 
-static TracingSocket* GetSocket(const int sockfd) {
+static InstrumentedSocket* GetSocket(const int sockfd) {
     auto it = socket_map().find(sockfd);
     if (it == socket_map().end()) {
         return nullptr;
@@ -88,7 +91,7 @@ static void HandleAccept(const int sockfd) {
 
     auto event_handler =
         std::make_unique<SocketEventHandler>(sockfd, trace, SocketRole::SERVER);
-    auto socket = std::make_unique<TracingSocket>(
+    auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(event_handler), orig());
     socket->Accept();
     SaveSocket(std::move(socket));
@@ -129,7 +132,7 @@ int socket(int domain, int type, int protocol) {
     if (get_current_trace() != UNDEFINED_TRACE) {
         auto event_handler = std::make_unique<SocketEventHandler>(
             sockfd, get_current_trace(), SocketRole::CLIENT);
-        auto socket = std::make_unique<TracingSocket>(
+        auto socket = std::make_unique<InstrumentedSocket>(
             sockfd, std::move(event_handler), orig());
         SaveSocket(std::move(socket));
         DLOG("opened socket: %d", sockfd);
@@ -162,7 +165,7 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                                  hints);
 }
 
-/* TracingSocket calls */
+/* InstrumentedSocket calls */
 
 ssize_t read(int fd, void* buf, size_t count) {
     SOCK_CALL(fd, Read(buf, count), read(fd, buf, count));
@@ -197,7 +200,7 @@ ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
 }
 
 int close(int fd) {
-    TracingSocket* sock = GetSocket(fd);
+    InstrumentedSocket* sock = GetSocket(fd);
     if (sock == NULL) {
         return orig().close(fd);
     }

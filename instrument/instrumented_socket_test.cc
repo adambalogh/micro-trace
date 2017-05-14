@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "tracing_socket.h"
+#include "instrumented_socket.h"
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -30,15 +30,15 @@ const int RET = 55;
 
 const EmptyOriginalFunctions empty_orig;
 
-TEST(TracingSocket, Init) {
-    TracingSocket socket{
+TEST(InstrumentedSocketTest, Init) {
+    InstrumentedSocket socket{
         FD, EmptySocketEventHandler::New(FD, TRACE, SocketRole::CLIENT),
         empty_orig};
 
     EXPECT_EQ(FD, socket.fd());
 }
 
-TEST(TracingSocketTest, SocketApiCalls) {
+TEST(InstrumentedSocketTest, SocketApiCalls) {
     Mock<OriginalFunctions> mock;
     Method(mock, recv) = RET;
     Method(mock, read) = RET;
@@ -50,7 +50,7 @@ TEST(TracingSocketTest, SocketApiCalls) {
     Method(mock, close) = SUCCESSFUL_CLOSE;
 
     OriginalFunctions& mock_orig = mock.get();
-    TracingSocket socket{
+    InstrumentedSocket socket{
         FD, EmptySocketEventHandler::New(FD, TRACE, SocketRole::CLIENT),
         mock_orig};
 

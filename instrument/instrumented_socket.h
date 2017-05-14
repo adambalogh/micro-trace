@@ -10,22 +10,19 @@
 struct OriginalFunctions;
 
 /*
- * A TracingSocket is a wrapper around a regular socket.
+ * A InstrumentedSocket is a wrapper around a regular socket.
  *
  * Because of Connection: Keep-Alive, a socket may be reused for several
  * request-reply sequences, therefore a pair of sockets cannot uniquely
  * idenfity a trace.
- *
- * The assigned socket_entry must be removed if the underlying socket
- * is closed.
  */
-class TracingSocket : public SocketInterface {
+class InstrumentedSocket : public SocketInterface {
    public:
-    TracingSocket(const TracingSocket &) = delete;
+    InstrumentedSocket(const InstrumentedSocket &) = delete;
 
-    TracingSocket(const int fd,
-                  std::unique_ptr<SocketEventHandler> event_handler,
-                  const OriginalFunctions &orig);
+    InstrumentedSocket(const int fd,
+                       std::unique_ptr<SocketEventHandler> event_handler,
+                       const OriginalFunctions &orig);
 
     void Accept() override;
     ssize_t RecvFrom(void *buf, size_t len, int flags,

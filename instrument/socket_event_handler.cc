@@ -24,7 +24,7 @@ void Connection::print() const { std::cout << to_string() << std::endl; }
 
 void SocketEventHandler::AfterAccept() { assert(role_ == SocketRole::SERVER); }
 
-unsigned short get_port(const struct sockaddr* sa) {
+static unsigned short get_port(const struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         return ((struct sockaddr_in*)sa)->sin_port;
     }
@@ -40,7 +40,7 @@ int SocketEventHandler::SetConnection() {
 
     ret = getsockname(sockfd_, &addr, &addr_len);
     if (ret != 0) {
-        return ret;
+        return errno;
     }
     conn_.local_port = get_port(&addr);
     dst = inet_ntop(addr.sa_family, &addr, string_arr(conn_.local_ip),
@@ -52,10 +52,9 @@ int SocketEventHandler::SetConnection() {
     conn_.local_ip.resize(strlen(string_arr(conn_.local_ip)));
 
     addr_len = sizeof(struct sockaddr);
-
     ret = getpeername(sockfd_, &addr, &addr_len);
     if (ret != 0) {
-        return ret;
+        return errno;
     }
     conn_.peer_port = get_port(&addr);
     dst = inet_ntop(addr.sa_family, &addr, string_arr(conn_.peer_ip),
@@ -73,8 +72,6 @@ int SocketEventHandler::SetConnection() {
 void SocketEventHandler::BeforeRead() {}
 
 void SocketEventHandler::AfterRead(const void* buf, size_t ret) {
-    assert(ret >= 0);
-
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!conn_init_) {
@@ -98,8 +95,6 @@ void SocketEventHandler::BeforeWrite() {}
 
 void SocketEventHandler::AfterWrite(const struct iovec* iov, int iovcnt,
                                     ssize_t ret) {
-    assert(ret >= 0);
-
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!conn_init_) {

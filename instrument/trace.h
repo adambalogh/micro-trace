@@ -1,15 +1,6 @@
 #pragma once
 
-#include <pthread.h>
-#include <stdint.h>
-#include <memory>
-#include <unordered_map>
-
 #include "uv.h"
-
-#include "common.h"
-#include "orig_functions.h"
-#include "tracing_socket.h"
 
 /*
  * These are the functions that we instrument in order to trace requests.

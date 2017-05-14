@@ -5,10 +5,10 @@ BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = instrument
-SRCS = tracing_socket.cc trace.cc orig_functions.cc common.cc socket_event_handler.cc
+SRCS = instrumented_socket.cc trace.cc orig_functions.cc common.cc socket_event_handler.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = tracing_socket_test.cc
+TESTS = instrumented_socket.cc socket_event_handler_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
@@ -62,6 +62,7 @@ test: $(TEST_EXEC)
 
 run-test: test
 	./build/tracing_socket_test
+	./build/socket_event_handler_test
 
 export FLASK_APP=apps/backend.py
 
