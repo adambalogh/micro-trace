@@ -40,10 +40,6 @@ TEST(TracingSocket, Init) {
 
 TEST(TracingSocketTest, SocketApiCalls) {
     Mock<OriginalFunctions> mock;
-    Method(mock, socket) = RET;
-    Method(mock, close) = SUCCESSFUL_CLOSE;
-    Method(mock, accept) = RET;
-    Method(mock, accept4) = RET;
     Method(mock, recv) = RET;
     Method(mock, read) = RET;
     Method(mock, recvfrom) = RET;
@@ -51,8 +47,7 @@ TEST(TracingSocketTest, SocketApiCalls) {
     Method(mock, writev) = RET;
     Method(mock, send) = RET;
     Method(mock, sendto) = RET;
-    Method(mock, uv_accept) = RET;
-    Method(mock, uv_getaddrinfo) = RET;
+    Method(mock, close) = SUCCESSFUL_CLOSE;
 
     OriginalFunctions& mock_orig = mock.get();
     TracingSocket socket{
