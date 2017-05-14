@@ -22,54 +22,42 @@ ssize_t InstrumentedSocket::RecvFrom(void *buf, size_t len, int flags,
                                      socklen_t *addrlen) {
     event_handler_->BeforeRead();
     ssize_t ret = orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
-    if (ret != -1) {
-        event_handler_->AfterRead(buf, ret);
-    }
+    event_handler_->AfterRead(buf, ret);
     return ret;
 }
 
 ssize_t InstrumentedSocket::Recv(void *buf, size_t len, int flags) {
     event_handler_->BeforeRead();
     ssize_t ret = orig_.recv(fd(), buf, len, flags);
-    if (ret != -1) {
-        event_handler_->AfterRead(buf, ret);
-    }
+    event_handler_->AfterRead(buf, ret);
     return ret;
 }
 
 ssize_t InstrumentedSocket::Read(void *buf, size_t count) {
     event_handler_->BeforeRead();
     ssize_t ret = orig_.read(fd(), buf, count);
-    if (ret != -1) {
-        event_handler_->AfterRead(buf, ret);
-    }
+    event_handler_->AfterRead(buf, ret);
     return ret;
 }
 
 ssize_t InstrumentedSocket::Send(const void *buf, size_t len, int flags) {
     event_handler_->BeforeWrite();
     ssize_t ret = orig_.send(fd(), buf, len, flags);
-    if (ret != -1) {
-        event_handler_->AfterWrite(set_iovec(buf, len), SINGLE_IOVEC, ret);
-    }
+    event_handler_->AfterWrite(set_iovec(buf, len), SINGLE_IOVEC, ret);
     return ret;
 }
 
 ssize_t InstrumentedSocket::Write(const void *buf, size_t count) {
     event_handler_->BeforeWrite();
     ssize_t ret = orig_.write(fd(), buf, count);
-    if (ret != -1) {
-        event_handler_->AfterWrite(set_iovec(buf, count), SINGLE_IOVEC, ret);
-    }
+    event_handler_->AfterWrite(set_iovec(buf, count), SINGLE_IOVEC, ret);
     return ret;
 }
 
 ssize_t InstrumentedSocket::Writev(const struct iovec *iov, int iovcnt) {
     event_handler_->BeforeWrite();
     ssize_t ret = orig_.writev(fd(), iov, iovcnt);
-    if (ret != -1) {
-        event_handler_->AfterWrite(iov, iovcnt, ret);
-    }
+    event_handler_->AfterWrite(iov, iovcnt, ret);
     return ret;
 }
 
@@ -78,9 +66,7 @@ ssize_t InstrumentedSocket::SendTo(const void *buf, size_t len, int flags,
                                    socklen_t addrlen) {
     event_handler_->BeforeWrite();
     ssize_t ret = orig_.sendto(fd(), buf, len, flags, dest_addr, addrlen);
-    if (ret != -1) {
-        event_handler_->AfterWrite(set_iovec(buf, len), SINGLE_IOVEC, ret);
-    }
+    event_handler_->AfterWrite(set_iovec(buf, len), SINGLE_IOVEC, ret);
     return ret;
 }
 
