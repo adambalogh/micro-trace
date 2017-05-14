@@ -4,6 +4,11 @@
 
 #include "common.h"
 
+/*
+ * Identifies a unique connection between two machines.
+ *
+ * Note: connnections are not unique in time.
+ */
 struct Connection {
    public:
     Connection();
@@ -18,7 +23,7 @@ struct Connection {
 };
 
 enum class SocketRole { CLIENT, SERVER };
-enum class SocketState { WILL_READ, READ, WILL_WRITE, WRITE };
+enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
 class SocketCallback {
    public:
@@ -81,19 +86,43 @@ class SocketCallback {
    protected:
     const int sockfd_;
 
+    /*
+     * The trace currently associated with this socket. This might change
+     * throughout the lifecycle of the socket, for example if applications
+     * use connection pooling.
+     */
     trace_id_t trace_;
-    SocketRole role_;
 
-    // Records the most recent operation executed on this socket
+    /*
+     * Indicates whether this socket is being used as a client, or as a server
+     * in this connection, e.g. whenever a socket is accepted, it will act as a
+     * server. This is a valid assumption because we require aplications to use
+     * a request-response communication method.
+     */
+    const SocketRole role_;
+
+    /*
+     * Records the state of the socket.
+     */
     SocketState state_;
 
-    // Number of requests that went through this socket. If socket role is
-    // client, this will indicate the number of requests sent, if the role
-    // is server, it is the number of requests received.
+    /*
+     * Number of requests that went through this socket. If socket role is
+     * client, this will indicate the number of requests sent, if the role
+     * is server, it is the number of requests received.
+     */
     int num_requests_;
 
-    // Indicates if conn_ has been successfully set up, it DOES NOT indicate
-    // whether the socket is connected or not
+    /*
+     * Indicates if conn_ has been successfully set up, it DOES NOT indicate
+     * whether the socket is connected or not, although if its value is true,
+     * it also means that the socket is connected.
+     */
     bool conn_init_;
+
+    /*
+     * The connection this socket represents. Remains the same throughout the
+     * socket's lifetime, and becomes invalid after Close() has been called.
+     */
     Connection conn_;
 };

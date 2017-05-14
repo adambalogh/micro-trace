@@ -80,7 +80,7 @@ void SocketCallback::AfterRead(const void* buf, size_t ret) {
 
     if (ret > 0) {
         if (role_server() && (state_ == SocketState::WILL_READ ||
-                              state_ == SocketState::WRITE)) {
+                              state_ == SocketState::WROTE)) {
             ++num_requests_;
         }
 
@@ -108,7 +108,7 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
         }
 
         DLOG("%d wrote %ld bytes", sockfd_, ret);
-        state_ = SocketState::WRITE;
+        state_ = SocketState::WROTE;
     }
 }
 

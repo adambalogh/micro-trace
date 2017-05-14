@@ -88,7 +88,9 @@ TEST(Trace, UndefinedTrace) {
 
     ret = write(client, MSG, MSG_LEN);
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+
     close(client);
+    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
     t1.join();
 }
