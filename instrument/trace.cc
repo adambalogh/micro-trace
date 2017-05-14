@@ -90,7 +90,7 @@ static void HandleAccept(const int sockfd) {
     set_current_trace(trace);
 
     auto event_handler =
-        std::make_unique<SocketEventHandler>(sockfd, trace, SocketRole::SERVER);
+        std::make_unique<SocketCallback>(sockfd, trace, SocketRole::SERVER);
     auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(event_handler), orig());
     socket->Accept();
@@ -130,7 +130,7 @@ int socket(int domain, int type, int protocol) {
     }
 
     if (get_current_trace() != UNDEFINED_TRACE) {
-        auto event_handler = std::make_unique<SocketEventHandler>(
+        auto event_handler = std::make_unique<SocketCallback>(
             sockfd, get_current_trace(), SocketRole::CLIENT);
         auto socket = std::make_unique<InstrumentedSocket>(
             sockfd, std::move(event_handler), orig());

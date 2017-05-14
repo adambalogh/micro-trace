@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "common.h"
-#include "socket_event_handler.h"
+#include "socket_callback.h"
 #include "socket_interface.h"
 
 struct OriginalFunctions;
@@ -21,7 +21,7 @@ class InstrumentedSocket : public SocketInterface {
     InstrumentedSocket(const InstrumentedSocket &) = delete;
 
     InstrumentedSocket(const int fd,
-                       std::unique_ptr<SocketEventHandler> event_handler,
+                       std::unique_ptr<SocketCallback> event_handler,
                        const OriginalFunctions &orig);
 
     void Accept() override;
@@ -49,7 +49,7 @@ class InstrumentedSocket : public SocketInterface {
     // File descriptor
     int fd_;
 
-    std::unique_ptr<SocketEventHandler> event_handler_;
+    std::unique_ptr<SocketCallback> callback_;
 
     // Cache for iovec struct
     struct iovec iov;

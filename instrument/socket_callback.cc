@@ -1,4 +1,4 @@
-#include "socket_event_handler.h"
+#include "socket_callback.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -22,7 +22,7 @@ std::string Connection::to_string() const {
 
 void Connection::print() const { std::cout << to_string() << std::endl; }
 
-void SocketEventHandler::AfterAccept() { assert(role_ == SocketRole::SERVER); }
+void SocketCallback::AfterAccept() { assert(role_ == SocketRole::SERVER); }
 
 static unsigned short get_port(const struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
@@ -31,7 +31,7 @@ static unsigned short get_port(const struct sockaddr* sa) {
     return ((struct sockaddr_in6*)sa)->sin6_port;
 }
 
-int SocketEventHandler::SetConnection() {
+int SocketCallback::SetConnection() {
     struct sockaddr addr;
     socklen_t addr_len = sizeof(struct sockaddr);
 
@@ -69,9 +69,9 @@ int SocketEventHandler::SetConnection() {
     return 0;
 }
 
-void SocketEventHandler::BeforeRead() {}
+void SocketCallback::BeforeRead() {}
 
-void SocketEventHandler::AfterRead(const void* buf, size_t ret) {
+void SocketCallback::AfterRead(const void* buf, size_t ret) {
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!conn_init_) {
@@ -91,10 +91,10 @@ void SocketEventHandler::AfterRead(const void* buf, size_t ret) {
     }
 }
 
-void SocketEventHandler::BeforeWrite() {}
+void SocketCallback::BeforeWrite() {}
 
-void SocketEventHandler::AfterWrite(const struct iovec* iov, int iovcnt,
-                                    ssize_t ret) {
+void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
+                                ssize_t ret) {
     // Set connid if it hasn't been set before, e.g. in case of
     // when a socket was opened using connect().
     if (!conn_init_) {
@@ -114,6 +114,6 @@ void SocketEventHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     }
 }
 
-void SocketEventHandler::BeforeClose() {}
+void SocketCallback::BeforeClose() {}
 
-void SocketEventHandler::AfterClose(int ret) {}
+void SocketCallback::AfterClose(int ret) {}

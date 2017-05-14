@@ -32,7 +32,7 @@ const EmptyOriginalFunctions empty_orig;
 
 TEST(InstrumentedSocketTest, Init) {
     InstrumentedSocket socket{
-        FD, EmptySocketEventHandler::New(FD, TRACE, SocketRole::CLIENT),
+        FD, EmptySocketCallback::New(FD, TRACE, SocketRole::CLIENT),
         empty_orig};
 
     EXPECT_EQ(FD, socket.fd());
@@ -51,8 +51,7 @@ TEST(InstrumentedSocketTest, SocketApiCalls) {
 
     OriginalFunctions& mock_orig = mock.get();
     InstrumentedSocket socket{
-        FD, EmptySocketEventHandler::New(FD, TRACE, SocketRole::CLIENT),
-        mock_orig};
+        FD, EmptySocketCallback::New(FD, TRACE, SocketRole::CLIENT), mock_orig};
 
     EXPECT_EQ(RET, socket.Read(BUF, LEN));
     Verify(Method(mock, read).Using(FD, BUF, LEN));

@@ -20,10 +20,9 @@ struct Connection {
 enum class SocketRole { CLIENT, SERVER };
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WRITE };
 
-class SocketEventHandler {
+class SocketCallback {
    public:
-    SocketEventHandler(int sockfd, const trace_id_t trace,
-                       const SocketRole role)
+    SocketCallback(int sockfd, const trace_id_t trace, const SocketRole role)
         : sockfd_(sockfd),
           trace_(trace),
           role_(role),
@@ -32,7 +31,7 @@ class SocketEventHandler {
           num_requests_(0),
           conn_init_(false) {}
 
-    virtual ~SocketEventHandler() {}
+    virtual ~SocketCallback() {}
 
     // Should be called after the socket was accepted.
     //

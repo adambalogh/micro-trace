@@ -1,7 +1,7 @@
 #pragma once
 
 #include "orig_functions.h"
-#include "socket_event_handler.h"
+#include "socket_callback.h"
 
 class EmptyOriginalFunctions : public OriginalFunctions {
    public:
@@ -42,17 +42,15 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     }
 };
 
-class EmptySocketEventHandler : public SocketEventHandler {
+class EmptySocketCallback : public SocketCallback {
    public:
-    static std::unique_ptr<SocketEventHandler> New(int fd,
-                                                   const trace_id_t trace,
-                                                   const SocketRole role) {
-        return std::make_unique<EmptySocketEventHandler>(fd, trace, role);
+    static std::unique_ptr<SocketCallback> New(int fd, const trace_id_t trace,
+                                               const SocketRole role) {
+        return std::make_unique<EmptySocketCallback>(fd, trace, role);
     }
 
-    EmptySocketEventHandler(int fd, const trace_id_t trace,
-                            const SocketRole role)
-        : SocketEventHandler(fd, trace, role) {}
+    EmptySocketCallback(int fd, const trace_id_t trace, const SocketRole role)
+        : SocketCallback(fd, trace, role) {}
 
     virtual void AfterAccept() override {}
 
