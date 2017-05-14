@@ -7,10 +7,13 @@
 /*
  * Identifies a unique connection between two machines.
  *
- * Sockets can be divided into 2 groups: server and client (see SocketRole for
- * explanation). Since both sockets in a connection know their role, the
+ * Sockets can be divided into 2 groups: server and client role (see SocketRole
+ * for explanation). Since both sockets in a connection know their role, the
  * connection objects should look the same on both endpoints. This makes it
  * easier to match logs.
+ *
+ * We use strings for storing IP addressed in order to make it easier to debug
+ * logs.
  *
  * Note: connnections are not unique in time.
  */
@@ -63,7 +66,7 @@ class SocketCallback {
 
     // Should be called after a *successful* read operation on the socket, e.g.
     // len > 0
-    virtual void AfterRead(const void* buf, size_t ret);
+    virtual void AfterRead(const void* buf, ssize_t ret);
 
     // Should be called before a write operation on the socket
     virtual void BeforeWrite();

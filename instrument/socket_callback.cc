@@ -59,14 +59,14 @@ void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
 
 int SocketCallback::SetConnection() {
     if (role_server()) {
-        // Client is the peer
+        // Peer is the client
         SetConnectionEndPoint(sockfd_, &conn_.client_ip, &conn_.client_port,
                               getpeername);
         // We are the server
         SetConnectionEndPoint(sockfd_, &conn_.server_ip, &conn_.server_port,
                               getsockname);
     } else {
-        // Server is the peer
+        // Peer is the server
         SetConnectionEndPoint(sockfd_, &conn_.server_ip, &conn_.server_port,
                               getpeername);
         // We are the client
@@ -80,47 +80,75 @@ int SocketCallback::SetConnection() {
 
 void SocketCallback::BeforeRead() {}
 
-void SocketCallback::AfterRead(const void* buf, size_t ret) {
-    // Set connid if it hasn't been set before, e.g. in case of
-    // when a socket was opened using connect().
+void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
+    // We set the current trace to this socket's trace, since reading from the
+    // socket means that we either received a request or a response, both of
+    // which might trigger some other requests in the application. We set the
+    // current trace to this socket's trace even if the connection was shut down
+    // or an error occured, since this might trigger some events in the
+    // application that would make requests, e.g. report error
+    set_current_trace(trace_);
+
+    if (ret == 0) {
+        // peer shutdown
+        return;
+    }
+    if (ret == -1) {
+        // error
+        return;
+    }
+
+    assert(ret > 0);
+
+    // Set connid if it hasn't been set before, e.g. in case of when a socket
+    // was opened using connect(). At this point ret is > 0, which means that
+    // the connection is open, so SetConnection should succeed.
     if (!conn_init_) {
         SetConnection();
     }
 
-    set_current_trace(trace_);
-
-    if (ret > 0) {
-        if (role_server() && (state_ == SocketState::WILL_READ ||
-                              state_ == SocketState::WROTE)) {
-            ++num_requests_;
-        }
-
-        DLOG("%d received %ld bytes", sockfd_, ret);
-        state_ = SocketState::READ;
+    if (role_server() &&
+        (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE)) {
+        ++num_requests_;
     }
+
+    DLOG("%d received %ld bytes", sockfd_, ret);
+    state_ = SocketState::READ;
 }
 
 void SocketCallback::BeforeWrite() {}
 
 void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
                                 ssize_t ret) {
-    // Set connid if it hasn't been set before, e.g. in case of
-    // when a socket was opened using connect().
+    // We set the current trace to this socket's trace, since writing to the
+    // socket might mean that we finished writing a response or request, which
+    // might trigger some other requests in the application. We set the current
+    // trace to this socket's trace even if the write was unsuccessful, since
+    // this might trigger some events in the application that would make
+    // requests, e.g. report error
+    set_current_trace(trace_);
+
+    if (ret == -1) {
+        // error
+        return;
+    }
+
+    assert(ret > 0);
+
+    // Set connid if it hasn't been set before, e.g. in case of when a socket
+    // was opened using connect(). At this point ret is > 0, which means that
+    // the connection is open, so SetConnection should succeed.
     if (!conn_init_) {
         SetConnection();
     }
 
-    set_current_trace(trace_);
-
-    if (ret > 0) {
-        if (role_client() && (state_ == SocketState::WILL_WRITE ||
-                              state_ == SocketState::READ)) {
-            ++num_requests_;
-        }
-
-        DLOG("%d wrote %ld bytes", sockfd_, ret);
-        state_ = SocketState::WROTE;
+    if (role_client() &&
+        (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ)) {
+        ++num_requests_;
     }
+
+    DLOG("%d wrote %ld bytes", sockfd_, ret);
+    state_ = SocketState::WROTE;
 }
 
 void SocketCallback::BeforeClose() {}
