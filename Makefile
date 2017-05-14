@@ -5,14 +5,14 @@ BUILD_DIR = build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = instrument
-SRCS = instrumented_socket.cc trace.cc orig_functions.cc common.cc socket_callback.cc
+SRCS = instrumented_socket.cc trace.cc orig_functions.cc common.cc socket_callback.cc logger.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = instrumented_socket_test.cc socket_callback_test.cc
+TESTS = instrumented_socket_test.cc socket_callback_test.cc trace_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
-LIBS = -L /usr/local/lib -lhttp_parser -lpthread -ldl
+LIBS = -L /usr/local/lib -lhttp_parser -ldl -lpthread
 
 CC = g++
 CFLAGS = -Wall -std=c++17 -MP -MD
@@ -48,7 +48,7 @@ $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 
 # Test build
 $(BUILD_DIR)/%: $(SRCS_DIR)/%.cc 
-	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ $(LIBS) -lgtest -lgtest_main
+	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 clean:
 	@rm -f $(BUILD_DIR)/*.o
