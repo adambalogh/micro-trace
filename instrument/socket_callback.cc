@@ -78,7 +78,7 @@ int SocketCallback::SetConnection() {
     return 0;
 }
 
-void SocketCallback::BeforeRead() {}
+void SocketCallback::BeforeRead() { assert(state_ != SocketState::WILL_WRITE); }
 
 void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
     // We set the current trace to this socket's trace, since reading from the
@@ -116,7 +116,7 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
     state_ = SocketState::READ;
 }
 
-void SocketCallback::BeforeWrite() {}
+void SocketCallback::BeforeWrite() { assert(state_ != SocketState::WILL_READ); }
 
 void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
                                 ssize_t ret) {
