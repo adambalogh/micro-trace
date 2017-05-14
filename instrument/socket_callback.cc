@@ -32,8 +32,8 @@ static unsigned short get_port(const struct sockaddr* sa) {
     }
 }
 
-int SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
-                          int (*fn)(int, struct sockaddr*, socklen_t*)) {
+void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
+                           int (*fn)(int, struct sockaddr*, socklen_t*)) {
     sockaddr_storage tmp_sockaddr;
     socklen_t addr_len = sizeof(tmp_sockaddr);
 
@@ -41,19 +41,18 @@ int SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
     const char* dst;
 
     ret = fn(fd, (sockaddr*)&tmp_sockaddr, &addr_len);
-    if (ret != 0) {
-        return errno;
-    }
+    // At this point, both getsockname and getpeername should
+    // be successful
+    assert(ret == 0);
+
     *port = get_port((sockaddr*)&tmp_sockaddr);
     dst = inet_ntop(tmp_sockaddr.ss_family, (sockaddr*)&tmp_sockaddr,
                     string_arr(*ip), ip->size());
-    if (dst == NULL) {
-        return errno;
-    }
+    // inet_ntop should also be successful here
+    assert(dst == string_arr(*ip));
 
     // inet_ntop puts a null terminated string into ip
     ip->resize(strlen(string_arr(*ip)));
-    return 0;
 }
 
 int SocketCallback::SetConnection() {
