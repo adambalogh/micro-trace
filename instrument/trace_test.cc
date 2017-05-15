@@ -11,8 +11,8 @@
 
 #include "common.h"
 
-const int SERVER_PORT = 4403;
-const int DUMP_SERVER_PORT = 5436;
+const int SERVER_PORT = 3002;
+const int DUMP_SERVER_PORT = 3101;
 
 const char *MSG = "aaaaaaaaaa";
 const int MSG_LEN = 10;
@@ -146,7 +146,7 @@ class TraceTest : public ::testing::Test {
 TEST_F(TraceTest, CurrentTrace) {
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
-    std::thread t1{[this]() {
+    std::thread server_thread{[this]() {
         struct sockaddr_in serv_addr, cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&serv_addr, 0, sizeof(serv_addr));
@@ -220,7 +220,7 @@ TEST_F(TraceTest, CurrentTrace) {
     close(client);
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
-    t1.join();
+    server_thread.join();
 }
 
 /*
@@ -228,7 +228,7 @@ TEST_F(TraceTest, CurrentTrace) {
  * to an instrumented socket, it's trace is set as the current trace
  */
 TEST_F(TraceTest, TraceSwitch) {
-    std::thread t1{[this]() {
+    std::thread server_thread{[this]() {
         int ret;
 
         int server = CreateServerSocket(SERVER_PORT);
@@ -345,17 +345,22 @@ TEST_F(TraceTest, TraceSwitch) {
     ASSERT_EQ(MSG_LEN, ret);
 
     ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
+
     close(first_client);
     close(second_client);
-    t1.join();
+    server_thread.join();
 }
 
 /*
  * In this test we make sure that the current_trace is attached to sockets that
  * are opened in the application.
+ *
+ * There are 3 threads (servers) communicating with each other:
+ *
+ * local_thread <--> server_thread <--> dump_server_thread
  */
 TEST_F(TraceTest, PropagateTrace) {
-    std::thread t1{[this]() {
+    std::thread server_thread{[this]() {
         int ret;
 
         int server = CreateServerSocket(SERVER_PORT);
@@ -472,5 +477,5 @@ TEST_F(TraceTest, PropagateTrace) {
     ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
     close(first_client);
     close(second_client);
-    t1.join();
+    server_thread.join();
 }
