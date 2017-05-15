@@ -19,10 +19,13 @@ std::condition_variable listen_cv;
 bool listening = false;
 
 /*
- * We make sure that a trace is only set after the application has
- * read from a server socket.
+ * This test verifires that the current_trace is set up and cleared correctly.
+ *
+ * First, we make sure that a trace is only set after the application has
+ * read from a server socket. Then, after the server socket is closed, the
+ * current_socket should be cleared.
  */
-TEST(Trace, UndefinedTrace) {
+TEST(Trace, CurrentTrace) {
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
     std::thread t1{[]() {
@@ -62,9 +65,16 @@ TEST(Trace, UndefinedTrace) {
         ret = read(client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
 
-        EXPECT_NE(UNDEFINED_TRACE, get_current_trace());
+        trace_id_t trace = get_current_trace();
+        EXPECT_NE(UNDEFINED_TRACE, trace);
 
-        close(server);
+        // server is not instrumented so it shouldn't change the trace
+        ASSERT_EQ(0, close(server));
+        EXPECT_EQ(trace, get_current_trace());
+
+        // we don't clear the current trace if a related socket is closed
+        ASSERT_EQ(0, close(client));
+        EXPECT_EQ(trace, get_current_trace());
     }};
 
     int ret;
@@ -86,6 +96,7 @@ TEST(Trace, UndefinedTrace) {
     ret = connect(client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     ASSERT_EQ(0, ret);
 
+    // This socket wasn't opened in response to a request, so it's not tracked
     ret = write(client, MSG, MSG_LEN);
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
