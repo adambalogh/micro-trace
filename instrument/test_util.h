@@ -55,7 +55,7 @@ class EmptySocketCallback : public SocketCallback {
     virtual void AfterAccept() override {}
 
     virtual void BeforeRead() override {}
-    virtual void AfterRead(const void *buf, size_t ret) override {}
+    virtual void AfterRead(const void *buf, ssize_t ret) override {}
     virtual void BeforeWrite() override {}
     virtual void AfterWrite(const struct iovec *iov, int iovcnt,
                             ssize_t ret) override {}
