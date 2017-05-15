@@ -3,6 +3,7 @@
 #include <string>
 
 #include "common.h"
+#include "request_log.pb.h"
 
 /*
  * Identifies a unique connection between two machines.
@@ -101,6 +102,8 @@ class SocketCallback {
     bool role_client() const { return role_ == SocketRole::CLIENT; }
 
     trace_id_t trace() const { return trace_; }
+
+    const proto::RequestLog gen_request_log();
 
    protected:
     const int sockfd_;

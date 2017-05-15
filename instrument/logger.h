@@ -10,5 +10,6 @@ class Logger {
 };
 
 class StdoutLogger : public Logger {
+   public:
     void Log(const proto::RequestLog& log) override;
 };

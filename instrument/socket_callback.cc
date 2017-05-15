@@ -9,6 +9,9 @@
 
 #include "logger.h"
 
+// TODO make this an injectable member variable
+StdoutLogger logger;
+
 Connection::Connection()
     : client_ip('.', INET6_ADDRSTRLEN), server_ip('.', INET6_ADDRSTRLEN) {}
 
@@ -78,6 +81,38 @@ int SocketCallback::SetConnection() {
     return 0;
 }
 
+/*
+ * IMPORTANT: the string fields in RequestLog.conn are only
+ * borrowed, they should be released before the request object
+ * is destroyed.
+ */
+const proto::RequestLog SocketCallback::gen_request_log() {
+    assert(conn_init_ == true);
+
+    proto::RequestLog log;
+
+    proto::Connection* conn = log.mutable_conn();
+    conn->set_allocated_server_ip(&conn_.server_ip);
+    conn->set_server_port(conn_.server_port);
+    conn->set_allocated_client_ip(&conn_.client_ip);
+    conn->set_client_port(conn_.client_port);
+
+    log.set_trace_id(std::to_string(trace_));
+    // TODO use chrono to get time
+    log.set_time(time(NULL));
+    log.set_req_count(num_requests_);
+    log.set_role(role_client() ? proto::RequestLog::CLIENT
+                               : proto::RequestLog::SERVER);
+
+    return log;
+}
+
+void cleanup_request_log(proto::RequestLog& log) {
+    proto::Connection* conn = log.mutable_conn();
+    conn->release_server_ip();
+    conn->release_client_ip();
+}
+
 void SocketCallback::BeforeRead() { assert(state_ != SocketState::WILL_WRITE); }
 
 void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
@@ -111,6 +146,9 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
     if (role_server() &&
         (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE)) {
         ++num_requests_;
+        proto::RequestLog log = gen_request_log();
+        logger.Log(log);
+        cleanup_request_log(log);
     }
 
     DLOG("%d received %ld bytes", sockfd_, ret);
@@ -147,6 +185,9 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
     if (role_client() &&
         (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ)) {
         ++num_requests_;
+        proto::RequestLog log = gen_request_log();
+        logger.Log(log);
+        cleanup_request_log(log);
     }
 
     DLOG("%d wrote %ld bytes", sockfd_, ret);
