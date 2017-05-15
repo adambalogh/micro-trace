@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <unordered_map>
 
@@ -36,6 +37,8 @@ struct CallbackWrap {
 
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
+std::mutex socket_map_mu;
+
 static auto& socket_map() {
     static std::unordered_map<int, std::unique_ptr<InstrumentedSocket>>
         socket_map;
@@ -50,10 +53,12 @@ static auto& getaddrinfo_cbs() {
 
 // TODO make these thread safe
 static void SaveSocket(std::unique_ptr<InstrumentedSocket> entry) {
+    std::unique_lock<std::mutex> l(socket_map_mu);
     socket_map()[entry->fd()] = std::move(entry);
 }
 
 static InstrumentedSocket* GetSocket(const int sockfd) {
+    std::unique_lock<std::mutex> l(socket_map_mu);
     auto it = socket_map().find(sockfd);
     if (it == socket_map().end()) {
         return nullptr;
@@ -61,7 +66,10 @@ static InstrumentedSocket* GetSocket(const int sockfd) {
     return it->second.get();
 }
 
-static void DeleteSocket(const int sockfd) { socket_map().erase(sockfd); }
+static void DeleteSocket(const int sockfd) {
+    std::unique_lock<std::mutex> l(socket_map_mu);
+    socket_map().erase(sockfd);
+}
 
 static void SaveGetAddrinfoCb(std::unique_ptr<GetAddrinfoCbWrap> wrap) {
     getaddrinfo_cbs()[wrap->req_ptr] = std::move(wrap);
@@ -128,7 +136,7 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
     // We only track IP sockets
-    if (domain != AF_INET || domain != AF_INET6) {
+    if (!(domain == AF_INET || domain == AF_INET6)) {
         return sockfd;
     }
 
@@ -138,7 +146,6 @@ int socket(int domain, int type, int protocol) {
         auto socket = std::make_unique<InstrumentedSocket>(
             sockfd, std::move(event_handler), orig());
         SaveSocket(std::move(socket));
-        DLOG("opened socket: %d", sockfd);
     }
     return sockfd;
 }
