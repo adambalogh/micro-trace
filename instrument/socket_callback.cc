@@ -107,6 +107,7 @@ const proto::RequestLog SocketCallback::gen_request_log() {
     return log;
 }
 
+// TODO use RAII to do this automatically
 void cleanup_request_log(proto::RequestLog& log) {
     proto::Connection* conn = log.mutable_conn();
     conn->release_server_ip();
