@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <condition_variable>
@@ -10,27 +11,120 @@
 
 #include "common.h"
 
-const int SERVER_PORT = 3001;
+const int SERVER_PORT = 4403;
+const int DUMP_SERVER_PORT = 5436;
+
 const char *MSG = "aaaaaaaaaa";
 const int MSG_LEN = 10;
 
 class TraceTest : public ::testing::Test {
    protected:
+    /*
+     * A DumpServer is a TCP server that accepts connections and reads
+     * MSG_LEN size chunks from them.
+     */
+    class DumpServer {
+       public:
+        // set socket to non-blocking
+        void set_nonblock(int fd) {
+            int flags = fcntl(fd, F_GETFL, 0);
+            assert(flags >= 0);
+            int ret = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+            assert(ret >= 0);
+        }
+
+        void Run() {
+            int ret;
+            std::vector<int> connections;
+
+            int acceptor = CreateServerSocket(DUMP_SERVER_PORT);
+            set_nonblock(acceptor);
+            ret = listen(acceptor, 10);
+            assert(ret == 0);
+
+            {
+                std::unique_lock<std::mutex> l;
+                ready_ = true;
+            }
+            cv_.notify_all();
+
+            char buf[MSG_LEN];
+            while (true) {
+                {
+                    std::unique_lock<std::mutex> l(mu_);
+                    if (shutdown_) break;
+                }
+                struct sockaddr_in cli_addr;
+                socklen_t clilen = sizeof(cli_addr);
+                memset(&cli_addr, 0, sizeof(cli_addr));
+                int client =
+                    accept(acceptor, (struct sockaddr *)&cli_addr, &clilen);
+                if (client != -1) {
+                    set_nonblock(client);
+                    connections.push_back(client);
+                }
+
+                for (const int conn : connections) {
+                    read(conn, &buf, MSG_LEN);
+                }
+            }
+
+            // Shutdown
+            close(acceptor);
+            for (const int conn : connections) {
+                close(conn);
+            }
+        }
+
+        std::condition_variable &cv() { return cv_; }
+        std::mutex &mu() { return mu_; }
+        bool ready() const { return ready_; }
+
+        void shutdown() {
+            std::unique_lock<std::mutex> l(mu_);
+            shutdown_ = true;
+        }
+
+       private:
+        bool ready_ = false;
+        bool shutdown_ = false;
+        std::mutex mu_;
+        std::condition_variable cv_;
+        int port_;
+    };
+
+   protected:
     virtual void SetUp() { listening = false; }
+
+    /*
+     * Returns a socket that's connected to localhost:port
+     */
+    static int CreateClientSocket(int port) {
+        struct sockaddr_in serv_addr;
+        serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = port;
+
+        int client = socket(AF_INET, SOCK_STREAM, 0);
+        assert(client != -1);
+        int ret =
+            connect(client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+        assert(ret == 0);
+        return client;
+    }
 
     /*
      * Returns a socket that's bind to localhost:port
      */
-    int CreateServerSocket(int port) {
+    static int CreateServerSocket(int port) {
         struct sockaddr_in serv_addr;
         memset(&serv_addr, 0, sizeof(serv_addr));
-
-        int server = socket(AF_INET, SOCK_STREAM, 0);
-        assert(server != -1);
-
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = port;
         serv_addr.sin_addr.s_addr = INADDR_ANY;
+
+        int server = socket(AF_INET, SOCK_STREAM, 0);
+        assert(server != -1);
         int ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
                        sizeof(serv_addr));
         assert(ret == 0);
@@ -43,7 +137,7 @@ class TraceTest : public ::testing::Test {
 };
 
 /*
- * This test verifires that the current_trace is set up and cleared correctly.
+ * This test verifies that the current_trace is set up and cleared correctly.
  *
  * First, we make sure that a trace is only set after the application has
  * read from a server socket. Then, after the server socket is closed, the
@@ -251,9 +345,132 @@ TEST_F(TraceTest, TraceSwitch) {
     ASSERT_EQ(MSG_LEN, ret);
 
     ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
-
     close(first_client);
     close(second_client);
+    t1.join();
+}
 
+/*
+ * In this test we make sure that the current_trace is attached to sockets that
+ * are opened in the application.
+ */
+TEST_F(TraceTest, PropagateTrace) {
+    std::thread t1{[this]() {
+        int ret;
+
+        int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
+        ASSERT_EQ(0, ret);
+
+        // Notify client that we are listening
+        {
+            std::unique_lock<std::mutex> l(mu);
+            listening = true;
+        }
+        listen_cv.notify_all();
+
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        int first_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(first_client, -1);
+
+        clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        int second_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(second_client, -1);
+
+        char buf[MSG_LEN];
+
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        ASSERT_EQ(MSG_LEN, ret);
+        const trace_id_t first_trace = get_current_trace();
+
+        // Read second
+        ret = read(second_client, &buf, MSG_LEN);
+        ASSERT_EQ(MSG_LEN, ret);
+        const trace_id_t second_trace = get_current_trace();
+
+        // Set up dump server
+        DumpServer dump_server;
+        std::thread dump_server_thread([&dump_server]() { dump_server.Run(); });
+        {
+            std::unique_lock<std::mutex> l(dump_server.mu());
+            dump_server.cv().wait(
+                l, [&dump_server]() { return dump_server.ready(); });
+        }
+
+        // Open connection to dump server
+        // Note: we are in second_client's trace now
+        const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
+
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        ASSERT_EQ(MSG_LEN, ret);
+        EXPECT_EQ(first_trace, get_current_trace());
+
+        // Write to dump client
+        ret = write(dump_client, &buf, MSG_LEN);
+        ASSERT_EQ(MSG_LEN, ret);
+        EXPECT_EQ(second_trace, get_current_trace());
+
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        ASSERT_EQ(MSG_LEN, ret);
+        EXPECT_EQ(first_trace, get_current_trace());
+
+        close(server);
+        close(first_client);
+        close(second_client);
+
+        dump_server.shutdown();
+        dump_server_thread.join();
+    }};
+
+    int ret;
+
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = SERVER_PORT;
+
+    // Wait until server is set up
+    {
+        std::unique_lock<std::mutex> l(mu);
+        listen_cv.wait(l, [this]() { return listening == true; });
+    }
+
+    int first_client = socket(AF_INET, SOCK_STREAM, 0);
+    ret =
+        connect(first_client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    ASSERT_EQ(0, ret);
+
+    int second_client = socket(AF_INET, SOCK_STREAM, 0);
+    ret = connect(second_client, (struct sockaddr *)&serv_addr,
+                  sizeof(serv_addr));
+    ASSERT_EQ(0, ret);
+
+    // Write first
+    ret = write(first_client, MSG, MSG_LEN);
+    ASSERT_EQ(MSG_LEN, ret);
+
+    // Write second
+    ret = write(second_client, MSG, MSG_LEN);
+    ASSERT_EQ(MSG_LEN, ret);
+
+    // Write first
+    ret = write(first_client, MSG, MSG_LEN);
+    ASSERT_EQ(MSG_LEN, ret);
+
+    // Write first
+    ret = write(first_client, MSG, MSG_LEN);
+    ASSERT_EQ(MSG_LEN, ret);
+
+    ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
+    close(first_client);
+    close(second_client);
     t1.join();
 }
