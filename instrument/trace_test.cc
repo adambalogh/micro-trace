@@ -228,6 +228,8 @@ TEST_F(TraceTest, CurrentTrace) {
  * to an instrumented socket, it's trace is set as the current trace
  */
 TEST_F(TraceTest, TraceSwitch) {
+    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+
     std::thread server_thread{[this]() {
         int ret;
 
@@ -360,6 +362,8 @@ TEST_F(TraceTest, TraceSwitch) {
  * local_thread <--> server_thread <--> dump_server_thread
  */
 TEST_F(TraceTest, PropagateTrace) {
+    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+
     std::thread server_thread{[this]() {
         int ret;
 
