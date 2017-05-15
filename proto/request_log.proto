@@ -24,11 +24,10 @@ message RequestLog {
     // including this one
     required uint32 req_count = 4;
 
-    // Indicates whether the server that created the log sent or received
-    // the request
+    // Indicates the role of this machine in this connection
     enum Role {
-        SENT = 0;
-        RECEIVED = 1;
+        CLIENT = 0;
+        SERVER = 1;
     }
     required Role role = 5;
 }

@@ -12,25 +12,28 @@ TESTS = instrumented_socket_test.cc socket_callback_test.cc trace_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
-LIBS = -L /usr/local/lib -lhttp_parser -ldl -lpthread
+LIBS = -L /usr/local/lib -lhttp_parser -ldl -pthread -lprotobuf -lpthread
 
-CC = g++
+CC = g++-5
 CFLAGS = -Wall -std=c++17 -MP -MD
 OVERRIDE_WARNING = -Wsuggest-override
 LIBFLAGS = -fPIC -shared
+
+PROTOC = protoc
+PROTOLIB = -lprotobuf
 
 PROTO_GEN_DIR = $(BUILD_DIR)/gen
 PROTO_DIR = proto
 PROTOS = request_log.proto
 PROTO_OBJ = $(addprefix $(BUILD_DIR)/,$(PROTOS:.proto=.pb.o))
+PROTO_GEN = $(addprefix $(PROTO_GEN_DIR)/,$(PROTOS:.proto=.pb.cc)) $(addprefix $(PROTO_GEN_DIR)/,$(PROTOS:.proto=.pb.h))
 
-PROTOC = protoc
-PROTOLIB = -lprotobuf
+.PRECIOUS: $(PROTO_GEN)
 
 
 # Shared library build
-$(OUT): $(OBJ)
-	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) -o $@ $(LIBS)
+$(OUT): $(OBJ) $(PROTO_OBJ)
+	$(CC) $(CFLAGS) $(LIBFLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS)
 
 # Protoc compile
 $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
@@ -38,12 +41,12 @@ $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
 
 # Compile generated protobuf
 $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
-	$(CC) $(CFLAGS) -c $< -o $@ $(PROTOLIB)
+	$(CC) $(CFLAGS) -fPIC -c $< -o $@ $(PROTOLIB)
 
 -include $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.d))
 
 # Library files build
-$(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
+$(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_GEN)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build
