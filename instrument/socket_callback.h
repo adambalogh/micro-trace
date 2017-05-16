@@ -47,6 +47,8 @@ enum class SocketRole { CLIENT, SERVER };
 
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
+struct RequestLogWrapper;
+
 class SocketCallback {
    public:
     SocketCallback(int sockfd, const trace_id_t trace, const SocketRole role)
@@ -103,7 +105,7 @@ class SocketCallback {
 
     trace_id_t trace() const { return trace_; }
 
-    const proto::RequestLog gen_request_log();
+    void FillRequestLog(RequestLogWrapper& log);
 
    protected:
     const int sockfd_;

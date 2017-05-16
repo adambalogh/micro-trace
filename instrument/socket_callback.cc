@@ -82,36 +82,43 @@ int SocketCallback::SetConnection() {
 }
 
 /*
+ * Wraps a proto::RequestLog. On destruction, it releases the fields that have
+ * been borrowed, and not owned by the underlying object.
+ */
+struct RequestLogWrapper {
+    ~RequestLogWrapper() {
+        proto::Connection* conn = log.mutable_conn();
+        conn->release_server_ip();
+        conn->release_client_ip();
+    }
+
+    proto::RequestLog* operator->() { return &log; }
+
+    const proto::RequestLog& get() const { return log; }
+
+    proto::RequestLog log;
+};
+
+/*
  * IMPORTANT: the string fields in RequestLog.conn are only
  * borrowed, they should be released before the request object
  * is destroyed.
  */
-const proto::RequestLog SocketCallback::gen_request_log() {
+void SocketCallback::FillRequestLog(RequestLogWrapper& log) {
     assert(conn_init_ == true);
 
-    proto::RequestLog log;
-
-    proto::Connection* conn = log.mutable_conn();
+    proto::Connection* conn = log->mutable_conn();
     conn->set_allocated_server_ip(&conn_.server_ip);
     conn->set_server_port(conn_.server_port);
     conn->set_allocated_client_ip(&conn_.client_ip);
     conn->set_client_port(conn_.client_port);
 
-    log.set_trace_id(std::to_string(trace_));
+    log->set_trace_id(std::to_string(trace_));
     // TODO use chrono to get time
-    log.set_time(time(NULL));
-    log.set_req_count(num_requests_);
-    log.set_role(role_client() ? proto::RequestLog::CLIENT
-                               : proto::RequestLog::SERVER);
-
-    return log;
-}
-
-// TODO use RAII to do this automatically
-void cleanup_request_log(proto::RequestLog& log) {
-    proto::Connection* conn = log.mutable_conn();
-    conn->release_server_ip();
-    conn->release_client_ip();
+    log->set_time(time(NULL));
+    log->set_req_count(num_requests_);
+    log->set_role(role_client() ? proto::RequestLog::CLIENT
+                                : proto::RequestLog::SERVER);
 }
 
 void SocketCallback::BeforeRead() { assert(state_ != SocketState::WILL_WRITE); }
@@ -147,9 +154,9 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
     if (role_server() &&
         (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE)) {
         ++num_requests_;
-        proto::RequestLog log = gen_request_log();
-        logger.Log(log);
-        cleanup_request_log(log);
+        RequestLogWrapper log;
+        FillRequestLog(log);
+        logger.Log(log.get());
     }
 
     DLOG("%d received %ld bytes", sockfd_, ret);
@@ -186,9 +193,9 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
     if (role_client() &&
         (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ)) {
         ++num_requests_;
-        proto::RequestLog log = gen_request_log();
-        logger.Log(log);
-        cleanup_request_log(log);
+        RequestLogWrapper log;
+        FillRequestLog(log);
+        logger.Log(log.get());
     }
 
     DLOG("%d wrote %ld bytes", sockfd_, ret);
