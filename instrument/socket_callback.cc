@@ -27,6 +27,24 @@ std::string Connection::to_string() const {
 
 void Connection::print() const { std::cout << to_string() << std::endl; }
 
+/*
+ * Wraps a proto::RequestLog. On destruction, it releases the fields that have
+ * been borrowed, and not owned by the underlying object.
+ */
+struct RequestLogWrapper {
+    ~RequestLogWrapper() {
+        proto::Connection* conn = log.mutable_conn();
+        conn->release_server_ip();
+        conn->release_client_ip();
+    }
+
+    proto::RequestLog* operator->() { return &log; }
+
+    const proto::RequestLog& get() const { return log; }
+
+    proto::RequestLog log;
+};
+
 void SocketCallback::AfterAccept() { assert(role_ == SocketRole::SERVER); }
 
 static unsigned short get_port(const struct sockaddr* sa) {
@@ -80,24 +98,6 @@ int SocketCallback::SetConnection() {
     conn_init_ = true;
     return 0;
 }
-
-/*
- * Wraps a proto::RequestLog. On destruction, it releases the fields that have
- * been borrowed, and not owned by the underlying object.
- */
-struct RequestLogWrapper {
-    ~RequestLogWrapper() {
-        proto::Connection* conn = log.mutable_conn();
-        conn->release_server_ip();
-        conn->release_client_ip();
-    }
-
-    proto::RequestLog* operator->() { return &log; }
-
-    const proto::RequestLog& get() const { return log; }
-
-    proto::RequestLog log;
-};
 
 /*
  * IMPORTANT: the string fields in RequestLog.conn are only
