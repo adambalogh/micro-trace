@@ -17,15 +17,21 @@ const trace_id_t TRACE = 43242;
 
 const size_t LEN = 11;
 void* const BUF = new char[LEN];
+
 const int FLAGS = 99;
+
 struct sockaddr sa = {};
 struct sockaddr* SOCKADDR = &sa;
+
 socklen_t ADDRLEN = 10;
 socklen_t* const ADDRLEN_PTR = &ADDRLEN;
+
 const int SUCCESSFUL_CLOSE = 1;
+
 const struct iovec iov = {};
 const struct iovec* IOVEC = &iov;
 const int IOVCNT = 1;
+
 const int RET = 55;
 
 const EmptyOriginalFunctions empty_orig;

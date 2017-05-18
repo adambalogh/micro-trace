@@ -130,7 +130,7 @@ class TraceTest : public ::testing::Test {
 
         int flags = fcntl(server, F_GETFL, 0);
         assert(flags >= 0);
-        ret = fcntl(server, F_SETFL, flags | SO_REUSEADDR);
+        ret = fcntl(server, F_SETFL, flags | SO_REUSEADDR | SO_REUSEPORT);
         assert(ret >= 0);
 
         ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),

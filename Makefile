@@ -50,7 +50,7 @@ $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_GEN)
 	$(CC) $(CFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
 
 # Test build
-$(BUILD_DIR)/%: $(SRCS_DIR)/%.cc
+$(BUILD_DIR)/%: $(SRCS_DIR)/%.cc $(OUT)
 	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 clean:
