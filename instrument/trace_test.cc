@@ -11,8 +11,8 @@
 
 #include "common.h"
 
-const int SERVER_PORT = 3002;
-const int DUMP_SERVER_PORT = 3101;
+const int SERVER_PORT = 8543;
+const int DUMP_SERVER_PORT = 7353;
 
 const char *MSG = "aaaaaaaaaa";
 const int MSG_LEN = 10;
@@ -117,6 +117,8 @@ class TraceTest : public ::testing::Test {
      * Returns a socket that's bind to localhost:port
      */
     static int CreateServerSocket(int port) {
+        int ret;
+
         struct sockaddr_in serv_addr;
         memset(&serv_addr, 0, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
@@ -125,8 +127,15 @@ class TraceTest : public ::testing::Test {
 
         int server = socket(AF_INET, SOCK_STREAM, 0);
         assert(server != -1);
-        int ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
-                       sizeof(serv_addr));
+
+        int flags = fcntl(server, F_GETFL, 0);
+        assert(flags >= 0);
+        ret = fcntl(server, F_SETFL, flags | SO_REUSEADDR);
+        assert(ret >= 0);
+
+        ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
+                   sizeof(serv_addr));
+        if (ret != 0) perror("CreateServerSocket");
         assert(ret == 0);
         return server;
     }
@@ -137,7 +146,8 @@ class TraceTest : public ::testing::Test {
 };
 
 /*
- * This test verifies that the current_trace is set up and cleared correctly.
+ * This test verifies that the current_trace is set up and cleared
+ * correctly.
  *
  * First, we make sure that a trace is only set after the application has
  * read from a server socket. Then, after the server socket is closed, the
@@ -147,22 +157,14 @@ TEST_F(TraceTest, CurrentTrace) {
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
     std::thread server_thread{[this]() {
+        int ret;
+
         struct sockaddr_in serv_addr, cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&serv_addr, 0, sizeof(serv_addr));
         memset(&cli_addr, 0, sizeof(cli_addr));
 
-        int server = socket(AF_INET, SOCK_STREAM, 0);
-        EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
-
-        int ret;
-
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = SERVER_PORT;
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
-        ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
-                   sizeof(serv_addr));
-        ASSERT_EQ(0, ret);
+        int server = CreateServerSocket(SERVER_PORT);
         EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
         ret = listen(server, 5);
@@ -194,27 +196,20 @@ TEST_F(TraceTest, CurrentTrace) {
         EXPECT_EQ(trace, get_current_trace());
     }};
 
-    int ret;
-
-    struct sockaddr_in serv_addr;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = SERVER_PORT;
-
     // Wait until server is set up
     {
         std::unique_lock<std::mutex> l(mu);
         listen_cv.wait(l, [this]() { return listening == true; });
     }
 
-    int client = socket(AF_INET, SOCK_STREAM, 0);
-    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+    int client = CreateClientSocket(SERVER_PORT);
 
-    ret = connect(client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    ASSERT_EQ(0, ret);
+    int ret;
 
-    // This socket wasn't opened in response to a request, so it's not tracked
+    // This socket wasn't opened in response to a request, so it's not
+    // tracked
     ret = write(client, MSG, MSG_LEN);
+    EXPECT_EQ(ret, MSG_LEN);
     EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
 
     close(client);
@@ -224,7 +219,8 @@ TEST_F(TraceTest, CurrentTrace) {
 }
 
 /*
- * In this test, we make sure that whenever we successfully read from or write
+ * In this test, we make sure that whenever we successfully read from or
+ * write
  * to an instrumented socket, it's trace is set as the current trace
  */
 TEST_F(TraceTest, TraceSwitch) {
@@ -292,17 +288,21 @@ TEST_F(TraceTest, TraceSwitch) {
         ASSERT_EQ(MSG_LEN, ret);
         ASSERT_EQ(second_trace, get_current_trace());
 
-        close(server);
-        close(first_client);
-        close(second_client);
+        // Unsuccessful read first (client closed conn)
+        ret = read(first_client, &buf, MSG_LEN);
+        ASSERT_EQ(0, ret);
+        ASSERT_EQ(first_trace, get_current_trace());
+
+        // TODO figure out how to simulate write error
+        // Unsuccessful write second
+        // close(second_client);
+        // ret = write(second_client, &buf, MSG_LEN);
+        // ASSERT_EQ(-1, ret);
+        // ASSERT_EQ(second_trace, get_current_trace());
+
+        ASSERT_EQ(0, close(server));
+        ASSERT_EQ(0, close(first_client));
     }};
-
-    int ret;
-
-    struct sockaddr_in serv_addr;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = SERVER_PORT;
 
     // Wait until server is set up
     {
@@ -310,15 +310,10 @@ TEST_F(TraceTest, TraceSwitch) {
         listen_cv.wait(l, [this]() { return listening == true; });
     }
 
-    int first_client = socket(AF_INET, SOCK_STREAM, 0);
-    ret =
-        connect(first_client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    ASSERT_EQ(0, ret);
+    int ret;
 
-    int second_client = socket(AF_INET, SOCK_STREAM, 0);
-    ret = connect(second_client, (struct sockaddr *)&serv_addr,
-                  sizeof(serv_addr));
-    ASSERT_EQ(0, ret);
+    int first_client = CreateClientSocket(SERVER_PORT);
+    int second_client = CreateClientSocket(SERVER_PORT);
 
     // Write first
     ret = write(first_client, MSG, MSG_LEN);
@@ -348,13 +343,18 @@ TEST_F(TraceTest, TraceSwitch) {
 
     ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
 
+    // Unsuccessful read first
     close(first_client);
+
+    // Unsuccessful write second
     close(second_client);
+
     server_thread.join();
 }
 
 /*
- * In this test we make sure that the current_trace is attached to sockets that
+ * In this test we make sure that the current_trace is attached to sockets
+ * that
  * are opened in the application.
  *
  * There are 3 threads (servers) communicating with each other:
@@ -439,28 +439,16 @@ TEST_F(TraceTest, PropagateTrace) {
         dump_server_thread.join();
     }};
 
-    int ret;
-
-    struct sockaddr_in serv_addr;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = SERVER_PORT;
-
     // Wait until server is set up
     {
         std::unique_lock<std::mutex> l(mu);
         listen_cv.wait(l, [this]() { return listening == true; });
     }
 
-    int first_client = socket(AF_INET, SOCK_STREAM, 0);
-    ret =
-        connect(first_client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    ASSERT_EQ(0, ret);
+    int ret;
 
-    int second_client = socket(AF_INET, SOCK_STREAM, 0);
-    ret = connect(second_client, (struct sockaddr *)&serv_addr,
-                  sizeof(serv_addr));
-    ASSERT_EQ(0, ret);
+    int first_client = CreateClientSocket(SERVER_PORT);
+    int second_client = CreateClientSocket(SERVER_PORT);
 
     // Write first
     ret = write(first_client, MSG, MSG_LEN);
