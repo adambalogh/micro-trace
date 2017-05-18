@@ -6,11 +6,12 @@
 #include <sys/socket.h>
 #include <iostream>
 #include <string>
+#include "request_log.pb.h"
 
 #include "logger.h"
 
 // TODO make this an injectable member variable
-StdoutLogger logger;
+NullLogger logger;
 
 Connection::Connection()
     : client_ip('.', INET6_ADDRSTRLEN), server_ip('.', INET6_ADDRSTRLEN) {}
