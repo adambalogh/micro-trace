@@ -5,6 +5,8 @@
 #include "common.h"
 #include "request_log.pb.h"
 
+struct RequestLogWrapper;
+
 /*
  * Identifies a unique connection between two machines.
  *
@@ -46,8 +48,6 @@ struct Connection {
 enum class SocketRole { CLIENT, SERVER };
 
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
-
-struct RequestLogWrapper;
 
 class SocketCallback {
    public:
