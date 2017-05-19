@@ -67,9 +67,9 @@ class BufferedLogger : public Logger {
 
     void Log(const proto::RequestLog& log) override;
 
-   private:
     void Flush();
 
+   private:
     /*
      * Max size of the buffer in bytes.
      */
@@ -90,6 +90,7 @@ class BufferedLogger : public Logger {
 
 template <class LogImpl>
 void BufferedLogger<LogImpl>::Log(const proto::RequestLog& log) {
+    // TODO maybe use a shared_ptr to avoid copying the whole object
     buffer_.push_back(log);
     size_ += log.ByteSizeLong();
 
