@@ -4,6 +4,12 @@
 
 #include "request_log.pb.h"
 
+template <class LogImpl>
+class BufferedLogger;
+class FileLogger;
+
+typedef BufferedLogger<FileLogger> BufferedFileLogger;
+
 class Logger {
    public:
     virtual ~Logger() = default;
@@ -48,10 +54,13 @@ class FileLogger : public Logger {
  * It can be flushed manually and it is automatically flushed once the buffer is
  * full.
  */
-template <typename LogImpl>
+template <class LogImpl>
 class BufferedLogger : public Logger {
    public:
-    BufferedLogger(LogImpl log_impl) : log_impl_(std::move(log)) {}
+    static const size_t DEFAULT_MAX_SIZE = 1000 * 10;
+
+    BufferedLogger(LogImpl log_impl, size_t max_size = DEFAULT_MAX_SIZE)
+        : max_size_(max_size), size_(0), log_impl_(std::move(log_impl)) {}
 
     BufferedLogger(const BufferedLogger&) = delete;
     BufferedLogger& operator=(const BufferedLogger&) = delete;
@@ -61,5 +70,40 @@ class BufferedLogger : public Logger {
    private:
     void Flush();
 
+    /*
+     * Max size of the buffer in bytes.
+     */
+    const size_t max_size_;
+
+    /*
+     * Current size of the buffer in bytes.
+     */
+    size_t size_;
+
+    std::vector<proto::RequestLog> buffer_;
+
+    /*
+     * Logger instance that actually does the logging.
+     */
     LogImpl log_impl_;
 };
+
+template <class LogImpl>
+void BufferedLogger<LogImpl>::Log(const proto::RequestLog& log) {
+    buffer_.push_back(log);
+    size_ += log.ByteSizeLong();
+
+    if (size_ > max_size_) {
+        Flush();
+    }
+}
+
+template <class LogImpl>
+void BufferedLogger<LogImpl>::Flush() {
+    for (const auto& log : buffer_) {
+        log_impl_.Log(log);
+    }
+
+    buffer_.clear();
+    size_ = 0;
+}
