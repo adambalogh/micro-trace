@@ -140,7 +140,7 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (get_current_trace() != UNDEFINED_TRACE) {
+    if (!is_undefined_trace(get_current_trace())) {
         auto event_handler = std::make_unique<SocketCallback>(
             sockfd, get_current_trace(), SocketRole::CLIENT);
         auto socket = std::make_unique<InstrumentedSocket>(

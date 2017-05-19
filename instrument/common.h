@@ -15,15 +15,11 @@
 #define DLOG(msg, ...)
 #endif
 
-#define UNDEFINED_TRACE -2
-
 inline char* string_arr(std::string& str) { return &str[0]; }
 
 typedef int32_t trace_id_t;
 
-inline int valid_trace(const trace_id_t trace) {
-    return trace != UNDEFINED_TRACE && trace != -1;
-}
+int valid_trace(const trace_id_t trace);
 
 /*
  * Returns the calling thread's currently associated trace.
@@ -34,3 +30,5 @@ trace_id_t get_current_trace();
  * Sets the trace for the calling thread.
  */
 void set_current_trace(const trace_id_t trace);
+
+bool is_undefined_trace(const trace_id_t trace);
