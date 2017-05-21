@@ -33,6 +33,7 @@ class StdoutLogger : public Logger {
     void Log(const proto::RequestLog& log) override;
 };
 
+// TODO think about thread-safety
 /*
  * Logs to a given file.
  */
