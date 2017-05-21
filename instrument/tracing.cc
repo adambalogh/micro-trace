@@ -9,11 +9,9 @@
 #include <random>
 #include <unordered_map>
 
-#include "http_parser.h"
-
 #include "instrumented_socket.h"
 #include "orig_functions.h"
-#include "trace.h"
+#include "tracing.h"
 
 #define SOCK_CALL(fd, traced, normal)             \
     do {                                          \
@@ -90,14 +88,11 @@ static void HandleAccept(const int sockfd) {
         return;
     }
 
-    static std::mt19937 eng{
-        std::chrono::high_resolution_clock::now().time_since_epoch().count()};
-
-    // Trace ID is just a random number for now
-    trace_id_t trace = std::uniform_int_distribution<>(1, 1000000)(eng);
+    trace_id_t new_trace{};
+    set_current_trace(new_trace);
 
     auto event_handler =
-        std::make_unique<SocketCallback>(sockfd, trace, SocketRole::SERVER);
+        std::make_unique<SocketCallback>(sockfd, new_trace, SocketRole::SERVER);
     auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(event_handler), orig());
     socket->Accept();
@@ -140,7 +135,7 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (!is_undefined_trace(get_current_trace())) {
+    if (!is_trace_undefined()) {
         auto event_handler = std::make_unique<SocketCallback>(
             sockfd, get_current_trace(), SocketRole::CLIENT);
         auto socket = std::make_unique<InstrumentedSocket>(
@@ -156,8 +151,6 @@ void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
                         struct addrinfo* res) {
     const GetAddrinfoCbWrap& cb_wrap = GetGetAddrinfoCb(req);
 
-    // TODO uv_getaddrinfo might be called before a socket is opened
-    assert(valid_trace(cb_wrap.trace));
     set_current_trace(cb_wrap.trace);
 
     uv_getaddrinfo_cb orig_cb = cb_wrap.orig_cb;
