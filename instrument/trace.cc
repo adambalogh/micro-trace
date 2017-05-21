@@ -1,4 +1,4 @@
-#include "common.h"
+#include "trace.h"
 
 #include <boost/uuid/uuid_io.hpp>
 

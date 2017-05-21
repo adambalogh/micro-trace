@@ -11,6 +11,7 @@
 
 #include "instrumented_socket.h"
 #include "orig_functions.h"
+#include "trace.h"
 #include "tracing.h"
 
 #define SOCK_CALL(fd, traced, normal)             \

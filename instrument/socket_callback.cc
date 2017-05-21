@@ -8,7 +8,9 @@
 #include <string>
 #include "request_log.pb.h"
 
+#include "common.h"
 #include "logger.h"
+#include "trace.h"
 
 // TODO make this an injectable member variable
 NullLogger logger;

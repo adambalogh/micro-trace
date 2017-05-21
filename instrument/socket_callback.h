@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "common.h"
 #include "request_log.pb.h"
+#include "trace.h"
 
 struct RequestLogWrapper;
 
