@@ -10,3 +10,4 @@ Supported technologies:
 Dependencies:
 * Protocol Buffers
 * libuv
+* Boost Uuid
