@@ -67,3 +67,11 @@ TEST(Trace, UniquePerThread) {
 
     t2.join();
 }
+
+TEST(Trace, ErrorIfUndefined) {
+    std::thread t1{[]() {
+        ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+        EXPECT_DEATH(get_current_trace(), "trace_undefined");
+    }};
+    t1.join();
+}
