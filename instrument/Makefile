@@ -67,7 +67,4 @@ run-test: test
 	./build/instrumented_socket_test
 	./build/socket_callback_test
 
-export FLASK_APP=apps/backend.py
 
-node: 
-	LD_PRELOAD=$(OUT) node apps/frontend.js & LD_PRELOAD=$(OUT) node apps/backend.js & LD_PRELOAD=$(OUT) flask run && fg
