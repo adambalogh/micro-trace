@@ -7,8 +7,8 @@
 #include <iostream>
 #include <string>
 
-#include <glog/logging.h>
 #include "request_log.pb.h"
+#include "spdlog/spdlog.h"
 
 #include "common.h"
 #include "logger.h"
@@ -49,8 +49,8 @@ struct RequestLogWrapper {
 };
 
 void SocketCallback::AfterAccept() {
-    LOG_IF(ERROR, role_ != SocketRole::SERVER)
-        << "AfterAccept was called on a Client role socket";
+    LOG_ERROR_IF(console_log, role_ != SocketRole::SERVER,
+                 "AfterAccept was called on a client role socket");
 }
 
 static unsigned short get_port(const struct sockaddr* sa) {
@@ -73,13 +73,13 @@ void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
     ret = fn(fd, sockaddr_ptr, &addr_len);
     // At this point, both getsockname and getpeername should
     // be successful
-    CHECK(ret == 0) << "get(sock|peer)name was unsuccessful";
+    VERIFY(console_log, ret == 0, "get(sock|peer)name was unsuccessful");
 
     *port = get_port(sockaddr_ptr);
     dst = inet_ntop(tmp_sockaddr.ss_family, sockaddr_ptr, string_arr(*ip),
                     ip->size());
     // inet_ntop should also be successful here
-    CHECK(dst == string_arr(*ip)) << "inet_ntop was unsuccessful";
+    VERIFY(console_log, dst == string_arr(*ip), "inet_ntop was unsuccessful");
 
     // inet_ntop puts a null terminated string into ip
     ip->resize(strlen(string_arr(*ip)));
@@ -112,8 +112,8 @@ int SocketCallback::SetConnection() {
  * is destroyed.
  */
 void SocketCallback::FillRequestLog(RequestLogWrapper& log) {
-    CHECK(conn_init_ == true)
-        << "FillRequestLog was called when conn_init is false";
+    VERIFY(console_log, conn_init_ == true,
+           "FillRequestLog was called when conn_init is false");
 
     proto::Connection* conn = log->mutable_conn();
     conn->set_allocated_server_ip(&conn_.server_ip);
@@ -130,8 +130,8 @@ void SocketCallback::FillRequestLog(RequestLogWrapper& log) {
 }
 
 void SocketCallback::BeforeRead() {
-    LOG_IF(ERROR, state_ == SocketState::WILL_WRITE)
-        << "Socket that was expected to write, read instead";
+    LOG_ERROR_IF(console_log, state_ == SocketState::WILL_WRITE,
+                 "Socket that was expected to write, read instead");
 }
 
 void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
@@ -154,7 +154,7 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
 
     // If we get to this point, it means that the connection is open,
     // and the buffer was handed to the kernel.
-    CHECK(ret > 0);
+    VERIFY(console_log, ret > 0, "read invalid return value");
 
     // At this point ret is > 0, which means that the connection is open, so
     // SetConnection should succeed.
@@ -174,8 +174,8 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
 }
 
 void SocketCallback::BeforeWrite() {
-    LOG_IF(ERROR, state_ == SocketState::WILL_READ)
-        << "Socket that was expected to read, wrote instead";
+    LOG_ERROR_IF(console_log, state_ == SocketState::WILL_READ,
+                 "Socket that was expected to read, wrote instead");
 }
 
 void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
@@ -195,7 +195,7 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
 
     // If we get to this point, it means that the connection is open,
     // and a buffer was handed to the kernel.
-    CHECK(ret > 0);
+    VERIFY(console_log, ret > 0, "write invalid return value");
 
     // At this point ret is > 0, which means that the connection is open, so
     // SetConnection should succeed.

@@ -13,6 +13,7 @@ TEST(SocketCallbackTest, Init) {
 
 TEST(SocketCallbackTest, ReadFirstInClientRole) {
     SocketCallback cb{FD, TRACE, SocketRole::CLIENT};
+    cb.BeforeRead();
 }
 
 TEST(SocketCallbackTest, SetConnectionFailsWithInvalidFd) {
