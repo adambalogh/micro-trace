@@ -25,7 +25,6 @@ struct Connection {
     Connection();
 
     std::string to_string() const;
-    void print() const;
 
     std::string client_ip;
     unsigned short client_port;

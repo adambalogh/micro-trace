@@ -28,8 +28,6 @@ std::string Connection::to_string() const {
     return str;
 }
 
-void Connection::print() const { std::cout << to_string() << std::endl; }
-
 /*
  * Wraps a proto::RequestLog. On destruction, it releases the fields that have
  * been borrowed, and not owned by the underlying object.
