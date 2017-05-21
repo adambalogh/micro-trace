@@ -1,21 +1,24 @@
 #include "common.h"
 
+#include <boost/uuid/uuid_io.hpp>
+
 #define UNDEFINED_TRACE -2
 
-static thread_local trace_id_t current_trace = UNDEFINED_TRACE;
+static thread_local trace_id_t current_trace;
+static thread_local bool trace_undefined = true;
 
-trace_id_t get_current_trace() { return current_trace; }
+trace_id_t get_current_trace() {
+    assert(!trace_undefined);
+    return current_trace;
+}
 
 void set_current_trace(const trace_id_t trace) {
-    if (valid_trace(trace)) {
-        current_trace = trace;
-    }
+    trace_undefined = false;
+    current_trace = trace;
 }
 
-int valid_trace(const trace_id_t trace) {
-    return trace != UNDEFINED_TRACE && trace != -1;
-}
+bool is_trace_undefined() { return trace_undefined; }
 
-bool is_undefined_trace(const trace_id_t trace) {
-    return trace == UNDEFINED_TRACE;
+std::string trace_to_string(const trace_id_t trace) {
+    return boost::uuids::to_string(trace);
 }

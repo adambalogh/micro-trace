@@ -114,7 +114,7 @@ void SocketCallback::FillRequestLog(RequestLogWrapper& log) {
     conn->set_allocated_client_ip(&conn_.client_ip);
     conn->set_client_port(conn_.client_port);
 
-    log->set_trace_id(std::to_string(trace_));
+    log->set_trace_id(trace_to_string(trace_));
     // TODO use chrono to get time
     log->set_time(time(NULL));
     log->set_req_count(num_requests_);
