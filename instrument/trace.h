@@ -17,10 +17,16 @@
 #define DLOG(msg, ...)
 #endif
 
+/*
+ * This module is responsible for keeping track of the trace associated with the
+ * current thread of execution. By default, the trace is undefined.
+ */
+
 typedef boost::uuids::uuid trace_id_t;
 
 /*
  * Returns the calling thread's currently associated trace.
+ * Must only be called if is_trace_undefined() is false.
  */
 trace_id_t get_current_trace();
 
