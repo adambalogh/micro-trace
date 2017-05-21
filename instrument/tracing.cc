@@ -98,8 +98,6 @@ static void HandleAccept(const int sockfd) {
         sockfd, std::move(event_handler), orig());
     socket->Accept();
     SaveSocket(std::move(socket));
-
-    DLOG("accepted socket: %d", sockfd);
 }
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {

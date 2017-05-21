@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <iostream>
 #include <string>
+
+#include <glog/logging.h>
 #include "request_log.pb.h"
 
 #include "common.h"
@@ -13,7 +15,7 @@
 #include "trace.h"
 
 // TODO make this an injectable member variable
-NullLogger logger;
+StdoutLogger logger;
 
 Connection::Connection()
     : client_ip('.', INET6_ADDRSTRLEN), server_ip('.', INET6_ADDRSTRLEN) {}
@@ -46,7 +48,10 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-void SocketCallback::AfterAccept() { assert(role_ == SocketRole::SERVER); }
+void SocketCallback::AfterAccept() {
+    LOG_IF(ERROR, role_ != SocketRole::SERVER)
+        << "AfterAccept was called on a Client role socket";
+}
 
 static unsigned short get_port(const struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
@@ -59,21 +64,22 @@ static unsigned short get_port(const struct sockaddr* sa) {
 void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
                            int (*fn)(int, struct sockaddr*, socklen_t*)) {
     sockaddr_storage tmp_sockaddr;
+    sockaddr* const sockaddr_ptr = reinterpret_cast<sockaddr*>(&tmp_sockaddr);
     socklen_t addr_len = sizeof(tmp_sockaddr);
 
     int ret;
     const char* dst;
 
-    ret = fn(fd, (sockaddr*)&tmp_sockaddr, &addr_len);
+    ret = fn(fd, sockaddr_ptr, &addr_len);
     // At this point, both getsockname and getpeername should
     // be successful
-    assert(ret == 0);
+    CHECK(ret == 0) << "get(sock|peer)name was unsuccessful";
 
-    *port = get_port((sockaddr*)&tmp_sockaddr);
-    dst = inet_ntop(tmp_sockaddr.ss_family, (sockaddr*)&tmp_sockaddr,
-                    string_arr(*ip), ip->size());
+    *port = get_port(sockaddr_ptr);
+    dst = inet_ntop(tmp_sockaddr.ss_family, sockaddr_ptr, string_arr(*ip),
+                    ip->size());
     // inet_ntop should also be successful here
-    assert(dst == string_arr(*ip));
+    CHECK(dst == string_arr(*ip)) << "inet_ntop was unsuccessful";
 
     // inet_ntop puts a null terminated string into ip
     ip->resize(strlen(string_arr(*ip)));
@@ -106,7 +112,8 @@ int SocketCallback::SetConnection() {
  * is destroyed.
  */
 void SocketCallback::FillRequestLog(RequestLogWrapper& log) {
-    assert(conn_init_ == true);
+    CHECK(conn_init_ == true)
+        << "FillRequestLog was called when conn_init is false";
 
     proto::Connection* conn = log->mutable_conn();
     conn->set_allocated_server_ip(&conn_.server_ip);
@@ -122,7 +129,10 @@ void SocketCallback::FillRequestLog(RequestLogWrapper& log) {
                                 : proto::RequestLog::SERVER);
 }
 
-void SocketCallback::BeforeRead() { assert(state_ != SocketState::WILL_WRITE); }
+void SocketCallback::BeforeRead() {
+    LOG_IF(ERROR, state_ == SocketState::WILL_WRITE)
+        << "Socket that was expected to write, read instead";
+}
 
 void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
     // We set the current trace to this socket's trace, since reading from the
@@ -143,8 +153,8 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
     }
 
     // If we get to this point, it means that the connection is open,
-    // and a buffer was handed to the kernel.
-    assert(ret > 0);
+    // and the buffer was handed to the kernel.
+    CHECK(ret > 0);
 
     // At this point ret is > 0, which means that the connection is open, so
     // SetConnection should succeed.
@@ -160,11 +170,13 @@ void SocketCallback::AfterRead(const void* buf, ssize_t ret) {
         logger.Log(log.get());
     }
 
-    DLOG("%d received %ld bytes", sockfd_, ret);
     state_ = SocketState::READ;
 }
 
-void SocketCallback::BeforeWrite() { assert(state_ != SocketState::WILL_READ); }
+void SocketCallback::BeforeWrite() {
+    LOG_IF(ERROR, state_ == SocketState::WILL_READ)
+        << "Socket that was expected to read, wrote instead";
+}
 
 void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
                                 ssize_t ret) {
@@ -183,7 +195,7 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
 
     // If we get to this point, it means that the connection is open,
     // and a buffer was handed to the kernel.
-    assert(ret > 0);
+    CHECK(ret > 0);
 
     // At this point ret is > 0, which means that the connection is open, so
     // SetConnection should succeed.
@@ -199,7 +211,6 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
         logger.Log(log.get());
     }
 
-    DLOG("%d wrote %ld bytes", sockfd_, ret);
     state_ = SocketState::WROTE;
 }
 

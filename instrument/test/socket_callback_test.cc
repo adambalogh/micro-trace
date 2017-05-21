@@ -7,11 +7,14 @@ const trace_id_t TRACE{};
 const SocketRole ROLE = SocketRole::SERVER;
 
 TEST(SocketCallbackTest, Init) {
-    SocketCallback ev{FD, TRACE, ROLE};
-    EXPECT_EQ(FD, ev.fd());
+    SocketCallback cb{FD, TRACE, ROLE};
+    EXPECT_EQ(FD, cb.fd());
+}
+
+TEST(SocketCallbackTest, ReadFirstInClientRole) {
+    SocketCallback cb{FD, TRACE, SocketRole::CLIENT};
 }
 
 TEST(SocketCallbackTest, SetConnectionFailsWithInvalidFd) {
-    SocketCallback ev{FD, TRACE, ROLE};
-    ev.AfterRead(nullptr, 0);
+    SocketCallback eb{FD, TRACE, ROLE};
 }
