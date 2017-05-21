@@ -6,3 +6,7 @@ Supported technologies:
 * Node.js
 * Python Flask
 * Python Gunicorn server with Sync worker
+
+Dependencies:
+* Protocol Buffers
+* libuv
