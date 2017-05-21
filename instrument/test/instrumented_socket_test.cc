@@ -13,7 +13,7 @@
 using namespace fakeit;
 
 const int FD = 9943;
-const trace_id_t TRACE = 43242;
+const trace_id_t TRACE{};
 
 const size_t LEN = 11;
 void* const BUF = new char[LEN];

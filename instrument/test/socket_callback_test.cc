@@ -3,7 +3,7 @@
 #include "socket_callback.h"
 
 const int FD = 11;
-const trace_id_t TRACE = 54543;
+const trace_id_t TRACE{};
 const SocketRole ROLE = SocketRole::SERVER;
 
 TEST(SocketCallbackTest, Init) {

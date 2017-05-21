@@ -1,13 +1,13 @@
 #pragma once
 
-#include <assert.h>
 #include <string>
 
 #include <boost/uuid/uuid.hpp>
 
 /*
  * This module is responsible for keeping track of the trace associated with the
- * current thread of execution. By default, the trace is undefined.
+ * every thread of execution. The trace may change throughout the lifeteime of
+ * each thread. By default, the trace is undefined.
  */
 
 typedef boost::uuids::uuid trace_id_t;

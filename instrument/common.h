@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #define LOG(msg, ...)                                    \
     pthread_t thread = pthread_self();                   \
     printf("[t:%lu %d]: ", thread, get_current_trace()); \

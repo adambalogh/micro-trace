@@ -1,5 +1,7 @@
 #include "trace.h"
 
+#include <assert.h>
+
 #include <boost/uuid/uuid_io.hpp>
 
 #define UNDEFINED_TRACE -2
@@ -19,6 +21,6 @@ void set_current_trace(const trace_id_t trace) {
 
 bool is_trace_undefined() { return trace_undefined; }
 
-std::string trace_to_string(const trace_id_t trace) {
+std::string trace_to_string(const trace_id_t& trace) {
     return boost::uuids::to_string(trace);
 }
