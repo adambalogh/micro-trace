@@ -6,7 +6,7 @@
 
 #define LOG_ERROR_IF(logger, condition, ...)            \
     do {                                                \
-        if ((condition)) logger->critical(__VA_ARGS__); \
+        if ((condition)) logger->error(__VA_ARGS__); \
     } while (0)
 
 #define VERIFY(logger, condition, ...)     \
