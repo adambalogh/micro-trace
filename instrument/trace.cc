@@ -2,12 +2,18 @@
 
 #include <assert.h>
 
+#include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
 #define UNDEFINED_TRACE -2
 
 static thread_local trace_id_t current_trace;
 static thread_local bool trace_undefined = true;
+
+trace_id_t new_trace() {
+    static boost::uuids::random_generator gen;
+    return gen();
+}
 
 trace_id_t get_current_trace() {
     assert(!trace_undefined);

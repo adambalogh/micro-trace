@@ -89,11 +89,11 @@ static void HandleAccept(const int sockfd) {
         return;
     }
 
-    trace_id_t new_trace{};
-    set_current_trace(new_trace);
+    auto trace = new_trace();
+    set_current_trace(trace);
 
     auto event_handler =
-        std::make_unique<SocketCallback>(sockfd, new_trace, SocketRole::SERVER);
+        std::make_unique<SocketCallback>(sockfd, trace, SocketRole::SERVER);
     auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(event_handler), orig());
     socket->Accept();

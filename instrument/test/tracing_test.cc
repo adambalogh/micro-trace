@@ -9,7 +9,7 @@
 #include <mutex>
 #include <thread>
 
-#include "common.h"
+#include "trace.h"
 
 // TODO shouldn't do this
 #define UNDEFINED_TRACE -2
@@ -157,7 +157,7 @@ class TraceTest : public ::testing::Test {
  * current_socket should be cleared.
  */
 TEST_F(TraceTest, CurrentTrace) {
-    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
 
     std::thread server_thread{[this]() {
         int ret;
@@ -168,7 +168,7 @@ TEST_F(TraceTest, CurrentTrace) {
         memset(&cli_addr, 0, sizeof(cli_addr));
 
         int server = CreateServerSocket(SERVER_PORT);
-        EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+        EXPECT_TRUE(is_trace_undefined());
 
         ret = listen(server, 5);
         ASSERT_EQ(0, ret);
@@ -188,7 +188,7 @@ TEST_F(TraceTest, CurrentTrace) {
         ASSERT_EQ(MSG_LEN, ret);
 
         trace_id_t trace = get_current_trace();
-        EXPECT_NE(UNDEFINED_TRACE, trace);
+        EXPECT_FALSE(is_trace_undefined());
 
         // server is not instrumented so it shouldn't change the trace
         ASSERT_EQ(0, close(server));
@@ -213,10 +213,10 @@ TEST_F(TraceTest, CurrentTrace) {
     // tracked
     ret = write(client, MSG, MSG_LEN);
     EXPECT_EQ(ret, MSG_LEN);
-    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
 
     close(client);
-    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
 
     server_thread.join();
 }
@@ -227,7 +227,7 @@ TEST_F(TraceTest, CurrentTrace) {
  * to an instrumented socket, it's trace is set as the current trace
  */
 TEST_F(TraceTest, TraceSwitch) {
-    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
 
     std::thread server_thread{[this]() {
         int ret;
@@ -261,40 +261,40 @@ TEST_F(TraceTest, TraceSwitch) {
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
+        EXPECT_FALSE(is_trace_undefined());
         const trace_id_t first_trace = get_current_trace();
-        EXPECT_NE(UNDEFINED_TRACE, first_trace);
 
         // Read second
         ret = read(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
+        EXPECT_FALSE(is_trace_undefined());
         const trace_id_t second_trace = get_current_trace();
-        EXPECT_NE(UNDEFINED_TRACE, second_trace);
         EXPECT_NE(first_trace, second_trace);
 
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        ASSERT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_trace, get_current_trace());
 
         // Write first
         ret = write(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        ASSERT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_trace, get_current_trace());
 
         // Write second
         ret = write(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        ASSERT_EQ(second_trace, get_current_trace());
+        EXPECT_EQ(second_trace, get_current_trace());
 
         // Write second
         ret = write(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        ASSERT_EQ(second_trace, get_current_trace());
+        EXPECT_EQ(second_trace, get_current_trace());
 
         // Unsuccessful read first (client closed conn)
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(0, ret);
-        ASSERT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_trace, get_current_trace());
 
         // TODO figure out how to simulate write error
         // Unsuccessful write second
@@ -344,7 +344,7 @@ TEST_F(TraceTest, TraceSwitch) {
     ret = read(second_client, &buf, MSG_LEN);
     ASSERT_EQ(MSG_LEN, ret);
 
-    ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
 
     // Unsuccessful read first
     close(first_client);
@@ -365,7 +365,7 @@ TEST_F(TraceTest, TraceSwitch) {
  * local_thread <--> server_thread <--> dump_server_thread
  */
 TEST_F(TraceTest, PropagateTrace) {
-    EXPECT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
 
     std::thread server_thread{[this]() {
         int ret;
@@ -469,7 +469,8 @@ TEST_F(TraceTest, PropagateTrace) {
     ret = write(first_client, MSG, MSG_LEN);
     ASSERT_EQ(MSG_LEN, ret);
 
-    ASSERT_EQ(UNDEFINED_TRACE, get_current_trace());
+    EXPECT_TRUE(is_trace_undefined());
+
     close(first_client);
     close(second_client);
     server_thread.join();

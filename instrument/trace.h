@@ -12,6 +12,8 @@
 
 typedef boost::uuids::uuid trace_id_t;
 
+trace_id_t new_trace();
+
 /*
  * Returns the calling thread's currently associated trace.
  * Must only be called if is_trace_undefined() is false.
