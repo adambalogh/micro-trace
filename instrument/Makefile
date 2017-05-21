@@ -8,7 +8,7 @@ SRCS_DIR = $(PWD)
 SRCS = instrumented_socket.cc tracing.cc orig_functions.cc trace.cc socket_callback.cc logger.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = instrumented_socket_test.cc socket_callback_test.cc tracing_test.cc
+TESTS = instrumented_socket_test.cc socket_callback_test.cc tracing_test.cc trace_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
