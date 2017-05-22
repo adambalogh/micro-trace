@@ -12,6 +12,7 @@ namespace microtrace {
 static thread_local trace_id_t current_trace;
 static thread_local bool trace_undefined = true;
 
+// TODO random_generator is not thread-safe
 trace_id_t new_trace() {
     static boost::uuids::random_generator gen;
     return gen();
