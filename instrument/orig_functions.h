@@ -7,6 +7,8 @@
 
 #include "uv.h"
 
+namespace microtrace {
+
 class OriginalFunctions;
 
 /*
@@ -125,3 +127,4 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     orig_uv_accept_t orig_uv_accept;
     orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
 };
+}

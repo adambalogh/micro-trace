@@ -3,6 +3,8 @@
 #include "orig_functions.h"
 #include "socket_callback.h"
 
+using namespace microtrace;
+
 class EmptyOriginalFunctions : public OriginalFunctions {
    public:
     int socket(int domain, int type, int protocol) const { return -1; }

@@ -7,6 +7,8 @@
 #include "socket_callback.h"
 #include "socket_interface.h"
 
+namespace microtrace {
+
 struct OriginalFunctions;
 
 /*
@@ -56,3 +58,4 @@ class InstrumentedSocket : public SocketInterface {
 
     const OriginalFunctions &orig_;
 };
+}

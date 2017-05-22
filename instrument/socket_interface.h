@@ -1,5 +1,7 @@
 #pragma once
 
+namespace microtrace {
+
 /*
  * SocketInterface contains the BSD Socket API methods that are used for
  * tracing.
@@ -29,3 +31,4 @@ class SocketInterface {
 
     virtual int Close() = 0;
 };
+}

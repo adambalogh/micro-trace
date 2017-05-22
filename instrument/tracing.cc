@@ -14,15 +14,17 @@
 #include "trace.h"
 #include "tracing.h"
 
-#define SOCK_CALL(fd, traced, normal)             \
-    do {                                          \
-        InstrumentedSocket* sock = GetSocket(fd); \
-        if (sock == NULL) {                       \
-            return orig().normal;                 \
-        } else {                                  \
-            return sock->traced;                  \
-        }                                         \
+#define SOCK_CALL(fd, traced, normal)                     \
+    do {                                                  \
+        mt::InstrumentedSocket* sock = mt::GetSocket(fd); \
+        if (sock == NULL) {                               \
+            return mt::orig().normal;                     \
+        } else {                                          \
+            return sock->traced;                          \
+        }                                                 \
     } while (0)
+
+namespace microtrace {
 
 template <class CbType>
 struct CallbackWrap {
@@ -99,24 +101,27 @@ static void HandleAccept(const int sockfd) {
     socket->Accept();
     SaveSocket(std::move(socket));
 }
+}
+
+namespace mt = microtrace;
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    int ret = orig().accept(sockfd, addr, addrlen);
-    HandleAccept(ret);
+    int ret = mt::orig().accept(sockfd, addr, addrlen);
+    mt::HandleAccept(ret);
     return ret;
 }
 
 int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
-    int ret = orig().accept4(sockfd, addr, addrlen, flags);
-    HandleAccept(ret);
+    int ret = mt::orig().accept4(sockfd, addr, addrlen, flags);
+    mt::HandleAccept(ret);
     return ret;
 }
 
 int uv_accept(uv_stream_t* server, uv_stream_t* client) {
-    int ret = orig().uv_accept(server, client);
+    int ret = mt::orig().uv_accept(server, client);
     if (ret == 0) {
         int fd = client->io_watcher.fd;
-        HandleAccept(fd);
+        mt::HandleAccept(fd);
     }
 
     return ret;
@@ -125,7 +130,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 // TODO should probably do this at connect() instead to avoid
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
-    int sockfd = orig().socket(domain, type, protocol);
+    int sockfd = mt::orig().socket(domain, type, protocol);
     if (sockfd == -1) {
         return sockfd;
     }
@@ -134,12 +139,12 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (!is_trace_undefined()) {
-        auto event_handler = std::make_unique<SocketCallback>(
-            sockfd, get_current_trace(), SocketRole::CLIENT);
-        auto socket = std::make_unique<InstrumentedSocket>(
-            sockfd, std::move(event_handler), orig());
-        SaveSocket(std::move(socket));
+    if (!mt::is_trace_undefined()) {
+        auto event_handler = std::make_unique<mt::SocketCallback>(
+            sockfd, mt::get_current_trace(), mt::SocketRole::CLIENT);
+        auto socket = std::make_unique<mt::InstrumentedSocket>(
+            sockfd, std::move(event_handler), mt::orig());
+        mt::SaveSocket(std::move(socket));
     }
     return sockfd;
 }
@@ -148,23 +153,23 @@ int socket(int domain, int type, int protocol) {
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
                         struct addrinfo* res) {
-    const GetAddrinfoCbWrap& cb_wrap = GetGetAddrinfoCb(req);
+    const mt::GetAddrinfoCbWrap& cb_wrap = mt::GetGetAddrinfoCb(req);
 
-    set_current_trace(cb_wrap.trace);
+    mt::set_current_trace(cb_wrap.trace);
 
     uv_getaddrinfo_cb orig_cb = cb_wrap.orig_cb;
-    DeleteGetAddrinfoCb(cb_wrap.req_ptr);
+    mt::DeleteGetAddrinfoCb(cb_wrap.req_ptr);
     orig_cb(req, status, res);
 }
 
 int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
                    const char* service, const struct addrinfo* hints) {
-    auto cb_wrap = std::make_unique<GetAddrinfoCbWrap>(req, getaddrinfo_cb,
-                                                       get_current_trace());
-    SaveGetAddrinfoCb(std::move(cb_wrap));
-    return orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service,
-                                 hints);
+    auto cb_wrap = std::make_unique<mt::GetAddrinfoCbWrap>(
+        req, getaddrinfo_cb, mt::get_current_trace());
+    mt::SaveGetAddrinfoCb(std::move(cb_wrap));
+    return mt::orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,
+                                     service, hints);
 }
 
 /* InstrumentedSocket calls */
@@ -202,13 +207,13 @@ ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
 }
 
 int close(int fd) {
-    InstrumentedSocket* sock = GetSocket(fd);
+    mt::InstrumentedSocket* sock = mt::GetSocket(fd);
     if (sock == NULL) {
-        return orig().close(fd);
+        return mt::orig().close(fd);
     }
     int ret = sock->Close();
     if (ret == 0) {
-        DeleteSocket(fd);
+        mt::DeleteSocket(fd);
     }
     return ret;
 }

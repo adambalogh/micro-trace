@@ -14,6 +14,8 @@
 #include "logger.h"
 #include "trace.h"
 
+namespace microtrace {
+
 // TODO make this an injectable member variable
 StdoutLogger logger;
 
@@ -217,3 +219,4 @@ void SocketCallback::AfterWrite(const struct iovec* iov, int iovcnt,
 void SocketCallback::BeforeClose() {}
 
 void SocketCallback::AfterClose(int ret) {}
+}

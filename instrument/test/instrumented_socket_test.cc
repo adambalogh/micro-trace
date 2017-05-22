@@ -11,6 +11,7 @@
 #include "test_util.h"
 
 using namespace fakeit;
+using namespace microtrace;
 
 const int FD = 9943;
 const trace_id_t TRACE{};

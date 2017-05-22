@@ -2,6 +2,8 @@
 
 #include "socket_callback.h"
 
+using namespace microtrace;
+
 const int FD = 11;
 const trace_id_t TRACE{};
 const SocketRole ROLE = SocketRole::SERVER;

@@ -7,6 +7,8 @@
 
 #define UNDEFINED_TRACE -2
 
+namespace microtrace {
+
 static thread_local trace_id_t current_trace;
 static thread_local bool trace_undefined = true;
 
@@ -29,4 +31,5 @@ bool is_trace_undefined() { return trace_undefined; }
 
 std::string trace_to_string(const trace_id_t& trace) {
     return boost::uuids::to_string(trace);
+}
 }

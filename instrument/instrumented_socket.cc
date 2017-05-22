@@ -5,6 +5,8 @@
 #include "orig_functions.h"
 #include "request_log.pb.h"
 
+namespace microtrace {
+
 static const int SINGLE_IOVEC = 1;
 
 InstrumentedSocket::InstrumentedSocket(
@@ -75,4 +77,5 @@ int InstrumentedSocket::Close() {
     int ret = orig_.close(fd());
     callback_->AfterClose(ret);
     return ret;
+}
 }

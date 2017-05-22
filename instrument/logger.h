@@ -4,6 +4,8 @@
 
 #include "request_log.pb.h"
 
+namespace microtrace {
+
 template <class LogImpl>
 class BufferedLogger;
 class FileLogger;
@@ -108,4 +110,5 @@ void BufferedLogger<LogImpl>::Flush() {
 
     buffer_.clear();
     size_ = 0;
+}
 }

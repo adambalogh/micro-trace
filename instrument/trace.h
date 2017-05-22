@@ -4,6 +4,8 @@
 
 #include <boost/uuid/uuid.hpp>
 
+namespace microtrace {
+
 /*
  * This module is responsible for keeping track of the trace associated with the
  * every thread of execution. The trace may change throughout the lifeteime of
@@ -31,3 +33,4 @@ void set_current_trace(const trace_id_t trace);
 bool is_trace_undefined();
 
 std::string trace_to_string(const trace_id_t& trace);
+}

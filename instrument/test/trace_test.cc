@@ -6,6 +6,8 @@
 
 #include "trace.h"
 
+using namespace microtrace;
+
 TEST(Trace, Unique) {
     auto first = new_trace();
     auto second = new_trace();

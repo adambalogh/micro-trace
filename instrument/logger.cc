@@ -7,9 +7,12 @@
 
 using namespace ::google::protobuf;
 
+namespace microtrace {
+
 void StdoutLogger::Log(const proto::RequestLog& log) {
     std::string str;
     TextFormat::PrintToString(log, &str);
     std::cout << str << std::endl;
     std::cout << std::flush;
+}
 }

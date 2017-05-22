@@ -5,6 +5,8 @@
         func = (decltype(func))find_orig(name); \
     } while (0)
 
+namespace microtrace {
+
 void *find_orig(const char *name) { return dlsym(RTLD_NEXT, name); }
 
 OriginalFunctions &orig() {
@@ -93,4 +95,5 @@ int OriginalFunctionsImpl::uv_getaddrinfo(uv_loop_t *loop,
                                           const char *node, const char *service,
                                           const struct addrinfo *hints) const {
     return orig_uv_getaddrinfo(loop, req, getaddrinfo_cb, node, service, hints);
+}
 }

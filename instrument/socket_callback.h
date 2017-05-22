@@ -5,6 +5,8 @@
 #include "request_log.pb.h"
 #include "trace.h"
 
+namespace microtrace {
+
 struct RequestLogWrapper;
 
 /*
@@ -149,3 +151,4 @@ class SocketCallback {
      */
     Connection conn_;
 };
+}

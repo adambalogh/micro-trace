@@ -14,6 +14,8 @@
 // TODO shouldn't do this
 #define UNDEFINED_TRACE -2
 
+using namespace microtrace;
+
 const int SERVER_PORT = 8543;
 const int DUMP_SERVER_PORT = 7353;
 
