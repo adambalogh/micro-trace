@@ -1,0 +1,13 @@
+{
+    "name": "node-backend",
+    "version": "1.0.0",
+    "description": "Backend node server",
+    "author": "Anon",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "express": "^4.13.3"
+    }
+}

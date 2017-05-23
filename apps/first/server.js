@@ -6,7 +6,7 @@ var http = require('http');
 
 
 app.get('/', function(req, res) {
-    http.get("http://localhost:5000", (response) => {
+    http.get("http://second:5001", (response) => {
         var body = '';
         response.on('data', (chunk) => { body += chunk; });
         response.on('end', () => {
