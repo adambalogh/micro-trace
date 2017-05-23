@@ -101,7 +101,7 @@ static void HandleAccept(const int sockfd) {
     socket->Accept();
     SaveSocket(std::move(socket));
 }
-}
+} // namespace microtrace
 
 namespace mt = microtrace;
 
