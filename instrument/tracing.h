@@ -2,6 +2,8 @@
 
 #include "uv.h"
 
+#include "common.h"
+
 /*
  * These are the functions that we instrument in order to trace requests.
  *

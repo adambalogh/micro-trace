@@ -4,6 +4,12 @@
 
 #include "spdlog/spdlog.h"
 
+#if BUILDING_LIBMICROTRACE && HAVE_VISIBILITY
+#define LIBMICROTRACE_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define LIBMICROTRACE_EXPORTED
+#endif
+
 #define LOG_ERROR_IF(logger, condition, ...)         \
     do {                                             \
         if ((condition)) logger->error(__VA_ARGS__); \

@@ -16,7 +16,8 @@ LIBS = -L /usr/local/lib -lhttp_parser -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
 CXXFLAGS = -Wall -std=c++17 -MP -MD
-LIBFLAGS = -fPIC -shared
+LIBFLAGS = -fPIC
+OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 
 PROTOC = protoc
 PROTOLIB = -lprotobuf
@@ -33,7 +34,7 @@ all: $(OUT)
 
 # Shared library build
 $(OUT): $(OBJ) $(PROTO_OBJ)
-	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS)
+	$(CXX) $(OUT_FLAGS) $(CXXFLAGS) $(LIBFLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS)
 
 # Compile generated protobuf
 $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
@@ -66,5 +67,3 @@ test: $(TEST_EXEC)
 run-test: test
 	./build/instrumented_socket_test
 	./build/socket_callback_test
-
-
