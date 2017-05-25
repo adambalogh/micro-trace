@@ -12,12 +12,13 @@ TESTS = instrumented_socket_test.cc socket_callback_test.cc tracing_test.cc trac
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
-LIBS = -L /usr/local/lib -lhttp_parser -ldl -pthread -lprotobuf -lpthread
+LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
 CXXFLAGS = -Wall -std=c++17 -MP -MD
 LIBFLAGS = -fPIC
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
+NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
 
 PROTOC = protoc
 PROTOLIB = -lprotobuf
@@ -34,7 +35,7 @@ all: $(OUT)
 
 # Shared library build
 $(OUT): $(OBJ) $(PROTO_OBJ)
-	$(CXX) $(OUT_FLAGS) $(CXXFLAGS) $(LIBFLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS)
+	$(CXX) $(OUT_FLAGS) $(CXXFLAGS) $(LIBFLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS) 
 
 # Compile generated protobuf
 $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
@@ -48,7 +49,7 @@ $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
 
 # Library files build
 $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_GEN)
-	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@ $(LIBS) 
+	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
 
 # Test build
 $(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
