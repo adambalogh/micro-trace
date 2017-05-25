@@ -1,4 +1,16 @@
-FROM python:3
+FROM ubuntu:latest
+
+RUN \
+  apt-get update && \
+  apt-get install -y python python-dev python-pip python-virtualenv && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y libstdc++6
+
+RUN mkdir -p /usr/local/lib
+COPY trace.so /usr/local/lib/.
+COPY libprotobuf.so.13 /usr/local/lib/.
+ENV LD_LIBRARY_PATH /usr/local/lib/:$LD_LIBRARY_PATH
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
@@ -9,4 +21,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server.py .
 
 EXPOSE 5001
+ENV LD_PRELOAD /usr/local/lib/trace.so
 CMD ["python", "server.py"]

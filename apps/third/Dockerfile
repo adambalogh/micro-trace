@@ -9,7 +9,7 @@ RUN apt-get install -y curl libstdc++6
 
 RUN mkdir -p /usr/local/lib
 COPY trace.so /usr/local/lib/.
-ADD lib /usr/local/lib/
+COPY libprotobuf.so.13 /usr/local/lib/.
 ENV LD_LIBRARY_PATH /usr/local/lib/:$LD_LIBRARY_PATH
 
 RUN mkdir -p /usr/src/app
