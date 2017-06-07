@@ -18,16 +18,18 @@ message RequestLog {
     // The number of seconds since epoch this request was sent/received
     required int64 time = 2;
 
-    required Connection conn = 3;
+    required int64 duration = 3;
+
+    required Connection conn = 4;
 
     // The number of requests that were sent through conn,
     // including this one
-    required uint32 req_count = 4;
+    required uint32 req_count = 5;
 
     // Indicates the role of this machine in this connection
     enum Role {
         CLIENT = 0;
         SERVER = 1;
     }
-    required Role role = 5;
+    required Role role = 6;
 }
