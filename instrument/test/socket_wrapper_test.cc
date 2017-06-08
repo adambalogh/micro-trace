@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "instrumented_socket.h"
+#include "socket_wrapper.h"
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -37,15 +37,15 @@ const int RET = 55;
 
 const EmptyOriginalFunctions empty_orig;
 
-TEST(InstrumentedSocketTest, Init) {
-    InstrumentedSocket socket{
+TEST(SocketWrapperTest, Init) {
+    SocketWrapper socket{
         FD, EmptySocketCallback::New(FD, TRACE, SocketRole::CLIENT),
         empty_orig};
 
     EXPECT_EQ(FD, socket.fd());
 }
 
-TEST(InstrumentedSocketTest, SocketApiCalls) {
+TEST(SocketWrapperTest, SocketApiCalls) {
     Mock<OriginalFunctions> mock;
     Method(mock, recv) = RET;
     Method(mock, read) = RET;
@@ -57,7 +57,7 @@ TEST(InstrumentedSocketTest, SocketApiCalls) {
     Method(mock, close) = SUCCESSFUL_CLOSE;
 
     OriginalFunctions& mock_orig = mock.get();
-    InstrumentedSocket socket{
+    SocketWrapper socket{
         FD, EmptySocketCallback::New(FD, TRACE, SocketRole::CLIENT), mock_orig};
 
     EXPECT_EQ(RET, socket.Read(BUF, LEN));

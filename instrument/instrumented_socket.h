@@ -1,61 +1,127 @@
 #pragma once
 
-#include <sys/socket.h>
-#include <memory>
+#include <string>
 
-#include "common.h"
-#include "socket_callback.h"
-#include "socket_interface.h"
+#include "request_log.pb.h"
+#include "trace.h"
 
 namespace microtrace {
 
-struct OriginalFunctions;
+typedef std::function<ssize_t()> IoFunction;
+typedef std::function<int()> CloseFunction;
 
 /*
- * A InstrumentedSocket is a wrapper around a regular socket, with callbacks
- * that allow tracking the socket's lifecycle.
+ * Identifies a unique connection between two machines.
  *
- * It must not alter the behaviour of the socket.
+ * Sockets can be divided into 2 groups: server and client role (see SocketRole
+ * for explanation). Since both sockets in a connection know their role, the
+ * connection objects should look the same on both endpoints. This makes it
+ * easier to match logs.
+ *
+ * We use strings for storing IP addressed in order to make it easier to debug
+ * logs.
+ *
+ * Note: connnections are not unique in time.
  */
-class InstrumentedSocket : public SocketInterface {
+struct Connection {
    public:
-    InstrumentedSocket(const InstrumentedSocket &) = delete;
+    Connection();
 
-    InstrumentedSocket(const int fd,
-                       std::unique_ptr<SocketCallback> event_handler,
-                       const OriginalFunctions &orig);
+    std::string to_string() const;
 
-    void Accept() override;
-    ssize_t RecvFrom(void *buf, size_t len, int flags,
-                     struct sockaddr *src_addr, socklen_t *addrlen) override;
-    ssize_t Recv(void *buf, size_t len, int flags) override;
-    ssize_t Read(void *buf, size_t count) override;
-    ssize_t Write(const void *buf, size_t count) override;
-    ssize_t Writev(const struct iovec *iov, int iovcnt) override;
-    ssize_t Send(const void *buf, size_t len, int flags) override;
-    ssize_t SendTo(const void *buf, size_t len, int flags,
-                   const struct sockaddr *dest_addr,
-                   socklen_t addrlen) override;
-    int Close() override;
+    std::string client_ip;
+    unsigned short client_port;
+    std::string server_ip;
+    unsigned short server_port;
+};
 
-    int fd() const override { return fd_; }
+/*
+ * We require applications to use a request-response-based communication method
+ * with a client-server model, which means that certain sockets will only
+ * receive requests, these are Server sockets, and other sockets will only send
+ * requests, these are Client sockets. As a result, we can divide sockets into
+ * these 2 groups. We know that a socket is a Client if it was connect()-ed to
+ * and endpoint, and a Server if it was accept()-ed. As an example, it wouldn't
+ * work with WebSockets which supports server-sent events.
+ *
+ * In addition, if a socket is a Client, we know that its first operation will
+ * be a write(), and if it is a Server, it will do a read() first.
+ */
+enum class SocketRole { CLIENT, SERVER };
 
-   private:
-    struct iovec *set_iovec(const void *buf, size_t len) {
-        iov.iov_base = const_cast<void *>(buf);
-        iov.iov_len = len;
-        return &iov;
-    }
+enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
-    const int fd_;
+class InstrumentedSocket {
+   public:
+    virtual ~InstrumentedSocket() = default;
 
-    const std::unique_ptr<SocketCallback> callback_;
+    virtual ssize_t Read(const void* buf, size_t len, IoFunction fun) = 0;
+    virtual ssize_t Write(const struct iovec* iov, int iovcnt,
+                          IoFunction fun) = 0;
+    virtual int Close(CloseFunction fun) = 0;
+
+    virtual int fd() const = 0;
+    virtual SocketRole role() const = 0;
+};
+
+class AbstractInstrumentedSocket : public InstrumentedSocket {
+   public:
+    AbstractInstrumentedSocket(int sockfd, const trace_id_t trace,
+                               const SocketRole role, const SocketState state);
+
+    int fd() const override { return sockfd_; }
+    SocketRole role() const override { return role_; }
+
+   protected:
+    /*
+     * Sets up the Connection ID of the socket.
+     *
+     * Should only be called if the socket is connected to an endpoint,
+     * e.g. it has been connect()-ed or accept()-ed
+     *
+     * On success, it returns 0, otherwise it returns a standard error code,
+     * returned by the Socket API functions.
+     */
+    int SetConnection();
+
+    bool role_server() const { return role_ == SocketRole::SERVER; }
+    bool role_client() const { return role_ == SocketRole::CLIENT; }
+
+    const int sockfd_;
+
+    trace_id_t trace_;
 
     /*
-     * Cache for iovec struct
+     * Indicates whether this socket is being used as a client, or as a
+     * server in this connection, e.g. whenever a socket is accepted, it will
+     * act as a server. This is a valid assumption because we require
+     * aplications to use a request-response communication method.
      */
-    struct iovec iov;
+    const SocketRole role_;
 
-    const OriginalFunctions &orig_;
+    /*
+     * Records the state of the socket.
+     */
+    SocketState state_;
+
+    /*
+     * Number of requests that went through this socket. If socket role is
+     * client, this will indicate the number of requests sent, if the role
+     * is server, it is the number of requests received.
+     */
+    int num_requests_;
+
+    /*
+     * Indicates if conn_ has been successfully set up, it DOES NOT indicate
+     * whether the socket is connected or not, although if its value is
+     * true, it also means that the socket is connected.
+     */
+    bool conn_init_;
+
+    /*
+     * The connection this socket represents. Remains the same throughout
+     * the socket's lifetime, and becomes invalid after Close() has been called.
+     */
+    Connection conn_;
 };
 }

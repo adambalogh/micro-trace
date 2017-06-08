@@ -5,10 +5,11 @@ BUILD_DIR = $(PWD)/build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = $(PWD)
-SRCS = instrumented_socket.cc tracing.cc orig_functions.cc trace.cc socket_callback.cc logger.cc common.cc
+SRCS = socket_adapter.cc tracing.cc orig_functions.cc trace.cc instrumented_socket.cc \
+	  client_socket.cc server_socket.cc logger.cc common.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = instrumented_socket_test.cc socket_callback_test.cc tracing_test.cc trace_test.cc
+TESTS = socket_wrapper_test.cc socket_callback_test.cc tracing_test.cc trace_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
@@ -66,5 +67,5 @@ test: $(TEST_EXEC)
 	@echo 'tests compiled'
 
 run-test: test
-	./build/instrumented_socket_test
+	./build/socket_wrapper_test
 	./build/socket_callback_test

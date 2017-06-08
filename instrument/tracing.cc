@@ -9,19 +9,23 @@
 #include <random>
 #include <unordered_map>
 
-#include "instrumented_socket.h"
+#include "client_socket.h"
 #include "orig_functions.h"
+#include "server_socket.h"
+#include "socket_adapter.h"
 #include "trace.h"
 #include "tracing.h"
 
-#define SOCK_CALL(fd, traced, normal)                     \
-    do {                                                  \
-        mt::InstrumentedSocket* sock = mt::GetSocket(fd); \
-        if (sock == NULL) {                               \
-            return mt::orig().normal;                     \
-        } else {                                          \
-            return sock->traced;                          \
-        }                                                 \
+using namespace microtrace;
+
+#define SOCK_CALL(fd, traced, normal) \
+    do {                              \
+        auto* sock = GetSocket(fd);   \
+        if (sock == NULL) {           \
+            return orig().normal;     \
+        } else {                      \
+            return sock->traced;      \
+        }                             \
     } while (0)
 
 namespace microtrace {
@@ -41,8 +45,7 @@ typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 std::mutex socket_map_mu;
 
 static auto& socket_map() {
-    static std::unordered_map<int, std::unique_ptr<InstrumentedSocket>>
-        socket_map;
+    static std::unordered_map<int, std::unique_ptr<SocketAdapter>> socket_map;
     return socket_map;
 }
 
@@ -53,12 +56,12 @@ static auto& getaddrinfo_cbs() {
 }
 
 // TODO make these thread safe
-static void SaveSocket(std::unique_ptr<InstrumentedSocket> entry) {
+static void SaveSocket(std::unique_ptr<SocketAdapter> entry) {
     std::unique_lock<std::mutex> l(socket_map_mu);
     socket_map()[entry->fd()] = std::move(entry);
 }
 
-static InstrumentedSocket* GetSocket(const int sockfd) {
+static SocketAdapter* GetSocket(const int sockfd) {
     std::unique_lock<std::mutex> l(socket_map_mu);
     auto it = socket_map().find(sockfd);
     if (it == socket_map().end()) {
@@ -91,37 +94,32 @@ static void HandleAccept(const int sockfd) {
         return;
     }
 
-    auto trace = new_trace();
-    set_current_trace(trace);
-
-    auto event_handler =
-        std::make_unique<SocketCallback>(sockfd, trace, SocketRole::SERVER);
-    auto socket = std::make_unique<InstrumentedSocket>(
-        sockfd, std::move(event_handler), orig());
-    socket->Accept();
+    auto server_socket = std::make_unique<ServerSocket>(sockfd);
+    auto socket = std::make_unique<SocketAdapter>(
+        sockfd, std::move(server_socket), orig());
     SaveSocket(std::move(socket));
 }
-} // namespace microtrace
+}  // namespace microtrace
 
 namespace mt = microtrace;
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    int ret = mt::orig().accept(sockfd, addr, addrlen);
-    mt::HandleAccept(ret);
+    int ret = orig().accept(sockfd, addr, addrlen);
+    HandleAccept(ret);
     return ret;
 }
 
 int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
-    int ret = mt::orig().accept4(sockfd, addr, addrlen, flags);
-    mt::HandleAccept(ret);
+    int ret = orig().accept4(sockfd, addr, addrlen, flags);
+    HandleAccept(ret);
     return ret;
 }
 
 int uv_accept(uv_stream_t* server, uv_stream_t* client) {
-    int ret = mt::orig().uv_accept(server, client);
+    int ret = orig().uv_accept(server, client);
     if (ret == 0) {
         int fd = client->io_watcher.fd;
-        mt::HandleAccept(fd);
+        HandleAccept(fd);
     }
 
     return ret;
@@ -130,7 +128,7 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 // TODO should probably do this at connect() instead to avoid
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
-    int sockfd = mt::orig().socket(domain, type, protocol);
+    int sockfd = orig().socket(domain, type, protocol);
     if (sockfd == -1) {
         return sockfd;
     }
@@ -139,12 +137,12 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (!mt::is_trace_undefined()) {
-        auto event_handler = std::make_unique<mt::SocketCallback>(
-            sockfd, mt::get_current_trace(), mt::SocketRole::CLIENT);
-        auto socket = std::make_unique<mt::InstrumentedSocket>(
-            sockfd, std::move(event_handler), mt::orig());
-        mt::SaveSocket(std::move(socket));
+    if (!is_trace_undefined()) {
+        auto client_socket =
+            std::make_unique<ClientSocket>(sockfd, get_current_trace());
+        auto socket = std::make_unique<SocketAdapter>(
+            sockfd, std::move(client_socket), orig());
+        SaveSocket(std::move(socket));
     }
     return sockfd;
 }
@@ -153,26 +151,26 @@ int socket(int domain, int type, int protocol) {
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
                         struct addrinfo* res) {
-    const mt::GetAddrinfoCbWrap& cb_wrap = mt::GetGetAddrinfoCb(req);
+    const GetAddrinfoCbWrap& cb_wrap = GetGetAddrinfoCb(req);
 
-    mt::set_current_trace(cb_wrap.trace);
+    set_current_trace(cb_wrap.trace);
 
     uv_getaddrinfo_cb orig_cb = cb_wrap.orig_cb;
-    mt::DeleteGetAddrinfoCb(cb_wrap.req_ptr);
+    DeleteGetAddrinfoCb(cb_wrap.req_ptr);
     orig_cb(req, status, res);
 }
 
 int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
                    const char* service, const struct addrinfo* hints) {
-    auto cb_wrap = std::make_unique<mt::GetAddrinfoCbWrap>(
-        req, getaddrinfo_cb, mt::get_current_trace());
-    mt::SaveGetAddrinfoCb(std::move(cb_wrap));
-    return mt::orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node,
-                                     service, hints);
+    auto cb_wrap = std::make_unique<GetAddrinfoCbWrap>(req, getaddrinfo_cb,
+                                                       get_current_trace());
+    SaveGetAddrinfoCb(std::move(cb_wrap));
+    return orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service,
+                                 hints);
 }
 
-/* InstrumentedSocket calls */
+/* SocketAdapter calls */
 
 ssize_t read(int fd, void* buf, size_t count) {
     SOCK_CALL(fd, Read(buf, count), read(fd, buf, count));
@@ -207,13 +205,13 @@ ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
 }
 
 int close(int fd) {
-    mt::InstrumentedSocket* sock = mt::GetSocket(fd);
+    SocketAdapter* sock = GetSocket(fd);
     if (sock == NULL) {
-        return mt::orig().close(fd);
+        return orig().close(fd);
     }
     int ret = sock->Close();
     if (ret == 0) {
-        mt::DeleteSocket(fd);
+        DeleteSocket(fd);
     }
     return ret;
 }
