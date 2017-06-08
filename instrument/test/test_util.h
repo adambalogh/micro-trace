@@ -1,7 +1,7 @@
 #pragma once
 
 #include "orig_functions.h"
-#include "socket_callback.h"
+#include "socket_adapter.h"
 
 using namespace microtrace;
 
@@ -44,23 +44,27 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     }
 };
 
-class EmptySocketCallback : public SocketCallback {
+class DumbSocket : public InstrumentedSocket {
    public:
-    static std::unique_ptr<SocketCallback> New(int fd, const trace_id_t trace,
-                                               const SocketRole role) {
-        return std::make_unique<EmptySocketCallback>(fd, trace, role);
+    static std::unique_ptr<InstrumentedSocket> New(int fd,
+                                                   const SocketRole role) {
+        return std::make_unique<DumbSocket>(fd, role);
     }
 
-    EmptySocketCallback(int fd, const trace_id_t trace, const SocketRole role)
-        : SocketCallback(fd, trace, role) {}
+    DumbSocket(int fd, const SocketRole role) : fd_(fd), role_(role) {}
 
-    virtual void AfterAccept() override {}
+    ssize_t Read(const void *buf, size_t len, IoFunction fun) { return fun(); }
 
-    virtual void BeforeRead() override {}
-    virtual void AfterRead(const void *buf, ssize_t ret) override {}
-    virtual void BeforeWrite() override {}
-    virtual void AfterWrite(const struct iovec *iov, int iovcnt,
-                            ssize_t ret) override {}
-    virtual void BeforeClose() override {}
-    virtual void AfterClose(int ret) override {}
+    ssize_t Write(const struct iovec *iov, int iovcnt, IoFunction fun) {
+        return fun();
+    }
+
+    int Close(CloseFunction fun) { return fun(); }
+
+    int fd() const { return fd_; }
+    SocketRole role() const { return role_; }
+
+   private:
+    int fd_;
+    SocketRole role_;
 };
