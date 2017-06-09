@@ -11,8 +11,5 @@ class ServerSocket : public AbstractInstrumentedSocket {
     ssize_t Read(const void* buf, size_t len, IoFunction fun) override;
     ssize_t Write(const struct iovec* iov, int iovcnt, IoFunction fun) override;
     int Close(CloseFunction fun) override;
-
-   private:
-    trace_id_t trace_;
 };
 }

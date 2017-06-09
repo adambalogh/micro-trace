@@ -22,9 +22,9 @@ message RequestLog {
 
     required Connection conn = 4;
 
-    // The number of requests that were sent through conn,
+    // The number of transactions that were sent through conn,
     // including this one
-    required uint32 req_count = 5;
+    required uint32 transaction_count = 5;
 
     // Indicates the role of this machine in this connection
     enum Role {
