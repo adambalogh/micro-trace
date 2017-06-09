@@ -48,7 +48,7 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     log->set_trace_id(trace_to_string(trace_));
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
-    log->set_req_count(num_transactions_);
+    log->set_transaction_count(num_transactions_);
     log->set_role(proto::RequestLog::CLIENT);
 }
 

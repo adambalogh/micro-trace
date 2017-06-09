@@ -11,8 +11,8 @@ struct RequestLogWrapper;
 class ClientSocket : public AbstractInstrumentedSocket {
    private:
     /*
-     * A transaction is a request-respone sequence between a client and
-     * server.
+     * A transaction is a request-respone sequence between this client and
+     * a server.
      */
     class Transaction {
        public:
