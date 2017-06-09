@@ -21,6 +21,7 @@ void SocketAdapter::Accept() {}
 // TODO handle special case when len == 0
 ssize_t SocketAdapter::RecvFrom(void *buf, size_t len, int flags,
                                 struct sockaddr *src_addr, socklen_t *addrlen) {
+    printf("Adapter::RecvFrom\n");
     IoFunction fun = [&, this]() {
         return orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
     };
@@ -28,11 +29,13 @@ ssize_t SocketAdapter::RecvFrom(void *buf, size_t len, int flags,
 }
 
 ssize_t SocketAdapter::Recv(void *buf, size_t len, int flags) {
+    printf("Adapter::Recv\n");
     IoFunction fun = [&, this]() { return orig_.recv(fd(), buf, len, flags); };
     return isock_->Read(buf, len, fun);
 }
 
 ssize_t SocketAdapter::Read(void *buf, size_t count) {
+    printf("Adapter::Read\n");
     IoFunction fun = [&, this]() { return orig_.read(fd(), buf, count); };
     return isock_->Read(buf, count, fun);
 }
@@ -59,6 +62,13 @@ ssize_t SocketAdapter::SendTo(const void *buf, size_t len, int flags,
         return orig_.sendto(this->fd(), buf, len, flags, dest_addr, addrlen);
     };
     return isock_->Write(set_iovec(buf, len), SINGLE_IOVEC, fun);
+}
+
+ssize_t SocketAdapter::SendMsg(const struct msghdr *msg, int flags) {
+    IoFunction fun = [&, this]() {
+        return orig_.sendmsg(this->fd(), msg, flags);
+    };
+    return isock_->Write(msg->msg_iov, msg->msg_iovlen, fun);
 }
 
 int SocketAdapter::Close() {

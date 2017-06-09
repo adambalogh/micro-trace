@@ -38,6 +38,7 @@ class SocketAdapter : public SocketInterface {
     ssize_t SendTo(const void *buf, size_t len, int flags,
                    const struct sockaddr *dest_addr,
                    socklen_t addrlen) override;
+    ssize_t SendMsg(const struct msghdr *msg, int flags) override;
     int Close() override;
 
     int fd() const override { return fd_; }

@@ -28,6 +28,7 @@ OriginalFunctionsImpl::OriginalFunctionsImpl() {
     ORIG(orig_writev, "writev");
     ORIG(orig_send, "send");
     ORIG(orig_sendto, "sendto");
+    ORIG(orig_sendmsg, "sendmsg");
 
     ORIG(orig_uv_accept, "uv_accept");
     ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
@@ -98,6 +99,12 @@ ssize_t OriginalFunctionsImpl::sendto(int sockfd, const void *buf, size_t len,
                                       socklen_t addrlen) const {
     DLOG("sendto to %d", sockfd);
     return orig_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+}
+
+ssize_t OriginalFunctionsImpl::sendmsg(int sockfd, const struct msghdr *msg,
+                                       int flags) const {
+    DLOG("sendmsg to %d", sockfd);
+    return orig_sendmsg(sockfd, msg, flags);
 }
 
 int OriginalFunctionsImpl::uv_accept(uv_stream_t *server,

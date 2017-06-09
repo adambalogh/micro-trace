@@ -205,6 +205,10 @@ ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
               sendto(sockfd, buf, len, flags, dest_addr, addrlen));
 }
 
+ssize_t sendmsg(int sockfd, const struct msghdr* msg, int flags) {
+    SOCK_CALL(sockfd, SendMsg(msg, flags), sendmsg(sockfd, msg, flags));
+}
+
 int close(int fd) {
     SocketAdapter* sock = GetSocket(fd);
     if (sock == NULL) {

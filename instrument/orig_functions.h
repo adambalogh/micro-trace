@@ -44,6 +44,9 @@ class OriginalFunctions {
     virtual ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
                            const struct sockaddr *dest_addr,
                            socklen_t addrlen) const = 0;
+    virtual ssize_t sendmsg(int sockfd, const struct msghdr *msg,
+                            int flags) const = 0;
+
     virtual int uv_accept(uv_stream_t *server, uv_stream_t *client) const = 0;
     virtual int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                                uv_getaddrinfo_cb getaddrinfo_cb,
@@ -76,6 +79,8 @@ class OriginalFunctionsImpl : public OriginalFunctions {
                                      int flags,
                                      const struct sockaddr *dest_addr,
                                      socklen_t addrlen);
+    typedef ssize_t (*orig_sendmsg_t)(int sockfd, const struct msghdr *msg,
+                                      int flags);
 
     /* Libuv functions */
 
@@ -106,6 +111,9 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
                    const struct sockaddr *dest_addr,
                    socklen_t addrlen) const override;
+    ssize_t sendmsg(int sockfd, const struct msghdr *msg,
+                    int flags) const override;
+
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const override;
     int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                        uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
@@ -124,6 +132,7 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     orig_writev_t orig_writev;
     orig_send_t orig_send;
     orig_sendto_t orig_sendto;
+    orig_sendmsg_t orig_sendmsg;
     orig_uv_accept_t orig_uv_accept;
     orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
 };

@@ -53,6 +53,7 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
 }
 
 ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
+    printf("ClientSocket::Read\n");
     LOG_ERROR_IF(console_log, state_ == SocketState::WILL_WRITE,
                  "ClientSocket that was expected to write, read instead");
 
