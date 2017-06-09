@@ -91,6 +91,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
+    printf("ClientSocket::Write\n");
     set_current_trace(trace_);
 
     auto ret = fun();
