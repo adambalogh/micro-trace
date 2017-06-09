@@ -51,13 +51,34 @@ enum class SocketRole { CLIENT, SERVER };
 
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
+/*
+ * InstrumentedSocket is an abstraction over an OS socket, which helps tracing
+ * sockets by merging all socket operations into Write, Read, and Close.
+ *
+ * The actual socket operation should be passed as an argument to each of these
+ * functions.
+ */
 class InstrumentedSocket {
    public:
     virtual ~InstrumentedSocket() = default;
 
+    /*
+     * Read should execute the given IO function, which is required to be a
+     * close operation. In addition, it executes tracing logic.
+     */
     virtual ssize_t Read(const void* buf, size_t len, IoFunction fun) = 0;
+
+    /*
+     * Write should execute the given IO function, which is required to be a
+     * write operation. In addition, it executes tracing logic.
+     */
     virtual ssize_t Write(const struct iovec* iov, int iovcnt,
                           IoFunction fun) = 0;
+
+    /*
+     * Close executes the given function which is required to close the
+     * underlying socket. In addition, it executes tracing logic.
+     */
     virtual int Close(CloseFunction fun) = 0;
 
     virtual int fd() const = 0;
@@ -105,11 +126,9 @@ class AbstractInstrumentedSocket : public InstrumentedSocket {
     SocketState state_;
 
     /*
-     * Number of requests that went through this socket. If socket role is
-     * client, this will indicate the number of requests sent, if the role
-     * is server, it is the number of requests received.
+     * Number of transactions that went through this socket.
      */
-    int num_requests_;
+    int num_transactions_;
 
     /*
      * Indicates if conn_ has been successfully set up, it DOES NOT indicate

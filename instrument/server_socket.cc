@@ -31,7 +31,7 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
     }
 
     if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
-        ++num_requests_;
+        ++num_transactions_;
         trace_ = new_trace();
         set_current_trace(trace_);
     }

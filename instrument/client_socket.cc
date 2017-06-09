@@ -1,5 +1,7 @@
 #include "client_socket.h"
 
+#include <chrono>
+
 #include "spdlog/spdlog.h"
 
 #include "common.h"
@@ -50,8 +52,9 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
 
     log->set_trace_id(trace_to_string(trace_));
     // TODO use chrono to get time
-    log->set_time(time(NULL));
-    log->set_req_count(num_requests_);
+    log->set_time(txn_->start());
+    log->set_duration(txn_->duration());
+    log->set_req_count(num_transactions_);
     log->set_role(role_client() ? proto::RequestLog::CLIENT
                                 : proto::RequestLog::SERVER);
 }
@@ -76,6 +79,14 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
         SetConnection();
     }
 
+    if (state_ == SocketState::WROTE) {
+        txn_->End();
+
+        RequestLogWrapper log;
+        FillRequestLog(log);
+        logger.Log(log.get());
+    }
+
     state_ = SocketState::READ;
     return ret;
 }
@@ -96,10 +107,10 @@ ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
     }
 
     if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-        ++num_requests_;
-        RequestLogWrapper log;
-        FillRequestLog(log);
-        logger.Log(log.get());
+        txn_.reset(new Transaction);
+        txn_->Start();
+
+        ++num_transactions_;
     }
     state_ = SocketState::WROTE;
 

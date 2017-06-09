@@ -18,7 +18,7 @@ message RequestLog {
     // The number of seconds since epoch this request was sent/received
     required int64 time = 2;
 
-    required int64 duration = 3;
+    required double duration = 3;
 
     required Connection conn = 4;
 

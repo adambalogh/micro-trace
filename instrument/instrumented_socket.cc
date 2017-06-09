@@ -4,10 +4,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <iostream>
 #include <string>
-
-#include "request_log.pb.h"
 
 #include "common.h"
 
@@ -42,7 +39,7 @@ AbstractInstrumentedSocket::AbstractInstrumentedSocket(int sockfd,
       trace_(trace),
       role_(role),
       state_(state),
-      num_requests_(0),
+      num_transactions_(0),
       conn_init_(false) {}
 
 void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
