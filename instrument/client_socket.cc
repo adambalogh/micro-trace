@@ -54,7 +54,7 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
 
 ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(console_log, state_ == SocketState::WILL_WRITE,
-                 "Socket that was expected to write, read instead");
+                 "ClientSocket that was expected to write, read instead");
 
     set_current_trace(trace_);
 
@@ -90,9 +90,6 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
-    LOG_ERROR_IF(console_log, state_ == SocketState::WILL_READ,
-                 "Socket that was expected to read, wrote instead");
-
     set_current_trace(trace_);
 
     auto ret = fun();

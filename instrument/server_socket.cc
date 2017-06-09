@@ -11,7 +11,7 @@ ServerSocket::ServerSocket(int sockfd)
 
 ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(console_log, state_ == SocketState::WILL_WRITE,
-                 "Socket that was expected to write, read instead");
+                 "ServerSocket that was expected to write, read instead");
 
     set_current_trace(trace_);
 
