@@ -14,7 +14,7 @@ StdoutLogger logger;
 
 /*
  * Wraps a proto::RequestLog. On destruction, it releases the fields that have
- * been borrowed, and not owned by the underlying object.
+ * been borrowed, and not owned by the underlying RequestLog.
  */
 struct RequestLogWrapper {
     ~RequestLogWrapper() {
@@ -35,11 +35,6 @@ ClientSocket::ClientSocket(int sockfd, const trace_id_t trace)
                                  SocketState::WILL_WRITE),
       txn_(nullptr) {}
 
-/*
- * IMPORTANT: the string fields in RequestLog.conn are only
- * borrowed, they should be released before the request object
- * is destroyed.
- */
 void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(console_log, conn_init_ == true,
            "FillRequestLog was called when conn_init is false");
@@ -51,13 +46,12 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     conn->set_client_port(conn_.client_port);
 
     log->set_trace_id(trace_to_string(trace_));
-    // TODO use chrono to get time
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
     log->set_req_count(num_transactions_);
-    log->set_role(role_client() ? proto::RequestLog::CLIENT
-                                : proto::RequestLog::SERVER);
+    log->set_role(proto::RequestLog::CLIENT);
 }
+
 ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(console_log, state_ == SocketState::WILL_WRITE,
                  "Socket that was expected to write, read instead");
@@ -79,12 +73,15 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
         SetConnection();
     }
 
+    // New incoming response
     if (state_ == SocketState::WROTE) {
         txn_->End();
 
-        RequestLogWrapper log;
-        FillRequestLog(log);
-        logger.Log(log.get());
+        {
+            RequestLogWrapper log;
+            FillRequestLog(log);
+            logger.Log(log.get());
+        }
     }
 
     state_ = SocketState::READ;
@@ -93,6 +90,9 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
+    LOG_ERROR_IF(console_log, state_ == SocketState::WILL_READ,
+                 "Socket that was expected to read, wrote instead");
+
     set_current_trace(trace_);
 
     auto ret = fun();
@@ -112,8 +112,8 @@ ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
 
         ++num_transactions_;
     }
-    state_ = SocketState::WROTE;
 
+    state_ = SocketState::WROTE;
     return ret;
 }
 

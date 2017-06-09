@@ -1,5 +1,8 @@
 .gitignore
 apps/venv
+apps/first
+apps/second
+apps/third
 build/
 *.swp
 lib/
