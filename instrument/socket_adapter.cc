@@ -16,12 +16,9 @@ SocketAdapter::SocketAdapter(const int fd,
     assert(fd_ == isock_->fd());
 }
 
-void SocketAdapter::Accept() {}
-
 // TODO handle special case when len == 0
 ssize_t SocketAdapter::RecvFrom(void *buf, size_t len, int flags,
                                 struct sockaddr *src_addr, socklen_t *addrlen) {
-    printf("Adapter::RecvFrom\n");
     IoFunction fun = [&, this]() {
         return orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
     };
@@ -29,13 +26,11 @@ ssize_t SocketAdapter::RecvFrom(void *buf, size_t len, int flags,
 }
 
 ssize_t SocketAdapter::Recv(void *buf, size_t len, int flags) {
-    printf("Adapter::Recv\n");
     IoFunction fun = [&, this]() { return orig_.recv(fd(), buf, len, flags); };
     return isock_->Read(buf, len, fun);
 }
 
 ssize_t SocketAdapter::Read(void *buf, size_t count) {
-    printf("Adapter::Read\n");
     IoFunction fun = [&, this]() { return orig_.read(fd(), buf, count); };
     return isock_->Read(buf, count, fun);
 }
