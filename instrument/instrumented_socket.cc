@@ -40,7 +40,9 @@ AbstractInstrumentedSocket::AbstractInstrumentedSocket(int sockfd,
       role_(role),
       state_(state),
       num_transactions_(0),
-      conn_init_(false) {}
+      conn_init_(false) {
+    DLOG("New AbstractInstrumentedSocket %d", sockfd);
+}
 
 void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
                            int (*fn)(int, struct sockaddr*, socklen_t*)) {

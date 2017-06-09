@@ -4,6 +4,8 @@
 
 #include "spdlog/spdlog.h"
 
+#define DEBUG
+
 #if BUILDING_LIBMICROTRACE && HAVE_VISIBILITY
 #define LIBMICROTRACE_EXPORTED __attribute__((__visibility__("default")))
 #else
@@ -22,6 +24,14 @@
             abort();                       \
         }                                  \
     } while (0)
+
+#ifdef DEBUG
+#define DLOG(msg, ...)        \
+    printf(msg, __VA_ARGS__); \
+    printf("\n");
+#else
+#define DLOG(msg, ...)
+#endif
 
 namespace microtrace {
 
