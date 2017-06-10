@@ -20,15 +20,20 @@ class Context {
 
     std::string to_string() const;
 
-    std::string trace() const { return trace_; }
+    const std::string& trace() const { return trace_; }
 
     void set_span(const std::string& span) { span_ = span; }
-    std::string span() const { return span_; }
+    const std::string& span() const { return span_; }
+
+    void set_parent_span(const std::string& parent_span) {
+        parent_span_ = parent_span;
+    }
+    const std::string& parent_span() const { return parent_span_; }
 
     /*
      * Generates and assigns a new span to this context.
      */
-    void new_span();
+    void NewSpan();
 
    private:
     /*
@@ -41,6 +46,12 @@ class Context {
      * to that trace.
      */
     std::string span_;
+
+    /*
+     * The span that *probably* caused the current span. The parent span must
+     * belong to the same trace as the current one.
+     */
+    std::string parent_span_;
 };
 
 bool operator==(const Context& a, const Context& b);

@@ -35,9 +35,11 @@ uuid_t new_uuid() {
 }
 
 Context::Context()
-    : trace_(boost::uuids::to_string(new_uuid())), span_(trace_) {}
+    : trace_(boost::uuids::to_string(new_uuid())),
+      span_(trace_),
+      parent_span_(trace_) {}
 
-void Context::new_span() { span_ = boost::uuids::to_string(new_uuid()); }
+void Context::NewSpan() { span_ = boost::uuids::to_string(new_uuid()); }
 
 std::string Context::to_string() const {
     return "[trace_id: " + trace_ + ", span: " + span_ + "]";

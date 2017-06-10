@@ -17,6 +17,34 @@ TEST(Context, Unique) {
     EXPECT_NE(first, second);
 }
 
+TEST(Context, DefaultConstructor) {
+    Context ctx;
+    EXPECT_EQ(ctx.trace(), ctx.span());
+    EXPECT_EQ(ctx.span(), ctx.parent_span());
+}
+
+TEST(Context, NewSpan) {
+    Context ctx;
+    const std::string orig_trace = ctx.trace();
+    const std::string orig_span = ctx.span();
+
+    ctx.NewSpan();
+    EXPECT_EQ(orig_trace, ctx.trace());
+    EXPECT_NE(orig_span, ctx.span());
+}
+
+TEST(Context, Equality) {
+    Context first;
+    Context second;
+
+    EXPECT_NE(first, second);
+    EXPECT_EQ(first, first);
+
+    second.set_span(first.span());
+    second.set_parent_span(second.parent_span());
+    EXPECT_NE(second, first);
+}
+
 TEST(Context, CurrentTrace) {
     std::thread t1{[]() {
         EXPECT_TRUE(is_context_undefined());
