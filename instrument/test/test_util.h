@@ -35,6 +35,13 @@ class EmptyOriginalFunctions : public OriginalFunctions {
                    const struct sockaddr *dest_addr, socklen_t addrlen) const {
         return -1;
     }
+    ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) const {
+        return -1;
+    }
+    int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
+                 unsigned int flags) const {
+        return -1;
+    }
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const { return -1; }
     int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                        uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
