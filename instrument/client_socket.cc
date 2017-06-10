@@ -82,6 +82,9 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
             RequestLogWrapper log;
             FillRequestLog(log);
             logger.Log(log.get());
+
+            context_.new_span();
+            set_current_context(context_);
         }
     }
 

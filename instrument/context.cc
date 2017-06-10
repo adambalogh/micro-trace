@@ -15,12 +15,6 @@ namespace microtrace {
 static thread_local Context current_context;
 static thread_local bool context_undefined = true;
 
-// TODO random_generator is not thread-safe
-uuid_t new_uuid() {
-    static boost::uuids::random_generator gen;
-    return gen();
-}
-
 const Context& get_current_context() {
     VERIFY(!context_undefined,
            "get_current_context called when context is undefined");
@@ -34,8 +28,16 @@ void set_current_context(const Context context) {
 
 bool is_context_undefined() { return context_undefined; }
 
+// TODO random_generator is not thread-safe
+uuid_t new_uuid() {
+    static boost::uuids::random_generator gen;
+    return gen();
+}
+
 Context::Context()
     : trace_(boost::uuids::to_string(new_uuid())), span_(trace_) {}
+
+void Context::new_span() { span_ = boost::uuids::to_string(new_uuid()); }
 
 std::string Context::to_string() const {
     return "[trace_id: " + trace_ + ", span: " + span_ + "]";

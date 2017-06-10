@@ -25,6 +25,11 @@ class Context {
     void set_span(const std::string& span) { span_ = span; }
     std::string span() const { return span_; }
 
+    /*
+     * Generates and assigns a new span to this context.
+     */
+    void new_span();
+
    private:
     /*
      * A trace uniquely identifies a user request.
