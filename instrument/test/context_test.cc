@@ -45,7 +45,7 @@ TEST(Context, Equality) {
     EXPECT_NE(second, first);
 }
 
-TEST(Context, CurrentTrace) {
+TEST(Context, CurrentContext) {
     std::thread t1{[]() {
         EXPECT_TRUE(is_context_undefined());
 
