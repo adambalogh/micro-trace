@@ -1,7 +1,7 @@
 #include "server_socket.h"
 
 #include "common.h"
-#include "trace.h"
+#include "context.h"
 
 namespace microtrace {
 

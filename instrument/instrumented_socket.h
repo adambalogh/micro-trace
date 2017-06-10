@@ -2,8 +2,8 @@
 
 #include <string>
 
+#include "context.h"
 #include "request_log.pb.h"
-#include "trace.h"
 
 namespace microtrace {
 

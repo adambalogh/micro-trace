@@ -10,10 +10,10 @@
 #include <unordered_map>
 
 #include "client_socket.h"
+#include "context.h"
 #include "orig_functions.h"
 #include "server_socket.h"
 #include "socket_adapter.h"
-#include "trace.h"
 #include "tracing.h"
 
 using namespace microtrace;

@@ -5,11 +5,11 @@ BUILD_DIR = $(PWD)/build
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = $(PWD)
-SRCS = socket_adapter.cc tracing.cc orig_functions.cc trace.cc instrumented_socket.cc \
+SRCS = socket_adapter.cc tracing.cc orig_functions.cc context.cc instrumented_socket.cc \
 	  client_socket.cc server_socket.cc logger.cc common.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
-TESTS = trace_test.cc tracing_test.cc socket_adapter_test.cc
+TESTS = context_test.cc tracing_test.cc socket_adapter_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
