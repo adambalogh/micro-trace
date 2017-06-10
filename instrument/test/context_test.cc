@@ -9,15 +9,15 @@
 using namespace microtrace;
 
 TEST(Context, Unique) {
-    auto first = Context{};
-    auto second = Context{};
+    Context first;
+    Context second;
 
     EXPECT_EQ(first, first);
     EXPECT_EQ(second, second);
     EXPECT_NE(first, second);
 }
 
-TEST(Context, DefaultConstructor) {
+TEST(Context, New) {
     Context ctx;
     EXPECT_EQ(ctx.trace(), ctx.span());
     EXPECT_EQ(ctx.span(), ctx.parent_span());
@@ -27,10 +27,18 @@ TEST(Context, NewSpan) {
     Context ctx;
     const std::string orig_trace = ctx.trace();
     const std::string orig_span = ctx.span();
+    const std::string orig_parent = ctx.parent_span();
+
+    ctx.NewSpan();
+    const std::string second_span = ctx.span();
+    EXPECT_EQ(orig_trace, ctx.trace());
+    EXPECT_NE(orig_span, ctx.span());
+    EXPECT_EQ(orig_parent, ctx.parent_span());
 
     ctx.NewSpan();
     EXPECT_EQ(orig_trace, ctx.trace());
     EXPECT_NE(orig_span, ctx.span());
+    EXPECT_EQ(second_span, ctx.parent_span());
 }
 
 TEST(Context, Equality) {

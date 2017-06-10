@@ -9,6 +9,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <queue>
 #include <thread>
 
 #include "context.h"
@@ -24,10 +25,18 @@ const int MSG_LEN = 10;
 class TraceTest : public ::testing::Test {
    protected:
     /*
-     * A DumpServer is a TCP server that accepts connections and reads
-     * MSG_LEN size chunks from them.
+     * A EchoServer is a TCP server that accepts connections, reads
+     * MSG_LEN size chunks from them, and sends them back
      */
     class DumpServer {
+       private:
+        // Outgoing message
+        struct Msg {
+            Msg(std::string msg) : msg(msg), start(0) {}
+            std::string msg;
+            size_t start;
+        };
+
        public:
         // set socket to non-blocking
         void set_nonblock(int fd) {
@@ -52,6 +61,8 @@ class TraceTest : public ::testing::Test {
             }
             cv_.notify_all();
 
+            std::map<int, std::queue<Msg>> out;
+
             char buf[MSG_LEN];
             while (true) {
                 {
@@ -69,7 +80,23 @@ class TraceTest : public ::testing::Test {
                 }
 
                 for (const int conn : connections) {
-                    read(conn, &buf, MSG_LEN);
+                    int ret = read(conn, &buf, MSG_LEN);
+                    if (ret > 0) {
+                        std::string msg(&buf[0], ret);
+                        out[conn].push(Msg{msg});
+                    }
+                }
+
+                for (auto &it : out) {
+                    if (it.second.empty()) continue;
+
+                    Msg &m = it.second.front();
+                    int ret = write(it.first, m.msg.c_str() + m.start,
+                                    m.msg.size() - m.start);
+                    if (ret > 0) m.start += ret;
+                    if (m.start == m.msg.size()) {
+                        it.second.pop();
+                    }
                 }
             }
 
@@ -228,7 +255,8 @@ TEST_F(TraceTest, CurrentContext) {
 
 /*
  * In this test, we make sure that whenever we successfully read from or
- * write to an instrumented socket, it's context is set as the current context
+ * write to an instrumented socket, it's context is set as the current
+ * context
  */
 TEST_F(TraceTest, TraceSwitch) {
     EXPECT_TRUE(is_context_undefined());
@@ -436,6 +464,13 @@ TEST_F(TraceTest, PropagateTrace) {
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
         EXPECT_EQ(first_context, get_current_context());
+
+        // Read dump client's response
+        ret = read(dump_client, &buf, MSG_LEN);
+        ASSERT_EQ(MSG_LEN, ret);
+        EXPECT_EQ(second_context.trace(), get_current_context().trace());
+        EXPECT_NE(second_context.span(), get_current_context().span());
+        EXPECT_EQ(second_context.span(), get_current_context().parent_span());
 
         close(server);
         close(first_client);
