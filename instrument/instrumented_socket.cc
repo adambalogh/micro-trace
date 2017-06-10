@@ -32,11 +32,11 @@ static unsigned short get_port(const struct sockaddr* sa) {
 }
 
 AbstractInstrumentedSocket::AbstractInstrumentedSocket(int sockfd,
-                                                       const trace_id_t trace,
+                                                       const Context context,
                                                        const SocketRole role,
                                                        const SocketState state)
     : sockfd_(sockfd),
-      trace_(trace),
+      context_(context),
       role_(role),
       state_(state),
       num_transactions_(0),

@@ -87,7 +87,7 @@ class InstrumentedSocket {
 
 class AbstractInstrumentedSocket : public InstrumentedSocket {
    public:
-    AbstractInstrumentedSocket(int sockfd, const trace_id_t trace,
+    AbstractInstrumentedSocket(int sockfd, const Context context,
                                const SocketRole role, const SocketState state);
 
     int fd() const override { return sockfd_; }
@@ -110,7 +110,7 @@ class AbstractInstrumentedSocket : public InstrumentedSocket {
 
     const int sockfd_;
 
-    trace_id_t trace_;
+    Context context_;
 
     /*
      * Indicates whether this socket is being used as a client, or as a

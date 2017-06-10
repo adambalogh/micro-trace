@@ -14,22 +14,23 @@ message Connection {
 
 message RequestLog {
     required string trace_id = 1;
+    required string span_id = 2;
 
     // The number of seconds since epoch this request was sent/received
-    required int64 time = 2;
+    required int64 time = 3;
 
-    required double duration = 3;
+    required double duration = 4;
 
-    required Connection conn = 4;
+    required Connection conn = 5;
 
     // The number of transactions that were sent through conn,
     // including this one
-    required uint32 transaction_count = 5;
+    required uint32 transaction_count = 6;
 
     // Indicates the role of this machine in this connection
     enum Role {
         CLIENT = 0;
         SERVER = 1;
     }
-    required Role role = 6;
+    required Role role = 7;
 }

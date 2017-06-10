@@ -30,8 +30,8 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocket::ClientSocket(int sockfd, const trace_id_t trace)
-    : AbstractInstrumentedSocket(sockfd, trace, SocketRole::CLIENT,
+ClientSocket::ClientSocket(int sockfd, const Context context)
+    : AbstractInstrumentedSocket(sockfd, context, SocketRole::CLIENT,
                                  SocketState::WILL_WRITE),
       txn_(nullptr) {}
 
@@ -45,7 +45,8 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     conn->set_allocated_client_ip(&conn_.client_ip);
     conn->set_client_port(conn_.client_port);
 
-    log->set_trace_id(trace_to_string(trace_));
+    log->set_trace_id(context_.trace());
+    log->set_span_id(context_.span());
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
     log->set_transaction_count(num_transactions_);
@@ -56,7 +57,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
                  "ClientSocket that was expected to write, read instead");
 
-    set_current_trace(trace_);
+    set_current_context(context_);
 
     auto ret = fun();
     if (ret == 0) {
@@ -90,7 +91,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
-    set_current_trace(trace_);
+    set_current_context(context_);
 
     auto ret = fun();
     if (ret == -1 || ret == 0) {

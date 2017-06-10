@@ -32,12 +32,12 @@ namespace microtrace {
 
 template <class CbType>
 struct CallbackWrap {
-    CallbackWrap(void* req_ptr, uv_getaddrinfo_cb orig_cb, trace_id_t trace)
-        : req_ptr(req_ptr), orig_cb(orig_cb), trace(trace) {}
+    CallbackWrap(void* req_ptr, uv_getaddrinfo_cb orig_cb, Context context)
+        : req_ptr(req_ptr), orig_cb(orig_cb), context(context) {}
 
     void* const req_ptr;
     const CbType orig_cb;
-    const trace_id_t trace;
+    const Context context;
 };
 
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
@@ -101,8 +101,6 @@ static void HandleAccept(const int sockfd) {
 }
 }  // namespace microtrace
 
-namespace mt = microtrace;
-
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
     int ret = orig().accept(sockfd, addr, addrlen);
     HandleAccept(ret);
@@ -137,9 +135,9 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (!is_trace_undefined()) {
+    if (!is_context_undefined()) {
         auto client_socket =
-            std::make_unique<ClientSocket>(sockfd, get_current_trace());
+            std::make_unique<ClientSocket>(sockfd, get_current_context());
         auto socket = std::make_unique<SocketAdapter>(
             sockfd, std::move(client_socket), orig());
         SaveSocket(std::move(socket));
@@ -153,7 +151,7 @@ void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
                         struct addrinfo* res) {
     const GetAddrinfoCbWrap& cb_wrap = GetGetAddrinfoCb(req);
 
-    set_current_trace(cb_wrap.trace);
+    set_current_context(cb_wrap.context);
 
     uv_getaddrinfo_cb orig_cb = cb_wrap.orig_cb;
     DeleteGetAddrinfoCb(cb_wrap.req_ptr);
@@ -164,7 +162,7 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char* node,
                    const char* service, const struct addrinfo* hints) {
     auto cb_wrap = std::make_unique<GetAddrinfoCbWrap>(req, getaddrinfo_cb,
-                                                       get_current_trace());
+                                                       get_current_context());
     SaveGetAddrinfoCb(std::move(cb_wrap));
     return orig().uv_getaddrinfo(loop, req, &unwrap_getaddrinfo, node, service,
                                  hints);
