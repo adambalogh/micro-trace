@@ -31,7 +31,8 @@ class Context {
     const std::string& parent_span() const { return parent_span_; }
 
     /*
-     * Generates and assigns a new span to this context.
+     * Generates and assigns a new span to this context, and saves the current
+     * span as the parent span.
      */
     void NewSpan();
 
