@@ -154,14 +154,14 @@ class TraceTest : public ::testing::Test {
 };
 
 /*
- * This test verifies that the current_trace is set up and cleared
+ * This test verifies that the current_context is set up and cleared
  * correctly.
  *
- * First, we make sure that a trace is only set after the application has
+ * First, we make sure that a context is only set after the application has
  * read from a server socket. Then, after the server socket is closed, the
  * current_socket should be cleared.
  */
-TEST_F(TraceTest, CurrentTrace) {
+TEST_F(TraceTest, CurrentContext) {
     EXPECT_TRUE(is_context_undefined());
 
     std::thread server_thread{[this]() {
@@ -192,16 +192,16 @@ TEST_F(TraceTest, CurrentTrace) {
         ret = read(client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
 
-        Context trace = get_current_context();
+        Context context = get_current_context();
         EXPECT_FALSE(is_context_undefined());
 
-        // server is not instrumented so it shouldn't change the trace
+        // server is not instrumented so it shouldn't change the context
         ASSERT_EQ(0, close(server));
-        EXPECT_EQ(trace, get_current_context());
+        EXPECT_EQ(context, get_current_context());
 
-        // we don't clear the current trace if a related socket is closed
+        // we don't clear the current context if a related socket is closed
         ASSERT_EQ(0, close(client));
-        EXPECT_EQ(trace, get_current_context());
+        EXPECT_EQ(context, get_current_context());
     }};
 
     // Wait until server is set up
@@ -228,8 +228,7 @@ TEST_F(TraceTest, CurrentTrace) {
 
 /*
  * In this test, we make sure that whenever we successfully read from or
- * write
- * to an instrumented socket, it's trace is set as the current trace
+ * write to an instrumented socket, it's context is set as the current context
  */
 TEST_F(TraceTest, TraceSwitch) {
     EXPECT_TRUE(is_context_undefined());
@@ -361,9 +360,8 @@ TEST_F(TraceTest, TraceSwitch) {
 }
 
 /*
- * In this test we make sure that the current_trace is attached to sockets
- * that
- * are opened in the application.
+ * In this test we make sure that the current_context is attached to sockets
+ * that are opened in the application.
  *
  * There are 3 threads (servers) communicating with each other:
  *
@@ -421,7 +419,7 @@ TEST_F(TraceTest, PropagateTrace) {
         }
 
         // Open connection to dump server
-        // Note: we are in second_client's trace now
+        // Note: we are in second_client's context now
         const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
 
         // Read first
