@@ -11,7 +11,7 @@
 #include <mutex>
 #include <thread>
 
-#include "trace.h"
+#include "context.h"
 
 using namespace microtrace;
 
@@ -162,7 +162,7 @@ class TraceTest : public ::testing::Test {
  * current_socket should be cleared.
  */
 TEST_F(TraceTest, CurrentTrace) {
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     std::thread server_thread{[this]() {
         int ret;
@@ -173,7 +173,7 @@ TEST_F(TraceTest, CurrentTrace) {
         memset(&cli_addr, 0, sizeof(cli_addr));
 
         int server = CreateServerSocket(SERVER_PORT);
-        EXPECT_TRUE(is_trace_undefined());
+        EXPECT_TRUE(is_context_undefined());
 
         ret = listen(server, 5);
         ASSERT_EQ(0, ret);
@@ -192,16 +192,16 @@ TEST_F(TraceTest, CurrentTrace) {
         ret = read(client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
 
-        trace_id_t trace = get_current_trace();
-        EXPECT_FALSE(is_trace_undefined());
+        Context trace = get_current_context();
+        EXPECT_FALSE(is_context_undefined());
 
         // server is not instrumented so it shouldn't change the trace
         ASSERT_EQ(0, close(server));
-        EXPECT_EQ(trace, get_current_trace());
+        EXPECT_EQ(trace, get_current_context());
 
         // we don't clear the current trace if a related socket is closed
         ASSERT_EQ(0, close(client));
-        EXPECT_EQ(trace, get_current_trace());
+        EXPECT_EQ(trace, get_current_context());
     }};
 
     // Wait until server is set up
@@ -218,10 +218,10 @@ TEST_F(TraceTest, CurrentTrace) {
     // tracked
     ret = write(client, MSG, MSG_LEN);
     EXPECT_EQ(ret, MSG_LEN);
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     close(client);
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     server_thread.join();
 }
@@ -232,7 +232,7 @@ TEST_F(TraceTest, CurrentTrace) {
  * to an instrumented socket, it's trace is set as the current trace
  */
 TEST_F(TraceTest, TraceSwitch) {
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     std::thread server_thread{[this]() {
         int ret;
@@ -266,47 +266,47 @@ TEST_F(TraceTest, TraceSwitch) {
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_FALSE(is_trace_undefined());
-        const trace_id_t first_trace = get_current_trace();
+        EXPECT_FALSE(is_context_undefined());
+        const Context first_context = get_current_context();
 
         // Read second
         ret = read(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_FALSE(is_trace_undefined());
-        const trace_id_t second_trace = get_current_trace();
-        EXPECT_NE(first_trace, second_trace);
+        EXPECT_FALSE(is_context_undefined());
+        const Context second_context = get_current_context();
+        EXPECT_NE(first_context, second_context);
 
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_context, get_current_context());
 
         // Write first
         ret = write(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_context, get_current_context());
 
         // Write second
         ret = write(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(second_trace, get_current_trace());
+        EXPECT_EQ(second_context, get_current_context());
 
         // Write second
         ret = write(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(second_trace, get_current_trace());
+        EXPECT_EQ(second_context, get_current_context());
 
         // Unsuccessful read first (client closed conn)
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(0, ret);
-        EXPECT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_context, get_current_context());
 
         // TODO figure out how to simulate write error
         // Unsuccessful write second
         // close(second_client);
         // ret = write(second_client, &buf, MSG_LEN);
         // ASSERT_EQ(-1, ret);
-        // ASSERT_EQ(second_trace, get_current_trace());
+        // ASSERT_EQ(second_context, get_current_context());
 
         ASSERT_EQ(0, close(server));
         ASSERT_EQ(0, close(first_client));
@@ -349,7 +349,7 @@ TEST_F(TraceTest, TraceSwitch) {
     ret = read(second_client, &buf, MSG_LEN);
     ASSERT_EQ(MSG_LEN, ret);
 
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     // Unsuccessful read first
     close(first_client);
@@ -370,7 +370,7 @@ TEST_F(TraceTest, TraceSwitch) {
  * local_thread <--> server_thread <--> dump_server_thread
  */
 TEST_F(TraceTest, PropagateTrace) {
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     std::thread server_thread{[this]() {
         int ret;
@@ -404,12 +404,12 @@ TEST_F(TraceTest, PropagateTrace) {
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        const trace_id_t first_trace = get_current_trace();
+        const Context first_context = get_current_context();
 
         // Read second
         ret = read(second_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        const trace_id_t second_trace = get_current_trace();
+        const Context second_context = get_current_context();
 
         // Set up dump server
         DumpServer dump_server;
@@ -427,17 +427,17 @@ TEST_F(TraceTest, PropagateTrace) {
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_context, get_current_context());
 
         // Write to dump client
         ret = write(dump_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(second_trace, get_current_trace());
+        EXPECT_EQ(second_context, get_current_context());
 
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
-        EXPECT_EQ(first_trace, get_current_trace());
+        EXPECT_EQ(first_context, get_current_context());
 
         close(server);
         close(first_client);
@@ -474,7 +474,7 @@ TEST_F(TraceTest, PropagateTrace) {
     ret = write(first_client, MSG, MSG_LEN);
     ASSERT_EQ(MSG_LEN, ret);
 
-    EXPECT_TRUE(is_trace_undefined());
+    EXPECT_TRUE(is_context_undefined());
 
     close(first_client);
     close(second_client);
