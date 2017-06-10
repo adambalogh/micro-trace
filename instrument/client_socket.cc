@@ -45,8 +45,11 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     conn->set_allocated_client_ip(&conn_.client_ip);
     conn->set_client_port(conn_.client_port);
 
-    log->set_trace_id(context_.trace());
-    log->set_span_id(context_.span());
+    proto::Context* ctx = log->mutable_context();
+    ctx->set_trace_id(context_.trace());
+    ctx->set_span_id(context_.span());
+    ctx->set_parent_span(context_.parent_span());
+
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
     log->set_transaction_count(num_transactions_);
