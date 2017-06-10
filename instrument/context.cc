@@ -22,7 +22,7 @@ uuid_t new_uuid() {
 }
 
 const Context& get_current_context() {
-    VERIFY(context_undefined,
+    VERIFY(!context_undefined,
            "get_current_context called when context is undefined");
     return current_context;
 }
@@ -39,5 +39,13 @@ Context::Context()
 
 std::string Context::to_string() const {
     return "[trace_id: " + trace_ + ", span: " + span_ + "]";
+}
+
+bool operator==(const Context& a, const Context& b) {
+    return a.trace() == b.trace() && a.span() == b.span();
+}
+
+bool operator!=(const Context& a, const Context& b) {
+    return !operator==(a, b);
 }
 }

@@ -38,6 +38,9 @@ class Context {
     std::string span_;
 };
 
+bool operator==(const Context& a, const Context& b);
+bool operator!=(const Context& a, const Context& b);
+
 /*
  * Returns the calling thread's currently associated context.
  * Must only be called if is_trace_undefined() is false.
