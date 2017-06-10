@@ -16,7 +16,7 @@ INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
-CXXFLAGS = -Wall -std=c++17 -MP -MD
+CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals
 LIBFLAGS = -fPIC
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive

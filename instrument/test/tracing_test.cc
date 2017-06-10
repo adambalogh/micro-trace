@@ -5,21 +5,20 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 
 #include "trace.h"
 
-// TODO shouldn't do this
-#define UNDEFINED_TRACE -2
-
 using namespace microtrace;
 
-const int SERVER_PORT = 8543;
-const int DUMP_SERVER_PORT = 7353;
+int SERVER_PORT = 8543;
+const int DUMP_SERVER_PORT = 7354;
 
-const char *MSG = "aaaaaaaaaa";
+const char *const MSG = "aaaaaaaaaa";
 const int MSG_LEN = 10;
 
 class TraceTest : public ::testing::Test {
@@ -75,7 +74,8 @@ class TraceTest : public ::testing::Test {
             }
 
             // Shutdown
-            close(acceptor);
+            ret = close(acceptor);
+            assert(ret == 0);
             for (const int conn : connections) {
                 close(conn);
             }
@@ -99,14 +99,17 @@ class TraceTest : public ::testing::Test {
     };
 
    protected:
-    virtual void SetUp() { listening = false; }
+    virtual void SetUp() {
+        ++SERVER_PORT;
+        listening = false;
+    }
 
     /*
      * Returns a socket that's connected to localhost:port
      */
     static int CreateClientSocket(int port) {
         struct sockaddr_in serv_addr;
-        serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15");
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = port;
 
@@ -128,7 +131,7 @@ class TraceTest : public ::testing::Test {
         memset(&serv_addr, 0, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_port = port;
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15");
 
         int server = socket(AF_INET, SOCK_STREAM, 0);
         assert(server != -1);

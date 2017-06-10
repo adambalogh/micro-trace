@@ -4,8 +4,6 @@
 
 #include "spdlog/spdlog.h"
 
-#define DEBUG
-
 #if BUILDING_LIBMICROTRACE && HAVE_VISIBILITY
 #define LIBMICROTRACE_EXPORTED __attribute__((__visibility__("default")))
 #else

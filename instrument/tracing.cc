@@ -90,7 +90,6 @@ static void DeleteGetAddrinfoCb(void* req_ptr) {
 /* Accept */
 
 static void HandleAccept(const int sockfd) {
-    printf("accepted %d\n", sockfd);
     if (sockfd == -1) {
         return;
     }
@@ -130,7 +129,6 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
 // tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
     int sockfd = orig().socket(domain, type, protocol);
-    printf("new socket: %d\n", sockfd);
     if (sockfd == -1) {
         return sockfd;
     }
@@ -215,7 +213,6 @@ int close(int fd) {
     if (sock == NULL) {
         return orig().close(fd);
     }
-    printf("close %d\n", fd);
     int ret = sock->Close();
     if (ret == 0) {
         DeleteSocket(fd);
