@@ -57,8 +57,7 @@ static auto& getaddrinfo_cbs() {
 
 static void SaveSocket(std::unique_ptr<SocketAdapter> entry) {
     std::unique_lock<std::mutex> l(socket_map_mu);
-    LOG_ERROR_IF(console_log, socket_map().count(entry->fd()),
-                 "Socket created twice");
+    LOG_ERROR_IF(socket_map().count(entry->fd()), "Socket created twice");
     socket_map()[entry->fd()] = std::move(entry);
 }
 

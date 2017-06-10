@@ -12,17 +12,17 @@
 #define LIBMICROTRACE_EXPORTED
 #endif
 
-#define LOG_ERROR_IF(logger, condition, ...)         \
-    do {                                             \
-        if ((condition)) logger->error(__VA_ARGS__); \
+#define LOG_ERROR_IF(condition, ...)                      \
+    do {                                                  \
+        if ((condition)) console_log->error(__VA_ARGS__); \
     } while (0)
 
-#define VERIFY(logger, condition, ...)     \
-    do {                                   \
-        if (!(condition)) {                \
-            logger->critical(__VA_ARGS__); \
-            abort();                       \
-        }                                  \
+#define VERIFY(condition, ...)                  \
+    do {                                        \
+        if (!(condition)) {                     \
+            console_log->critical(__VA_ARGS__); \
+            abort();                            \
+        }                                       \
     } while (0)
 
 #ifdef DEBUG

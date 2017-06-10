@@ -10,7 +10,7 @@ ServerSocket::ServerSocket(int sockfd)
                                  SocketState::WILL_READ) {}
 
 ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
-    LOG_ERROR_IF(console_log, state_ == SocketState::WILL_WRITE,
+    LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
                  "ServerSocket that was expected to write, read instead");
 
     set_current_trace(trace_);
@@ -24,7 +24,7 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
         return ret;
     }
 
-    VERIFY(console_log, ret > 0, "read invalid return value");
+    VERIFY(ret > 0, "read invalid return value");
 
     if (!conn_init_) {
         SetConnection();
@@ -49,7 +49,7 @@ ssize_t ServerSocket::Write(const struct iovec* iov, int iovcnt,
         return ret;
     }
 
-    VERIFY(console_log, ret > 0, "write invalid return value");
+    VERIFY(ret > 0, "write invalid return value");
 
     if (!conn_init_) {
         SetConnection();

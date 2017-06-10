@@ -56,13 +56,13 @@ void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
     ret = fn(fd, sockaddr_ptr, &addr_len);
     // At this point, both getsockname and getpeername should
     // be successful
-    VERIFY(console_log, ret == 0, "get(sock|peer)name was unsuccessful");
+    VERIFY(ret == 0, "get(sock|peer)name was unsuccessful");
 
     *port = get_port(sockaddr_ptr);
     dst = inet_ntop(tmp_sockaddr.ss_family, sockaddr_ptr, string_arr(*ip),
                     ip->size());
     // inet_ntop should also be successful here
-    VERIFY(console_log, dst == string_arr(*ip), "inet_ntop was unsuccessful");
+    VERIFY(dst == string_arr(*ip), "inet_ntop was unsuccessful");
 
     // inet_ntop puts a null terminated string into ip
     ip->resize(strlen(string_arr(*ip)));
