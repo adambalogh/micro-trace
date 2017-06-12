@@ -1,10 +1,8 @@
-
 apt-get install software-properties-common python-software-properties
-
-add-apt-repository ppa:ubuntu-toolchain-r/test -y &&
-    apt-get update && 
-    apt-get install automake make wget curl tar unzip autoconf libtool curl make -y && 
-    apt-get install g++-5 -y
+add-apt-repository ppa:ubuntu-toolchain-r/test -y
+apt-get update
+apt-get install g++-5 -y
+apt-get install automake make wget curl tar unzip autoconf libtool curl make -y
 
 mkdir /usr/local/download
 cd /usr/local/download
