@@ -3,22 +3,22 @@ sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 
 apt-get update
 apt-get install gcc-5 g++-5 -y
-apt-get install automake make wget curl tar -y
+apt-get install automake make wget curl tar unzip autoconf libtool curl make -y
 
 mkdir /usr/local/download
 cd /usr/local/download
 
-wget https://github.com/google/protobuf/archive/v3.3.0.tar.gz -O protobuf.zip
+wget https://github.com/google/protobuf/archive/v3.3.0.tar.gz -O protobuf.tar.gz
 
 mkdir protobuf
-tar -xzf protobuf.zip -C ./protobuf --strip-components=1
+tar -xzf protobuf.tar.gz -C ./protobuf --strip-components=1
 
 cd ./protobuf
 
-./autogen.sh && \
-    ./configure && \
-    make -j 3 && \
-    make install
+./autogen.sh
+./configure
+make -j 3
+make install
 
 cd /usr/local/download
 
@@ -44,3 +44,8 @@ mkdir libuv
 tar -xzf libuv.tar.gz -C libuv --strip-components=1
 cd libuv/include
 cp * /usr/local/include/.
+
+cd /usr/local/download
+rm protobuf.zip
+rm spdlog.tar.gz
+rm boost.tar.gz
