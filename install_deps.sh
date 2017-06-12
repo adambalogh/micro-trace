@@ -1,6 +1,6 @@
 apt-get update
 
-apt-get install software-properties-common
+apt-get install software-properties-common python-software-properties
 add-apt-repository ppa:ubuntu-toolchain-r/test -y
 apt-get update
 
