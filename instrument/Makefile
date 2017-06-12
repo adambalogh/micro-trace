@@ -49,7 +49,7 @@ $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
 -include $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.d))
 
 # Library files build
-$(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_GEN)
+$(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
 
 # Test build
