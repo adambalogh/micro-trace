@@ -1,5 +1,5 @@
 apt-get install software-properties-common python-software-properties
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+add-apt-repository ppa:ubuntu-toolchain-r/test -y
 
 apt-get update
 apt-get install gcc-5 g++-5 -y
