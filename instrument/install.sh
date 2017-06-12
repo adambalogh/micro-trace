@@ -8,6 +8,20 @@ apt-get install automake make wget curl tar -y
 mkdir /usr/local/download
 cd /usr/local/download
 
+wget https://github.com/google/protobuf/archive/v3.3.0.tar.gz -O protobuf.zip
+
+mkdir protobuf
+tar -xzf protobuf.zip -C ./protobuf --strip-components=1
+
+cd ./protobuf
+
+./autogen.sh && \
+    ./configure && \
+    make -j 3 && \
+    make install
+
+cd /usr/local/download
+
 wget https://github.com/gabime/spdlog/archive/v0.13.0.tar.gz -O spdlog.tar.gz
 mkdir spdlog
 tar -xzf spdlog.tar.gz -C spdlog --strip-components=1
