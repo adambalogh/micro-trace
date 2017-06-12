@@ -46,6 +46,7 @@ cd libuv/include
 cp * /usr/local/include/.
 
 cd /usr/local/download
-rm protobuf.zip
+rm protobuf.tar.gz
 rm spdlog.tar.gz
 rm boost.tar.gz
+
