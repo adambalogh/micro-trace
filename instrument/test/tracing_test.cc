@@ -38,14 +38,6 @@ class TraceTest : public ::testing::Test {
         };
 
        public:
-        // set socket to non-blocking
-        void set_nonblock(int fd) {
-            int flags = fcntl(fd, F_GETFL, 0);
-            assert(flags >= 0);
-            int ret = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-            assert(ret >= 0);
-        }
-
         void Run() {
             int ret;
             std::vector<int> connections;

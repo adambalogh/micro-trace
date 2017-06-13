@@ -2,12 +2,16 @@ PWD = $(shell pwd)
 
 LIB_NAME = trace.so
 BUILD_DIR = $(PWD)/build
+BENCH_DIR = $(addprefix $(BUILD_DIR)/, benchmark)
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = $(PWD)
 SRCS = socket_adapter.cc tracing.cc orig_functions.cc context.cc instrumented_socket.cc \
 	  client_socket.cc server_socket.cc logger.cc common.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
+
+BENCHMARKS = tracing_benchmark.cc
+BENCHMARK_EXEC = $(addprefix $(BENCH_DIR)/,$(BENCHMARKS:.cc=))
 
 TESTS = context_test.cc tracing_test.cc socket_adapter_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
@@ -56,6 +60,10 @@ $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 $(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
 	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(OBJ) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
+# Benchmark build
+$(BENCH_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
+	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $< -o $@ -lbenchmark -lpthread
+
 clean:
 	@rm -f $(BUILD_DIR)/*.o
 	@rm -f $(BUILD_DIR)/*.d
@@ -65,6 +73,9 @@ clean:
 
 test: $(TEST_EXEC)
 	@echo 'tests compiled'
+
+benchmark: $(BENCHMARK_EXEC)
+	@echo 'benchmarks compiled'
 
 run-test: test
 	./build/socket_wrapper_test
