@@ -18,8 +18,8 @@ tar -xzf protobuf.tar.gz -C ./protobuf --strip-components=1
 cd ./protobuf
 
 ./autogen.sh
-./configure
-make -j 3
+./configure CXX="g++"
+mak
 make install
 
 cd /usr/local/download
