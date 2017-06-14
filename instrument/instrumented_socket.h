@@ -87,8 +87,8 @@ class InstrumentedSocket {
 
 class AbstractInstrumentedSocket : public InstrumentedSocket {
    public:
-    AbstractInstrumentedSocket(int sockfd, const Context context,
-                               const SocketRole role, const SocketState state);
+    AbstractInstrumentedSocket(int sockfd, const SocketRole role,
+                               const SocketState state);
 
     int fd() const override { return sockfd_; }
     SocketRole role() const override { return role_; }
@@ -108,9 +108,11 @@ class AbstractInstrumentedSocket : public InstrumentedSocket {
     bool role_server() const { return role_ == SocketRole::SERVER; }
     bool role_client() const { return role_ == SocketRole::CLIENT; }
 
+    bool has_context() const { return static_cast<bool>(context_); }
+
     const int sockfd_;
 
-    Context context_;
+    std::unique_ptr<Context> context_;
 
     /*
      * Indicates whether this socket is being used as a client, or as a

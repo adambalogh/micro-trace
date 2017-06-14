@@ -135,13 +135,11 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    if (!is_context_undefined()) {
-        auto client_socket =
-            std::make_unique<ClientSocket>(sockfd, get_current_context());
-        auto socket = std::make_unique<SocketAdapter>(
-            sockfd, std::move(client_socket), orig());
-        SaveSocket(std::move(socket));
-    }
+    auto client_socket = std::make_unique<ClientSocket>(sockfd);
+    auto socket = std::make_unique<SocketAdapter>(
+        sockfd, std::move(client_socket), orig());
+    SaveSocket(std::move(socket));
+
     return sockfd;
 }
 

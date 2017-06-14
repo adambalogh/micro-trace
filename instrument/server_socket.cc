@@ -6,14 +6,14 @@
 namespace microtrace {
 
 ServerSocket::ServerSocket(int sockfd)
-    : AbstractInstrumentedSocket(sockfd, Context{}, SocketRole::SERVER,
+    : AbstractInstrumentedSocket(sockfd, SocketRole::SERVER,
                                  SocketState::WILL_READ) {}
 
 ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
                  "ServerSocket that was expected to write, read instead");
 
-    set_current_context(context_);
+    set_current_context(*context_);
 
     auto ret = fun();
     if (ret == 0) {
@@ -32,8 +32,8 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
     if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
         ++num_transactions_;
-        context_ = Context{};
-        set_current_context(context_);
+        context_.reset(new Context);
+        set_current_context(*context_);
     }
 
     state_ = SocketState::READ;
@@ -42,7 +42,7 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ServerSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
-    set_current_context(context_);
+    set_current_context(*context_);
 
     auto ret = fun();
     if (ret == -1 || ret == 0) {

@@ -10,7 +10,7 @@
 namespace microtrace {
 
 // TODO make this an injectable member variable
-StdoutLogger logger;
+NullLogger logger;
 
 /*
  * Wraps a proto::RequestLog. On destruction, it releases the fields that have
@@ -30,8 +30,8 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocket::ClientSocket(int sockfd, const Context context)
-    : AbstractInstrumentedSocket(sockfd, context, SocketRole::CLIENT,
+ClientSocket::ClientSocket(int sockfd)
+    : AbstractInstrumentedSocket(sockfd, SocketRole::CLIENT,
                                  SocketState::WILL_WRITE),
       txn_(nullptr) {}
 
@@ -46,9 +46,9 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     conn->set_client_port(conn_.client_port);
 
     proto::Context* ctx = log->mutable_context();
-    ctx->set_trace_id(context_.trace());
-    ctx->set_span_id(context_.span());
-    ctx->set_parent_span(context_.parent_span());
+    ctx->set_trace_id(context_->trace());
+    ctx->set_span_id(context_->span());
+    ctx->set_parent_span(context_->parent_span());
 
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
@@ -60,7 +60,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
                  "ClientSocket that was expected to write, read instead");
 
-    set_current_context(context_);
+    set_current_context(*context_);
 
     auto ret = fun();
     if (ret == 0) {
@@ -86,8 +86,8 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
             FillRequestLog(log);
             logger.Log(log.get());
         }
-        context_.NewSpan();
-        set_current_context(context_);
+        context_->NewSpan();
+        set_current_context(*context_);
     }
 
     state_ = SocketState::READ;
@@ -96,7 +96,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
-    set_current_context(context_);
+    set_current_context(*context_);
 
     auto ret = fun();
     if (ret == -1 || ret == 0) {

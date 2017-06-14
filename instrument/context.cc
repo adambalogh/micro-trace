@@ -21,7 +21,7 @@ const Context& get_current_context() {
     return current_context;
 }
 
-void set_current_context(const Context context) {
+void set_current_context(const Context& context) {
     context_undefined = false;
     current_context = context;
 }

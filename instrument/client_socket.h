@@ -40,7 +40,7 @@ class ClientSocket : public AbstractInstrumentedSocket {
     };
 
    public:
-    ClientSocket(int sockfd, const Context context);
+    ClientSocket(int sockfd);
 
     ssize_t Read(const void* buf, size_t len, IoFunction fun) override;
     ssize_t Write(const struct iovec* iov, int iovcnt, IoFunction fun) override;
