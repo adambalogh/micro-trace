@@ -45,7 +45,7 @@ typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 std::mutex socket_map_mu;
 
 static auto& socket_map() {
-    static std::unordered_map<int, std::unique_ptr<SocketAdapter>> socket_map;
+    static std::unordered_map<int, std::unique_ptr<SocketInterface>> socket_map;
     return socket_map;
 }
 
@@ -55,13 +55,13 @@ static auto& getaddrinfo_cbs() {
     return getaddrinfo_cbs;
 }
 
-static void SaveSocket(std::unique_ptr<SocketAdapter> entry) {
+static void SaveSocket(std::unique_ptr<SocketInterface> entry) {
     std::unique_lock<std::mutex> l(socket_map_mu);
     LOG_ERROR_IF(socket_map().count(entry->fd()), "Socket created twice");
     socket_map()[entry->fd()] = std::move(entry);
 }
 
-static SocketAdapter* GetSocket(const int sockfd) {
+static SocketInterface* GetSocket(const int sockfd) {
     std::unique_lock<std::mutex> l(socket_map_mu);
     auto it = socket_map().find(sockfd);
     if (it == socket_map().end()) {
@@ -212,7 +212,7 @@ ssize_t sendmsg(int sockfd, const struct msghdr* msg, int flags) {
 }
 
 int close(int fd) {
-    SocketAdapter* sock = GetSocket(fd);
+    SocketInterface* sock = GetSocket(fd);
     if (sock == NULL) {
         return orig().close(fd);
     }
