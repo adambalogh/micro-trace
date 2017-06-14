@@ -567,7 +567,6 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         const Context second_context = get_current_context();
 
         // Read from dump server -- this should set first_context
-        // Also, dump server transaction is finished
         ret = read(dump_client, &buf, MSG_LEN);
         ASSERT_EQ(MSG_LEN, ret);
         ASSERT_EQ(first_context, get_current_context());
@@ -587,6 +586,8 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         dump_server.shutdown();
         dump_server_thread.join();
 
+        ASSERT_EQ(0, close(first_client));
+        ASSERT_EQ(0, close(second_client));
         ASSERT_EQ(0, close(dump_client));
         ASSERT_EQ(0, close(server));
     }};
