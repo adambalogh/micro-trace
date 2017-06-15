@@ -35,6 +35,7 @@ AbstractInstrumentedSocket::AbstractInstrumentedSocket(int sockfd,
                                                        const SocketRole role,
                                                        const SocketState state)
     : sockfd_(sockfd),
+      context_(nullptr),
       role_(role),
       state_(state),
       num_transactions_(0),

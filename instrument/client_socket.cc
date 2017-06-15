@@ -60,7 +60,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
                  "ClientSocket that was expected to write, read instead");
 
-    set_current_context(*context_);
+    set_current_context(context());
 
     auto ret = fun();
     if (ret == 0) {
@@ -87,7 +87,7 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
             logger.Log(log.get());
         }
         context_->NewSpan();
-        set_current_context(*context_);
+        set_current_context(context());
     }
 
     state_ = SocketState::READ;
@@ -96,8 +96,6 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
-    set_current_context(*context_);
-
     auto ret = fun();
     if (ret == -1 || ret == 0) {
         return ret;
@@ -109,11 +107,19 @@ ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
         SetConnection();
     }
 
+    // New transaction
     if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+        context_.reset(new Context);
+        set_current_context(*context_);
+
         txn_.reset(new Transaction);
         txn_->Start();
 
         ++num_transactions_;
+    }
+    // Continue sending request
+    else if (state_ == SocketState::WROTE) {
+        set_current_context(context());
     }
 
     state_ = SocketState::WROTE;

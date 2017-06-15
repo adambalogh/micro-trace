@@ -117,6 +117,9 @@ class AbstractInstrumentedSocket : public InstrumentedSocket {
 
     const int sockfd_;
 
+    /*
+     * Stores the current context. Initially empty.
+     */
     std::unique_ptr<Context> context_;
 
     /*

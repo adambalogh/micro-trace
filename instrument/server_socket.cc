@@ -13,8 +13,6 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
     LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
                  "ServerSocket that was expected to write, read instead");
 
-    set_current_context(*context_);
-
     auto ret = fun();
     if (ret == 0) {
         // peer shutdown
@@ -30,10 +28,16 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
         SetConnection();
     }
 
+    // New transaction
     if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
         ++num_transactions_;
         context_.reset(new Context);
         set_current_context(*context_);
+    }
+
+    // Continue reading request
+    if (state_ == SocketState::READ) {
+        set_current_context(context());
     }
 
     state_ = SocketState::READ;

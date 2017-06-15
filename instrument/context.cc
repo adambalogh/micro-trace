@@ -21,9 +21,9 @@ const Context& get_current_context() {
     return current_context;
 }
 
-void set_current_context(const Context& context) {
+void set_current_context(const Context context) {
     context_undefined = false;
-    current_context = context;
+    current_context = std::move(context);
 }
 
 bool is_context_undefined() { return context_undefined; }
