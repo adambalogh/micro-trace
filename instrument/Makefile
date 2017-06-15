@@ -56,12 +56,16 @@ $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
 $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
 
+# tracing_test build
+$(BUILD_DIR)/tracing_test: $(SRCS_DIR)/test/tracing_test.cc $(OBJ)
+	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(subst $(BUILD_DIR)/orig_functions.o,,$(OBJ)) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
+
 # Test build
-$(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
+$(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OBJ)
 	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(OBJ) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 # Benchmark build
-$(BENCH_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
+$(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
 	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $< -o $@ -lbenchmark -lpthread
 
 clean:
