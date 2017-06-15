@@ -18,6 +18,10 @@ class Context {
    public:
     Context();
 
+    static bool SameTrace(const Context& a, const Context& b) {
+        return a.trace() == b.trace();
+    }
+
     std::string to_string() const;
 
     const std::string& trace() const { return trace_; }

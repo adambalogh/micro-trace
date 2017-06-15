@@ -149,236 +149,123 @@ TEST_F(TraceTest, TraceSwitch) {
  *
  * local_thread <--> server_thread <--> dump_server_thread
  */
-// TEST_F(TraceTest, PropagateTrace) {
-//    EXPECT_TRUE(is_context_undefined());
+TEST_F(TraceTest, PropagateTrace) {
+    std::thread server_thread{[]() {
+        EXPECT_TRUE(is_context_undefined());
 
-//    std::thread server_thread{[this]() {
-//        int ret;
+        int ret;
 
-//        int server = CreateServerSocket(SERVER_PORT);
-//        ret = listen(server, 5);
-//        ASSERT_EQ(0, ret);
+        int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
 
-//        // Notify client that we are listening
-//        {
-//            std::unique_lock<std::mutex> l(mu);
-//            listening = true;
-//        }
-//        listen_cv.notify_all();
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        int first_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(first_client, -1);
 
-//        struct sockaddr_in cli_addr;
-//        socklen_t clilen = sizeof(cli_addr);
-//        memset(&cli_addr, 0, sizeof(cli_addr));
-//        int first_client =
-//            accept(server, (struct sockaddr *)&cli_addr, &clilen);
-//        ASSERT_GT(first_client, -1);
+        clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        int second_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(second_client, -1);
 
-//        clilen = sizeof(cli_addr);
-//        memset(&cli_addr, 0, sizeof(cli_addr));
-//        int second_client =
-//            accept(server, (struct sockaddr *)&cli_addr, &clilen);
-//        ASSERT_GT(second_client, -1);
+        char buf[MSG_LEN];
 
-//        char buf[MSG_LEN];
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        const Context first_context = get_current_context();
 
-//        // Read first
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        const Context first_context = get_current_context();
+        // Read second
+        ret = read(second_client, &buf, MSG_LEN);
+        const Context second_context = get_current_context();
 
-//        // Read second
-//        ret = read(second_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        const Context second_context = get_current_context();
+        // Open connection to dump server
+        // Note: we are in second_client's context now
+        const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
 
-//        // Set up dump server
-//        DumpServer dump_server;
-//        std::thread dump_server_thread([&dump_server]() { dump_server.Run();
-//        });
-//        {
-//            std::unique_lock<std::mutex> l(dump_server.mu());
-//            dump_server.cv().wait(
-//                l, [&dump_server]() { return dump_server.ready(); });
-//        }
+        // Write to dump client
+        ret = write(dump_client, &buf, MSG_LEN);
+        EXPECT_EQ(second_context, get_current_context());
 
-//        // Open connection to dump server
-//        // Note: we are in second_client's context now
-//        const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        EXPECT_EQ(first_context, get_current_context());
 
-//        // Read first
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(first_context, get_current_context());
+        // Read dump client's response
+        ret = read(dump_client, &buf, MSG_LEN);
+        EXPECT_EQ(second_context.trace(), get_current_context().trace());
+        EXPECT_NE(second_context.span(), get_current_context().span());
+        EXPECT_EQ(second_context.span(), get_current_context().parent_span());
 
-//        // Write to dump client
-//        ret = write(dump_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(second_context, get_current_context());
+        close(server);
+        close(first_client);
+        close(second_client);
+    }};
 
-//        // Read first
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(first_context, get_current_context());
+    server_thread.join();
+}
 
-//        // Read dump client's response
-//        ret = read(dump_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(second_context.trace(), get_current_context().trace());
-//        EXPECT_NE(second_context.span(), get_current_context().span());
-//        EXPECT_EQ(second_context.span(), get_current_context().parent_span());
+TEST_F(TraceTest, BlockingConnectionPool) {
+    std::thread server_thread{[this]() {
+        int ret;
 
-//        close(server);
-//        close(first_client);
-//        close(second_client);
+        // Create connection in advance, before any requests
+        const int connection_pool = CreateClientSocket(DUMP_SERVER_PORT);
 
-//        dump_server.shutdown();
-//        dump_server_thread.join();
-//    }};
+        int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
 
-//    // Wait until server is set up
-//    {
-//        std::unique_lock<std::mutex> l(mu);
-//        listen_cv.wait(l, [this]() { return listening == true; });
-//    }
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int first_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(first_client, -1);
 
-//    int ret;
+        clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int second_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(second_client, -1);
 
-//    int first_client = CreateClientSocket(SERVER_PORT);
-//    int second_client = CreateClientSocket(SERVER_PORT);
+        char buf[MSG_LEN];
 
-//    // Write first
-//    ret = write(first_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
+        // Read request from first
+        ret = read(first_client, &buf, MSG_LEN);
+        const Context first_context = get_current_context();
 
-//    // Write second
-//    ret = write(second_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
+        // Write to connection pool-- this should be associated with
+        // first_context
+        ret = write(connection_pool, &buf, MSG_LEN);
+        EXPECT_EQ(first_context, get_current_context());
 
-//    // Write first
-//    ret = write(first_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
+        // Read first half of request from second
+        ret = read(second_client, &buf, MSG_LEN);
+        const Context second_context = get_current_context();
+        EXPECT_FALSE(Context::SameTrace(first_context, second_context));
 
-//    // Write first
-//    ret = write(first_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
+        // Read response from connection pool -- this should set first_context
+        ret = read(connection_pool, &buf, MSG_LEN);
+        ASSERT_TRUE(Context::SameTrace(first_context, get_current_context()));
 
-//    EXPECT_TRUE(is_context_undefined());
+        // Read second half of request from second
+        ret = read(second_client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        ASSERT_EQ(second_context, get_current_context());
 
-//    close(first_client);
-//    close(second_client);
-//    server_thread.join();
-//}
+        // Write to connection pool-- this is a new transaction and should be
+        // associated with second_context
+        ret = write(connection_pool, &buf, MSG_LEN);
+        EXPECT_TRUE(Context::SameTrace(second_context, get_current_context()));
+        EXPECT_FALSE(Context::SameTrace(first_context, get_current_context()));
 
-// TEST_F(TraceTest, BlockingConnectionPool) {
-//    std::thread server_thread{[this]() {
-//        int ret;
+        ASSERT_EQ(0, close(first_client));
+        ASSERT_EQ(0, close(second_client));
+        ASSERT_EQ(0, close(connection_pool));
+        ASSERT_EQ(0, close(server));
+    }};
 
-//        // Set up dump server
-//        DumpServer dump_server;
-//        std::thread dump_server_thread([&dump_server]() { dump_server.Run();
-//        });
-//        {
-//            std::unique_lock<std::mutex> l(dump_server.mu());
-//            dump_server.cv().wait(
-//                l, [&dump_server]() { return dump_server.ready(); });
-//        }
-//        int server = CreateServerSocket(SERVER_PORT);
-//        ret = listen(server, 5);
-//        ASSERT_EQ(0, ret);
-
-//        // Notify client that we are listening
-//        {
-//            std::unique_lock<std::mutex> l(mu);
-//            listening = true;
-//        }
-//        listen_cv.notify_all();
-
-//        struct sockaddr_in cli_addr;
-//        socklen_t clilen = sizeof(cli_addr);
-//        memset(&cli_addr, 0, sizeof(cli_addr));
-//        const int first_client =
-//            accept(server, (struct sockaddr *)&cli_addr, &clilen);
-//        ASSERT_GT(first_client, -1);
-
-//        clilen = sizeof(cli_addr);
-//        memset(&cli_addr, 0, sizeof(cli_addr));
-//        const int second_client =
-//            accept(server, (struct sockaddr *)&cli_addr, &clilen);
-//        ASSERT_GT(second_client, -1);
-
-//        char buf[MSG_LEN];
-
-//        // Create connection in advance, before any requests
-//        const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
-
-//        // Read request from first
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_FALSE(is_context_undefined());
-//        const Context first_context = get_current_context();
-
-//        // Write to dump server -- this should be associated with
-//        first_context
-//        ret = write(dump_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(first_context, get_current_context());
-
-//        // Read first half of request from second
-//        ret = read(second_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_FALSE(is_context_undefined());
-//        const Context second_context = get_current_context();
-
-//        // Read from dump server -- this should set first_context
-//        ret = read(dump_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        ASSERT_EQ(first_context, get_current_context());
-
-//        // Read second half of request from second
-//        ret = read(second_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_FALSE(is_context_undefined());
-//        ASSERT_EQ(second_context, get_current_context());
-
-//        // Write to dump server -- this is a new transaction and should be
-//        // associated with second_context
-//        ret = write(dump_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(second_context, get_current_context());
-
-//        dump_server.shutdown();
-//        dump_server_thread.join();
-
-//        ASSERT_EQ(0, close(first_client));
-//        ASSERT_EQ(0, close(second_client));
-//        ASSERT_EQ(0, close(dump_client));
-//        ASSERT_EQ(0, close(server));
-//    }};
-
-//    // Wait until server is set up
-//    {
-//        std::unique_lock<std::mutex> l(mu);
-//        listen_cv.wait(l, [this]() { return listening == true; });
-//    }
-
-//    int ret;
-//    const int first_client = CreateClientSocket(SERVER_PORT);
-//    const int second_client = CreateClientSocket(SERVER_PORT);
-
-//    // Write first request
-//    ret = write(first_client, MSG, MSG_LEN);
-//    EXPECT_EQ(ret, MSG_LEN);
-//    EXPECT_TRUE(is_context_undefined());
-
-//    // Write first half of second request
-//    ret = write(second_client, MSG, MSG_LEN);
-//    EXPECT_EQ(ret, MSG_LEN);
-//    EXPECT_TRUE(is_context_undefined());
-
-//    // Write second half of second request
-//    ret = write(second_client, MSG, MSG_LEN);
-//    EXPECT_EQ(ret, MSG_LEN);
-//    EXPECT_TRUE(is_context_undefined());
-
-//    server_thread.join();
-//}
+    server_thread.join();
+}
