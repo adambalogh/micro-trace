@@ -109,7 +109,7 @@ ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
 
     // New transaction
     if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-        context_.reset(new Context);
+        context_.reset(new Context(get_current_context()));
         set_current_context(*context_);
 
         txn_.reset(new Transaction);
