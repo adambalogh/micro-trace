@@ -16,9 +16,14 @@ WORKDIR /usr/src/app
 COPY package.json .
 RUN npm install
 
-COPY trace.so /usr/local/lib/.
-COPY libprotobuf.so.13 /usr/local/lib/.
+COPY ./install.sh .
+RUN ["chmod", "+x", "install.sh"]
+RUN ./install.sh
+
 COPY server.js .
+
+ENV LD_LIBRARY_PATH /usr/lib/:$LD_LIBRARY_PATH
+RUN ldconfig
 
 EXPOSE 3000
 ENV LD_PRELOAD /usr/local/lib/trace.so
