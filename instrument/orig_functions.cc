@@ -32,6 +32,9 @@ OriginalFunctionsImpl::OriginalFunctionsImpl() {
 
     ORIG(orig_uv_accept, "uv_accept");
     ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
+
+    ORIG(orig_getpeername, "getpeername");
+    ORIG(orig_getsockname, "getsockname");
 }
 
 int OriginalFunctionsImpl::socket(int domain, int type, int protocol) const {

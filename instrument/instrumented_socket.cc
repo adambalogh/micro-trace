@@ -75,28 +75,28 @@ int AbstractInstrumentedSocket::SetConnection() {
         // Peer is the client
         SetConnectionEndPoint(
             sockfd_, &conn_.client_ip, &conn_.client_port,
-            [](auto fd, auto sockaddr, auto addr_len) -> auto {
-                return orig().getpeername(fd, sockaddr, addr_len);
+            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
+                return orig().getpeername(fd, addr, addr_len);
             });
         // We are the server
         SetConnectionEndPoint(
             sockfd_, &conn_.server_ip, &conn_.server_port,
-            [](auto fd, auto sockaddr, auto addr_len) -> auto {
-                return orig().getsockname(fd, sockaddr, addr_len);
+            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
+                return orig().getsockname(fd, addr, addr_len);
             });
 
     } else {
         // Peer is the server
         SetConnectionEndPoint(
             sockfd_, &conn_.server_ip, &conn_.server_port,
-            [](auto fd, auto sockaddr, auto addr_len) -> auto {
-                return orig().getpeername(fd, sockaddr, addr_len);
+            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
+                return orig().getpeername(fd, addr, addr_len);
             });
         // We are the client
         SetConnectionEndPoint(
             sockfd_, &conn_.client_ip, &conn_.client_port,
-            [](auto fd, auto sockaddr, auto addr_len) -> auto {
-                return orig().getsockname(fd, sockaddr, addr_len);
+            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
+                return orig().getsockname(fd, addr, addr_len);
             });
     }
 
