@@ -110,4 +110,14 @@ int OriginalFunctionsImpl::uv_getaddrinfo(uv_loop_t *loop,
                                           const struct addrinfo *hints) const {
     return orig_uv_getaddrinfo(loop, req, getaddrinfo_cb, node, service, hints);
 }
+
+int OriginalFunctionsImpl::getpeername(int sockfd, struct sockaddr *addr,
+                                       socklen_t *addrlen) const {
+    return orig_getpeername(sockfd, addr, addrlen);
+}
+
+int OriginalFunctionsImpl::getsockname(int sockfd, struct sockaddr *addr,
+                                       socklen_t *addrlen) const {
+    return orig_getsockname(sockfd, addr, addrlen);
+}
 }

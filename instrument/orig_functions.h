@@ -54,6 +54,11 @@ class OriginalFunctions {
                                uv_getaddrinfo_cb getaddrinfo_cb,
                                const char *node, const char *service,
                                const struct addrinfo *hints) const = 0;
+
+    virtual int getpeername(int sockfd, struct sockaddr *addr,
+                            socklen_t *addrlen) const = 0;
+    virtual int getsockname(int sockfd, struct sockaddr *addr,
+                            socklen_t *addrlen) const = 0;
 };
 
 class OriginalFunctionsImpl : public OriginalFunctions {
@@ -94,6 +99,12 @@ class OriginalFunctionsImpl : public OriginalFunctions {
                                          const char *node, const char *service,
                                          const struct addrinfo *hints);
 
+    /* Functions that need to be mocked for unit testing */
+    typedef int (*orig_getpeername_t)(int sockfd, struct sockaddr *addr,
+                                      socklen_t *addrlen);
+    typedef int (*orig_getsockname_t)(int sockfd, struct sockaddr *addr,
+                                      socklen_t *addrlen);
+
    public:
     OriginalFunctionsImpl();
 
@@ -126,6 +137,11 @@ class OriginalFunctionsImpl : public OriginalFunctions {
                        const char *service,
                        const struct addrinfo *hints) const override;
 
+    int getpeername(int sockfd, struct sockaddr *addr,
+                    socklen_t *addrlen) const override;
+    int getsockname(int sockfd, struct sockaddr *addr,
+                    socklen_t *addrlen) const override;
+
    private:
     orig_socket_t orig_socket;
     orig_close_t orig_close;
@@ -142,5 +158,7 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     orig_sendmmsg_t orig_sendmmsg;
     orig_uv_accept_t orig_uv_accept;
     orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
+    orig_getpeername_t orig_getpeername;
+    orig_getsockname_t orig_getsockname;
 };
 }
