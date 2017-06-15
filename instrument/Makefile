@@ -57,11 +57,11 @@ $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
 
 # tracing_test build
-$(BUILD_DIR)/tracing_test: $(SRCS_DIR)/test/tracing_test.cc $(OBJ)
+$(BUILD_DIR)/tracing_test: $(SRCS_DIR)/test/tracing_test.cc $(OBJ) $(SRCS_DIR)/test/test_util.h
 	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(subst $(BUILD_DIR)/orig_functions.o,,$(OBJ)) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 # Test build
-$(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OBJ)
+$(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OBJ) $(SRCS_DIR)/test/test_util.h
 	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(OBJ) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 # Benchmark build

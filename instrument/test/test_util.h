@@ -1,5 +1,10 @@
 #pragma once
 
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>
+
 #include "orig_functions.h"
 #include "socket_adapter.h"
 
@@ -23,9 +28,7 @@ static int CreateClientSocket(int port) {
     serv_addr.sin_port = port;
 
     int client = socket(AF_INET, SOCK_STREAM, 0);
-    assert(client != -1);
-    int ret = connect(client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    assert(ret == 0);
+    connect(client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     return client;
 }
 
@@ -45,14 +48,9 @@ static int CreateServerSocket(int port) {
     assert(server != -1);
 
     int flags = fcntl(server, F_GETFL, 0);
-    assert(flags >= 0);
-    ret = fcntl(server, F_SETFL, flags | SO_REUSEADDR | SO_REUSEPORT);
-    assert(ret >= 0);
-
-    ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
-               sizeof(serv_addr));
-    if (ret != 0) perror("CreateServerSocket");
-    assert(ret == 0);
+    fcntl(server, F_SETFL, flags | SO_REUSEADDR | SO_REUSEPORT);
+    bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
+         sizeof(serv_addr));
     return server;
 }
 
@@ -196,6 +194,23 @@ class EmptyOriginalFunctions : public OriginalFunctions {
                        uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
                        const char *service,
                        const struct addrinfo *hints) const {
+        return 0;
+    }
+    int getpeername(int sockfd, struct sockaddr *addr,
+                    socklen_t *addrlen) const {
+        struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
+        addr_in->sin_family = AF_INET;
+        addr_in->sin_port = 543;
+        addr_in->sin_addr.s_addr = inet_addr("10.3.2.15");
+        return 0;
+    }
+
+    int getsockname(int sockfd, struct sockaddr *addr,
+                    socklen_t *addrlen) const {
+        struct sockaddr_in *addr_in = (struct sockaddr_in *)addr;
+        addr_in->sin_family = AF_INET;
+        addr_in->sin_port = 10;
+        addr_in->sin_addr.s_addr = inet_addr("10.0.1.43");
         return 0;
     }
 };
