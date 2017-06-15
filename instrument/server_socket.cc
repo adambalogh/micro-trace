@@ -30,9 +30,9 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
     // New transaction
     if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
-        ++num_transactions_;
         context_.reset(new Context);
         set_current_context(*context_);
+        ++num_transactions_;
     }
 
     // Continue reading request

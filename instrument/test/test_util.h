@@ -36,8 +36,6 @@ static int CreateClientSocket(int port) {
  * Returns a socket that's bind to localhost:port
  */
 static int CreateServerSocket(int port) {
-    int ret;
-
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -151,34 +149,40 @@ class EchoServer {
 };
 
 class EmptyOriginalFunctions : public OriginalFunctions {
+   private:
+    mutable int last_socket = 0;
+
    public:
-    int socket(int domain, int type, int protocol) const { return 54; }
+    int socket(int domain, int type, int protocol) const {
+        return ++last_socket;
+    }
+
     int close(int fd) const { return 0; }
     int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) const {
-        return 349;
+        return ++last_socket;
     }
     int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen,
                 int flags) const {
-        return 349;
+        return ++last_socket;
     }
     ssize_t recv(int sockfd, void *buf, size_t len, int flags) const {
-        return 11;
+        return len;
     }
-    ssize_t read(int fd, void *buf, size_t count) const { return 11; }
+    ssize_t read(int fd, void *buf, size_t count) const { return count; }
     ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) const {
-        return 11;
+        return len;
     }
-    ssize_t write(int fd, const void *buf, size_t count) const { return 11; }
+    ssize_t write(int fd, const void *buf, size_t count) const { return count; }
     ssize_t writev(int fd, const struct iovec *iov, int iovcnt) const {
         return 11;
     }
     ssize_t send(int sockfd, const void *buf, size_t len, int flags) const {
-        return 11;
+        return len;
     }
     ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
                    const struct sockaddr *dest_addr, socklen_t addrlen) const {
-        return 11;
+        return len;
     }
     ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) const {
         return 11;
@@ -188,7 +192,8 @@ class EmptyOriginalFunctions : public OriginalFunctions {
         return 11;
     }
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const {
-        return 349;
+        client->io_watcher.fd = ++last_socket;
+        return 0;
     }
     int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                        uv_getaddrinfo_cb getaddrinfo_cb, const char *node,

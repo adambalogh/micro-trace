@@ -26,46 +26,45 @@ int DUMP_SERVER_PORT = 7354;
 const char *const MSG = "aaaaaaaaaa";
 const int MSG_LEN = 10;
 
-class TraceTest : public ::testing::Test {
-   protected:
-    virtual void SetUp() {
-        ++SERVER_PORT;
-        ++DUMP_SERVER_PORT;
-    }
-};
+class TraceTest : public ::testing::Test {};
 
 TEST_F(TraceTest, CurrentContext) {
-    EXPECT_TRUE(is_context_undefined());
+    std::thread server_thread{[]() {
+        EXPECT_TRUE(is_context_undefined());
 
-    int ret;
+        int ret;
 
-    struct sockaddr_in serv_addr, cli_addr;
-    socklen_t clilen = sizeof(cli_addr);
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    memset(&cli_addr, 0, sizeof(cli_addr));
+        struct sockaddr_in serv_addr, cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&serv_addr, 0, sizeof(serv_addr));
+        memset(&cli_addr, 0, sizeof(cli_addr));
 
-    // Create server
-    int server = CreateServerSocket(SERVER_PORT);
-    EXPECT_TRUE(is_context_undefined());
+        // Create server
+        const int server = CreateServerSocket(SERVER_PORT);
+        EXPECT_TRUE(is_context_undefined());
 
-    // Accept connection
-    ret = listen(server, 5);
-    int client = accept(server, (struct sockaddr *)&cli_addr, &clilen);
-    ASSERT_GT(client, -1);
+        // Accept connection
+        ret = listen(server, 5);
+        const int client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(client, -1);
 
-    // Read request
-    char buf[MSG_LEN];
-    ret = read(client, &buf, MSG_LEN);
+        // Read request
+        char buf[MSG_LEN];
+        ret = read(client, &buf, MSG_LEN);
 
-    Context context = get_current_context();
-    EXPECT_FALSE(is_context_undefined());
+        // Context must be set
+        EXPECT_FALSE(is_context_undefined());
+        const Context context = get_current_context();
 
-    ASSERT_EQ(0, close(server));
-    EXPECT_EQ(context, get_current_context());
+        ASSERT_EQ(0, close(server));
+        EXPECT_EQ(context, get_current_context());
 
-    // we don't clear the current context if a related socket is closed
-    ASSERT_EQ(0, close(client));
-    EXPECT_EQ(context, get_current_context());
+        // we don't clear the current context if a related socket is closed
+        ASSERT_EQ(0, close(client));
+        EXPECT_EQ(context, get_current_context());
+    }};
+    server_thread.join();
 }
 
 /*
@@ -73,134 +72,74 @@ TEST_F(TraceTest, CurrentContext) {
  * write to an instrumented socket, it's context is set as the current
  * context
  */
-// TEST_F(TraceTest, TraceSwitch) {
-//    EXPECT_TRUE(is_context_undefined());
+TEST_F(TraceTest, TraceSwitch) {
+    std::thread server_thread{[]() {
+        EXPECT_TRUE(is_context_undefined());
 
-//    std::thread server_thread{[this]() {
-//        int ret;
+        int ret;
 
-//        int server = CreateServerSocket(SERVER_PORT);
-//        ret = listen(server, 5);
-//        ASSERT_EQ(0, ret);
+        const int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
 
-//        // Notify client that we are listening
-//        {
-//            std::unique_lock<std::mutex> l(mu);
-//            listening = true;
-//        }
-//        listen_cv.notify_all();
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int first_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(first_client, -1);
 
-//        struct sockaddr_in cli_addr;
-//        socklen_t clilen = sizeof(cli_addr);
-//        memset(&cli_addr, 0, sizeof(cli_addr));
-//        int first_client =
-//            accept(server, (struct sockaddr *)&cli_addr, &clilen);
-//        ASSERT_GT(first_client, -1);
+        clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int second_client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(second_client, -1);
 
-//        clilen = sizeof(cli_addr);
-//        memset(&cli_addr, 0, sizeof(cli_addr));
-//        int second_client =
-//            accept(server, (struct sockaddr *)&cli_addr, &clilen);
-//        ASSERT_GT(second_client, -1);
+        char buf[MSG_LEN];
 
-//        char buf[MSG_LEN];
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        const Context first_context = get_current_context();
 
-//        // Read first
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_FALSE(is_context_undefined());
-//        const Context first_context = get_current_context();
+        // Read second
+        ret = read(second_client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        const Context second_context = get_current_context();
+        EXPECT_NE(first_context, second_context);
 
-//        // Read second
-//        ret = read(second_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_FALSE(is_context_undefined());
-//        const Context second_context = get_current_context();
-//        EXPECT_NE(first_context, second_context);
+        // Read first
+        ret = read(first_client, &buf, MSG_LEN);
+        EXPECT_EQ(first_context, get_current_context());
 
-//        // Read first
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(first_context, get_current_context());
+        // Write first
+        ret = write(first_client, &buf, MSG_LEN);
+        EXPECT_EQ(first_context, get_current_context());
 
-//        // Write first
-//        ret = write(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(first_context, get_current_context());
+        // Write second
+        ret = write(second_client, &buf, MSG_LEN);
+        EXPECT_EQ(second_context, get_current_context());
 
-//        // Write second
-//        ret = write(second_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(second_context, get_current_context());
+        // Write second
+        ret = write(second_client, &buf, MSG_LEN);
+        EXPECT_EQ(second_context, get_current_context());
 
-//        // Write second
-//        ret = write(second_client, &buf, MSG_LEN);
-//        ASSERT_EQ(MSG_LEN, ret);
-//        EXPECT_EQ(second_context, get_current_context());
+        // Unsuccessful read first (client closed conn)
+        // ret = read(first_client, &buf, MSG_LEN);
+        // ASSERT_EQ(0, ret);
+        // EXPECT_EQ(first_context, get_current_context());
 
-//        // Unsuccessful read first (client closed conn)
-//        ret = read(first_client, &buf, MSG_LEN);
-//        ASSERT_EQ(0, ret);
-//        EXPECT_EQ(first_context, get_current_context());
+        // TODO figure out how to simulate write error
+        // Unsuccessful write second
+        // close(second_client);
+        // ret = write(second_client, &buf, MSG_LEN);
+        // ASSERT_EQ(-1, ret);
+        // ASSERT_EQ(second_context, get_current_context());
 
-//        // TODO figure out how to simulate write error
-//        // Unsuccessful write second
-//        // close(second_client);
-//        // ret = write(second_client, &buf, MSG_LEN);
-//        // ASSERT_EQ(-1, ret);
-//        // ASSERT_EQ(second_context, get_current_context());
-
-//        ASSERT_EQ(0, close(server));
-//        ASSERT_EQ(0, close(first_client));
-//    }};
-
-//    // Wait until server is set up
-//    {
-//        std::unique_lock<std::mutex> l(mu);
-//        listen_cv.wait(l, [this]() { return listening == true; });
-//    }
-
-//    int ret;
-
-//    int first_client = CreateClientSocket(SERVER_PORT);
-//    int second_client = CreateClientSocket(SERVER_PORT);
-
-//    // Write first
-//    ret = write(first_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
-
-//    // Write second
-//    ret = write(second_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
-
-//    // Write first
-//    ret = write(first_client, MSG, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
-
-//    char buf[MSG_LEN];
-
-//    // Read first
-//    ret = read(first_client, &buf, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
-
-//    // Read second
-//    ret = read(second_client, &buf, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
-
-//    // Read second
-//    ret = read(second_client, &buf, MSG_LEN);
-//    ASSERT_EQ(MSG_LEN, ret);
-
-//    EXPECT_TRUE(is_context_undefined());
-
-//    // Unsuccessful read first
-//    close(first_client);
-
-//    // Unsuccessful write second
-//    close(second_client);
-
-//    server_thread.join();
-//}
+        ASSERT_EQ(0, close(server));
+        ASSERT_EQ(0, close(first_client));
+    }};
+    server_thread.join();
+}
 
 /*
  * In this test we make sure that the current_context is attached to sockets
