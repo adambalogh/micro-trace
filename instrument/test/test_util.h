@@ -13,49 +13,190 @@ void set_nonblock(int fd) {
     assert(ret >= 0);
 }
 
+/*
+ * Returns a socket that's connected to localhost:port
+ */
+static int CreateClientSocket(int port) {
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15");
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = port;
+
+    int client = socket(AF_INET, SOCK_STREAM, 0);
+    assert(client != -1);
+    int ret = connect(client, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    assert(ret == 0);
+    return client;
+}
+
+/*
+ * Returns a socket that's bind to localhost:port
+ */
+static int CreateServerSocket(int port) {
+    int ret;
+
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = port;
+    serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15");
+
+    int server = socket(AF_INET, SOCK_STREAM, 0);
+    assert(server != -1);
+
+    int flags = fcntl(server, F_GETFL, 0);
+    assert(flags >= 0);
+    ret = fcntl(server, F_SETFL, flags | SO_REUSEADDR | SO_REUSEPORT);
+    assert(ret >= 0);
+
+    ret = bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
+               sizeof(serv_addr));
+    if (ret != 0) perror("CreateServerSocket");
+    assert(ret == 0);
+    return server;
+}
+
+/*
+ * A EchoServer is a TCP server that accepts connections, reads
+ * MSG_LEN size chunks from them, and sends them back
+ */
+class EchoServer {
+   private:
+    // Outgoing message
+    struct Msg {
+        Msg(std::string msg) : msg(msg), start(0) {}
+        std::string msg;
+        size_t start;
+    };
+
+   public:
+    EchoServer(int port, int msg_len) : port_(port), msg_len_(msg_len) {}
+
+    void Run() {
+        int ret;
+        std::vector<int> connections;
+
+        int acceptor = CreateServerSocket(port_);
+        set_nonblock(acceptor);
+        ret = listen(acceptor, 10);
+        assert(ret == 0);
+
+        {
+            std::unique_lock<std::mutex> l;
+            ready_ = true;
+        }
+        cv_.notify_all();
+
+        std::map<int, std::queue<Msg>> out;
+
+        char buf[msg_len_];
+        while (true) {
+            {
+                std::unique_lock<std::mutex> l(mu_);
+                if (shutdown_) break;
+            }
+            struct sockaddr_in cli_addr;
+            socklen_t clilen = sizeof(cli_addr);
+            memset(&cli_addr, 0, sizeof(cli_addr));
+            int client =
+                accept(acceptor, (struct sockaddr *)&cli_addr, &clilen);
+            if (client != -1) {
+                set_nonblock(client);
+                connections.push_back(client);
+            }
+
+            for (const int conn : connections) {
+                int ret = read(conn, &buf[0], msg_len_);
+                if (ret > 0) {
+                    std::string msg(&buf[0], ret);
+                    out[conn].push(Msg{msg});
+                }
+            }
+
+            for (auto &it : out) {
+                if (it.second.empty()) continue;
+
+                Msg &m = it.second.front();
+                int ret = write(it.first, m.msg.c_str() + m.start,
+                                m.msg.size() - m.start);
+                if (ret > 0) m.start += ret;
+                if (m.start == m.msg.size()) {
+                    it.second.pop();
+                }
+            }
+        }
+
+        // Shutdown
+        ret = close(acceptor);
+        assert(ret == 0);
+        for (const int conn : connections) {
+            close(conn);
+        }
+    }
+
+    std::condition_variable &cv() { return cv_; }
+    std::mutex &mu() { return mu_; }
+    bool ready() const { return ready_; }
+
+    void shutdown() {
+        std::unique_lock<std::mutex> l(mu_);
+        shutdown_ = true;
+    }
+
+   private:
+    bool ready_ = false;
+    bool shutdown_ = false;
+    std::mutex mu_;
+    std::condition_variable cv_;
+    const int port_;
+    const int msg_len_;
+};
+
 class EmptyOriginalFunctions : public OriginalFunctions {
    public:
-    int socket(int domain, int type, int protocol) const { return -1; }
-    int close(int fd) const { return -1; }
+    int socket(int domain, int type, int protocol) const { return 54; }
+    int close(int fd) const { return 0; }
     int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) const {
-        return -1;
+        return 349;
     }
     int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen,
                 int flags) const {
-        return -1;
+        return 349;
     }
     ssize_t recv(int sockfd, void *buf, size_t len, int flags) const {
-        return -1;
+        return 11;
     }
-    ssize_t read(int fd, void *buf, size_t count) const { return -1; }
+    ssize_t read(int fd, void *buf, size_t count) const { return 11; }
     ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) const {
-        return -1;
+        return 11;
     }
-    ssize_t write(int fd, const void *buf, size_t count) const { return -1; }
+    ssize_t write(int fd, const void *buf, size_t count) const { return 11; }
     ssize_t writev(int fd, const struct iovec *iov, int iovcnt) const {
-        return -1;
+        return 11;
     }
     ssize_t send(int sockfd, const void *buf, size_t len, int flags) const {
-        return -1;
+        return 11;
     }
     ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
                    const struct sockaddr *dest_addr, socklen_t addrlen) const {
-        return -1;
+        return 11;
     }
     ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) const {
-        return -1;
+        return 11;
     }
     int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
                  unsigned int flags) const {
-        return -1;
+        return 11;
     }
-    int uv_accept(uv_stream_t *server, uv_stream_t *client) const { return -1; }
+    int uv_accept(uv_stream_t *server, uv_stream_t *client) const {
+        return 349;
+    }
     int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                        uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
                        const char *service,
                        const struct addrinfo *hints) const {
-        return -1;
+        return 0;
     }
 };
 
