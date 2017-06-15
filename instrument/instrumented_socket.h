@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "common.h"
 #include "context.h"
 #include "request_log.pb.h"
 
@@ -109,6 +110,10 @@ class AbstractInstrumentedSocket : public InstrumentedSocket {
     bool role_client() const { return role_ == SocketRole::CLIENT; }
 
     bool has_context() const { return static_cast<bool>(context_); }
+    const Context& context() const {
+        VERIFY(has_context(), "context() called when it is empty");
+        return *context_;
+    }
 
     const int sockfd_;
 

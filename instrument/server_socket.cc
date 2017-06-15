@@ -42,7 +42,7 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
 
 ssize_t ServerSocket::Write(const struct iovec* iov, int iovcnt,
                             IoFunction fun) {
-    set_current_context(*context_);
+    set_current_context(context());
 
     auto ret = fun();
     if (ret == -1 || ret == 0) {
