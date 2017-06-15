@@ -4,9 +4,11 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <functional>
 #include <string>
 
 #include "common.h"
+#include "orig_functions.h"
 
 namespace microtrace {
 
@@ -43,8 +45,9 @@ AbstractInstrumentedSocket::AbstractInstrumentedSocket(int sockfd,
     DLOG("New AbstractInstrumentedSocket %d", sockfd);
 }
 
-void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
-                           int (*fn)(int, struct sockaddr*, socklen_t*)) {
+void SetConnectionEndPoint(
+    const int fd, std::string* ip, short unsigned* port,
+    std::function<int(int, struct sockaddr*, socklen_t*)> fn) {
     sockaddr_storage tmp_sockaddr;
     sockaddr* const sockaddr_ptr = reinterpret_cast<sockaddr*>(&tmp_sockaddr);
     socklen_t addr_len = sizeof(tmp_sockaddr);
@@ -70,18 +73,31 @@ void SetConnectionEndPoint(const int fd, std::string* ip, short unsigned* port,
 int AbstractInstrumentedSocket::SetConnection() {
     if (role_server()) {
         // Peer is the client
-        SetConnectionEndPoint(sockfd_, &conn_.client_ip, &conn_.client_port,
-                              getpeername);
+        SetConnectionEndPoint(
+            sockfd_, &conn_.client_ip, &conn_.client_port,
+            [](auto fd, auto sockaddr, auto addr_len) -> auto {
+                return orig().getpeername(fd, sockaddr, addr_len);
+            });
         // We are the server
-        SetConnectionEndPoint(sockfd_, &conn_.server_ip, &conn_.server_port,
-                              getsockname);
+        SetConnectionEndPoint(
+            sockfd_, &conn_.server_ip, &conn_.server_port,
+            [](auto fd, auto sockaddr, auto addr_len) -> auto {
+                return orig().getsockname(fd, sockaddr, addr_len);
+            });
+
     } else {
         // Peer is the server
-        SetConnectionEndPoint(sockfd_, &conn_.server_ip, &conn_.server_port,
-                              getpeername);
+        SetConnectionEndPoint(
+            sockfd_, &conn_.server_ip, &conn_.server_port,
+            [](auto fd, auto sockaddr, auto addr_len) -> auto {
+                return orig().getpeername(fd, sockaddr, addr_len);
+            });
         // We are the client
-        SetConnectionEndPoint(sockfd_, &conn_.client_ip, &conn_.client_port,
-                              getsockname);
+        SetConnectionEndPoint(
+            sockfd_, &conn_.client_ip, &conn_.client_port,
+            [](auto fd, auto sockaddr, auto addr_len) -> auto {
+                return orig().getsockname(fd, sockaddr, addr_len);
+            });
     }
 
     conn_init_ = true;
