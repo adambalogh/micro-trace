@@ -174,14 +174,6 @@ class TraceTest : public ::testing::Test {
     bool listening;
 };
 
-/*
- * This test verifies that the current_context is set up and cleared
- * correctly.
- *
- * First, we make sure that a context is only set after the application has
- * read from a server socket. Then, after the server socket is closed, the
- * current_socket should be cleared.
- */
 TEST_F(TraceTest, CurrentContext) {
     EXPECT_TRUE(is_context_undefined());
 
@@ -231,19 +223,14 @@ TEST_F(TraceTest, CurrentContext) {
         listen_cv.wait(l, [this]() { return listening == true; });
     }
 
+    int ret;
     int client = CreateClientSocket(SERVER_PORT);
 
-    int ret;
-
-    // This socket wasn't opened in response to a request, so it's not
-    // tracked
     ret = write(client, MSG, MSG_LEN);
     EXPECT_EQ(ret, MSG_LEN);
-    EXPECT_TRUE(is_context_undefined());
+    EXPECT_FALSE(is_context_undefined());
 
     close(client);
-    EXPECT_TRUE(is_context_undefined());
-
     server_thread.join();
 }
 
