@@ -126,8 +126,6 @@ int uv_accept(uv_stream_t* server, uv_stream_t* client) {
     return ret;
 }
 
-// TODO should probably do this at connect() instead to avoid
-// tagging sockets that don't communicate with other servers
 int socket(int domain, int type, int protocol) {
     int sockfd = orig().socket(domain, type, protocol);
     if (sockfd == -1) {
@@ -146,11 +144,16 @@ int socket(int domain, int type, int protocol) {
     return sockfd;
 }
 
+/*
+ * We use connect to fiter out sockets that we are not interested in.
+ */
 int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
-    // We don't want to trace DNS requests
+    // We don't want to trace DNS requests, instead, we use uv_getaddrinfo keep
+    // track of the context
     if (get_port(addr) == DNS_PORT) {
         DeleteSocket(sockfd);
     }
+
     int ret = orig().connect(sockfd, addr, addrlen);
     return ret;
 }
