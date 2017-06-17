@@ -34,9 +34,8 @@ ssize_t ServerSocket::Read(const void* buf, size_t len, IoFunction fun) {
         set_current_context(*context_);
         ++num_transactions_;
     }
-
     // Continue reading request
-    if (state_ == SocketState::READ) {
+    else if (state_ == SocketState::READ) {
         set_current_context(context());
     }
 
