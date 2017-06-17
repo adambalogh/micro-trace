@@ -31,7 +31,7 @@ using namespace microtrace;
 
 namespace microtrace {
 
-const int DNS_PORT = htons(53);
+static const int DNS_PORT = 53;
 
 template <class CbType>
 struct CallbackWrap {
@@ -45,7 +45,7 @@ struct CallbackWrap {
 
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
-std::mutex socket_map_mu;
+static std::mutex socket_map_mu;
 
 static auto& socket_map() {
     static std::unordered_map<int, std::unique_ptr<SocketInterface>> socket_map;
@@ -186,7 +186,7 @@ int uv_getaddrinfo(uv_loop_t* loop, uv_getaddrinfo_t* req,
                                  hints);
 }
 
-/* SocketAdapter calls */
+/* SocketInterface calls */
 
 ssize_t read(int fd, void* buf, size_t count) {
     SOCK_CALL(fd, Read(buf, count), read(fd, buf, count));
