@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,7 @@ using namespace microtrace;
 
 namespace microtrace {
 
-const int DNS_PORT = 53;
+const int DNS_PORT = htons(53);
 
 template <class CbType>
 struct CallbackWrap {
