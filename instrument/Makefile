@@ -75,12 +75,13 @@ clean:
 	@rm -f $(BUILD_DIR)/*.so
 	@rm -f $(PROTO_GEN_DIR)/*.pb.*
 
-test: $(TEST_EXEC)
+ctest: $(TEST_EXEC)
 	@echo 'tests compiled'
 
 benchmark: $(BENCHMARK_EXEC)
 	@echo 'benchmarks compiled'
 
-run-test: test
-	./build/socket_wrapper_test
-	./build/socket_callback_test
+test: ctest
+	@for test_bin in $(TEST_EXEC); do \
+		$$test_bin ; \
+	done
