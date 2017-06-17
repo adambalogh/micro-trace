@@ -1,5 +1,6 @@
 #pragma once
 
+#include <netinet/in.h>
 #include <string>
 
 #include "spdlog/spdlog.h"
@@ -36,4 +37,6 @@ namespace microtrace {
 inline char* string_arr(std::string& str) { return &str[0]; }
 
 extern std::shared_ptr<spdlog::logger> console_log;
+
+unsigned short get_port(const struct sockaddr* sa);
 }

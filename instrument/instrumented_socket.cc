@@ -25,14 +25,6 @@ std::string Connection::to_string() const {
     return str;
 }
 
-static unsigned short get_port(const struct sockaddr* sa) {
-    if (sa->sa_family == AF_INET) {
-        return ntohs(((sockaddr_in*)sa)->sin_port);
-    } else {
-        return ntohs(((sockaddr_in6*)sa)->sin6_port);
-    }
-}
-
 AbstractInstrumentedSocket::AbstractInstrumentedSocket(int sockfd,
                                                        const SocketRole role,
                                                        const SocketState state)
