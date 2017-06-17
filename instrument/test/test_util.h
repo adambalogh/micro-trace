@@ -156,7 +156,10 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     int socket(int domain, int type, int protocol) const {
         return ++last_socket;
     }
-
+    int connect(int sockfd, const struct sockaddr *addr,
+                socklen_t addrlen) const {
+        return 0;
+    }
     int close(int fd) const { return 0; }
     int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) const {
         return ++last_socket;
@@ -188,7 +191,7 @@ class EmptyOriginalFunctions : public OriginalFunctions {
         return 11;
     }
     int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
-                 unsigned int flags) const {
+                 int flags) const {
         return 11;
     }
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const {

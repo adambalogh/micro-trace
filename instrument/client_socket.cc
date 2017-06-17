@@ -10,7 +10,7 @@
 namespace microtrace {
 
 // TODO make this an injectable member variable
-NullLogger logger;
+StdoutLogger logger;
 
 /*
  * Wraps a proto::RequestLog. On destruction, it releases the fields that have
