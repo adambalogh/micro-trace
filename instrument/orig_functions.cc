@@ -18,6 +18,7 @@ OriginalFunctions &orig() {
 
 OriginalFunctionsImpl::OriginalFunctionsImpl() {
     ORIG(orig_socket, "socket");
+    ORIG(orig_connect, "connect");
     ORIG(orig_close, "close");
     ORIG(orig_recvfrom, "recvfrom");
     ORIG(orig_accept, "accept");
@@ -29,6 +30,7 @@ OriginalFunctionsImpl::OriginalFunctionsImpl() {
     ORIG(orig_send, "send");
     ORIG(orig_sendto, "sendto");
     ORIG(orig_sendmsg, "sendmsg");
+    ORIG(orig_sendmmsg, "sendmmsg");
 
     ORIG(orig_uv_accept, "uv_accept");
     ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
@@ -39,6 +41,11 @@ OriginalFunctionsImpl::OriginalFunctionsImpl() {
 
 int OriginalFunctionsImpl::socket(int domain, int type, int protocol) const {
     return orig_socket(domain, type, protocol);
+}
+
+int OriginalFunctionsImpl::connect(int sockfd, const struct sockaddr *addr,
+                                   socklen_t addrlen) const {
+    return orig_connect(sockfd, addr, addrlen);
 }
 
 int OriginalFunctionsImpl::close(int fd) const { return orig_close(fd); }
@@ -96,8 +103,7 @@ ssize_t OriginalFunctionsImpl::sendmsg(int sockfd, const struct msghdr *msg,
 }
 
 int OriginalFunctionsImpl::sendmmsg(int sockfd, struct mmsghdr *msgvec,
-                                    unsigned int vlen,
-                                    unsigned int flags) const {
+                                    unsigned int vlen, int flags) const {
     return orig_sendmmsg(sockfd, msgvec, vlen, flags);
 }
 

@@ -25,6 +25,8 @@ class OriginalFunctions {
     virtual ~OriginalFunctions() = default;
 
     virtual int socket(int domain, int type, int protocol) const = 0;
+    virtual int connect(int sockfd, const struct sockaddr *addr,
+                        socklen_t addrlen) const = 0;
     virtual int close(int fd) const = 0;
     virtual int accept(int sockfd, struct sockaddr *addr,
                        socklen_t *addrlen) const = 0;
@@ -47,7 +49,7 @@ class OriginalFunctions {
     virtual ssize_t sendmsg(int sockfd, const struct msghdr *msg,
                             int flags) const = 0;
     virtual int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
-                         unsigned int flags) const = 0;
+                         int flags) const = 0;
 
     virtual int uv_accept(uv_stream_t *server, uv_stream_t *client) const = 0;
     virtual int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
@@ -66,6 +68,8 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     /* Libc functions */
 
     typedef int (*orig_socket_t)(int domain, int type, int protocol);
+    typedef int (*orig_connect_t)(int sockfd, const struct sockaddr *addr,
+                                  socklen_t addrlen);
     typedef int (*orig_close_t)(int fd);
     typedef int (*orig_accept_t)(int sockfd, struct sockaddr *addr,
                                  socklen_t *addrlen);
@@ -89,7 +93,7 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     typedef ssize_t (*orig_sendmsg_t)(int sockfd, const struct msghdr *msg,
                                       int flags);
     typedef int (*orig_sendmmsg_t)(int sockfd, struct mmsghdr *msgvec,
-                                   unsigned int vlen, unsigned int flags);
+                                   unsigned int vlen, int flags);
 
     /* Libuv functions */
 
@@ -109,6 +113,8 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     OriginalFunctionsImpl();
 
     int socket(int domain, int type, int protocol) const override;
+    int connect(int sockfd, const struct sockaddr *addr,
+                socklen_t addrlen) const override;
     int close(int fd) const override;
     int accept(int sockfd, struct sockaddr *addr,
                socklen_t *addrlen) const override;
@@ -129,7 +135,7 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     ssize_t sendmsg(int sockfd, const struct msghdr *msg,
                     int flags) const override;
     int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
-                 unsigned int flags) const override;
+                 int flags) const override;
 
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const override;
     int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
@@ -144,6 +150,7 @@ class OriginalFunctionsImpl : public OriginalFunctions {
 
    private:
     orig_socket_t orig_socket;
+    orig_connect_t orig_connect;
     orig_close_t orig_close;
     orig_recvfrom_t orig_recvfrom;
     orig_accept_t orig_accept;
