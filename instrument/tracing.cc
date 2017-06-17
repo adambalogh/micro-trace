@@ -30,6 +30,8 @@ using namespace microtrace;
 
 namespace microtrace {
 
+const int DNS_PORT = 53;
+
 template <class CbType>
 struct CallbackWrap {
     CallbackWrap(void* req_ptr, uv_getaddrinfo_cb orig_cb, Context context)
@@ -141,6 +143,15 @@ int socket(int domain, int type, int protocol) {
     SaveSocket(std::move(socket));
 
     return sockfd;
+}
+
+int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
+    // We don't want to trace DNS requests
+    if (get_port(addr) == DNS_PORT) {
+        DeleteSocket(sockfd);
+    }
+    int ret = orig().connect(sockfd, addr, addrlen);
+    return ret;
 }
 
 /* uv_getaddrinfo */
