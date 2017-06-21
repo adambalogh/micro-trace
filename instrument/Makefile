@@ -13,14 +13,14 @@ OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 BENCHMARKS = tracing_benchmark.cc
 BENCHMARK_EXEC = $(addprefix $(BENCH_DIR)/,$(BENCHMARKS:.cc=))
 
-TESTS = context_test.cc tracing_test.cc socket_adapter_test.cc
+TESTS = context_test.cc tracing_test.cc instrumented_socket_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
-CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -DNDEBUG -O3 -g
+CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
 LIBFLAGS = -fPIC
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive

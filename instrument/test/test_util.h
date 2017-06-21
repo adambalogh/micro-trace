@@ -5,8 +5,8 @@
 #include <queue>
 #include <thread>
 
+#include "instrumented_socket.h"
 #include "orig_functions.h"
-#include "socket_adapter.h"
 
 using namespace microtrace;
 
@@ -223,22 +223,24 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     }
 };
 
-class DumbSocket : public InstrumentedSocket {
+class DumbSocketHandler : public SocketHandler {
    public:
-    static std::unique_ptr<InstrumentedSocket> New(int fd,
-                                                   const SocketRole role) {
-        return std::make_unique<DumbSocket>(fd, role);
+    static std::unique_ptr<SocketHandler> New(int fd, const SocketRole role) {
+        return std::make_unique<DumbSocketHandler>(fd, role);
     }
 
-    DumbSocket(int fd, const SocketRole role) : fd_(fd), role_(role) {}
+    DumbSocketHandler(int fd, const SocketRole role) : fd_(fd), role_(role) {}
 
-    ssize_t Read(const void *buf, size_t len, IoFunction fun) { return fun(); }
+    Result BeforeRead(const void *buf, size_t len) { return Result::Ok; }
+    void AfterRead(const void *buf, size_t len, ssize_t ret) {}
 
-    ssize_t Write(const struct iovec *iov, int iovcnt, IoFunction fun) {
-        return fun();
+    Result BeforeWrite(const struct iovec *iov, int iovcnt) {
+        return Result::Ok;
     }
+    void AfterWrite(const struct iovec *iov, int iovcnt, ssize_t ret) {}
 
-    int Close(CloseFunction fun) { return fun(); }
+    Result BeforeClose() { return Result::Ok; }
+    void AfterClose(int ret) {}
 
     int fd() const { return fd_; }
     SocketRole role() const { return role_; }
