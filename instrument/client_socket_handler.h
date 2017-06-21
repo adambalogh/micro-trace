@@ -1,6 +1,6 @@
 #pragma once
 
-#include "instrumented_socket.h"
+#include "socket_handler.h"
 
 #include <chrono>
 
@@ -8,7 +8,7 @@ namespace microtrace {
 
 struct RequestLogWrapper;
 
-class ClientSocket : public AbstractInstrumentedSocket {
+class ClientSocketHandler : public AbstractSocketHandler {
    private:
     /*
      * A transaction is a request-respone sequence between this client and
@@ -40,11 +40,17 @@ class ClientSocket : public AbstractInstrumentedSocket {
     };
 
    public:
-    ClientSocket(int sockfd);
+    ClientSocketHandler(int sockfd);
 
-    ssize_t Read(const void* buf, size_t len, IoFunction fun) override;
-    ssize_t Write(const struct iovec* iov, int iovcnt, IoFunction fun) override;
-    int Close(CloseFunction fun) override;
+    virtual Result BeforeRead(const void* buf, size_t len) override;
+    virtual void AfterRead(const void* buf, size_t len, ssize_t ret) override;
+
+    virtual Result BeforeWrite(const struct iovec* iov, int iovcnt) override;
+    virtual void AfterWrite(const struct iovec* iov, int iovcnt,
+                            ssize_t ret) override;
+
+    virtual Result BeforeClose() override;
+    virtual void AfterClose(int ret) override;
 
     bool has_txn() const { return static_cast<bool>(txn_); }
 

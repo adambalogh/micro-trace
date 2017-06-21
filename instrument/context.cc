@@ -30,7 +30,7 @@ bool is_context_undefined() { return context_undefined; }
 
 // TODO random_generator is not thread-safe
 uuid_t new_uuid() {
-    static boost::uuids::random_generator gen;
+    static thread_local boost::uuids::random_generator gen;
     return gen();
 }
 

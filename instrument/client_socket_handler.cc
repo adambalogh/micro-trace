@@ -1,4 +1,4 @@
-#include "client_socket.h"
+#include "client_socket_handler.h"
 
 #include <chrono>
 
@@ -30,12 +30,12 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocket::ClientSocket(int sockfd)
-    : AbstractInstrumentedSocket(sockfd, SocketRole::CLIENT,
-                                 SocketState::WILL_WRITE),
+ClientSocketHandler::ClientSocketHandler(int sockfd)
+    : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
+                            SocketState::WILL_WRITE),
       txn_(nullptr) {}
 
-void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
+void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
            "FillRequestLog was called when conn_init is false");
 
@@ -56,19 +56,24 @@ void ClientSocket::FillRequestLog(RequestLogWrapper& log) {
     log->set_role(proto::RequestLog::CLIENT);
 }
 
-ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
-    LOG_ERROR_IF(state_ == SocketState::WILL_WRITE,
-                 "ClientSocket that was expected to write, read instead");
+SocketHandler::Result ClientSocketHandler::BeforeRead(const void* buf,
+                                                      size_t len) {
+    LOG_ERROR_IF(
+        state_ == SocketState::WILL_WRITE,
+        "ClientSocketHandler that was expected to write, read instead");
 
     set_current_context(context());
 
-    auto ret = fun();
+    return Result::Ok;
+}
+
+void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     if (ret == 0) {
         // peer shutdown
-        return ret;
+        return;
     }
     if (ret == -1) {
-        return ret;
+        return;
     }
 
     VERIFY(ret > 0, "read invalid return value");
@@ -91,14 +96,17 @@ ssize_t ClientSocket::Read(const void* buf, size_t len, IoFunction fun) {
     }
 
     state_ = SocketState::READ;
-    return ret;
 }
 
-ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
-                            IoFunction fun) {
-    auto ret = fun();
+SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
+                                                       int iovcnt) {
+    return Result::Ok;
+}
+
+void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
+                                     ssize_t ret) {
     if (ret == -1 || ret == 0) {
-        return ret;
+        return;
     }
 
     VERIFY(ret > 0, "write invalid return value");
@@ -123,8 +131,9 @@ ssize_t ClientSocket::Write(const struct iovec* iov, int iovcnt,
     }
 
     state_ = SocketState::WROTE;
-    return ret;
 }
 
-int ClientSocket::Close(CloseFunction fun) { return fun(); }
+SocketHandler::Result ClientSocketHandler::BeforeClose() { return Result::Ok; }
+
+void ClientSocketHandler::AfterClose(int ret) {}
 }

@@ -1,13 +1,13 @@
 PWD = $(shell pwd)
 
-LIB_NAME = trace.so
+LIB_NAME = libtrace.so
 BUILD_DIR = $(PWD)/build
 BENCH_DIR = $(addprefix $(BUILD_DIR)/, benchmark)
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = $(PWD)
-SRCS = socket_adapter.cc tracing.cc orig_functions.cc context.cc instrumented_socket.cc \
-	  client_socket.cc server_socket.cc logger.cc common.cc
+SRCS = instrumented_socket.cc tracing.cc orig_functions.cc context.cc socket_handler.cc \
+	  client_socket_handler.cc server_socket_handler.cc logger.cc common.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
 BENCHMARKS = tracing_benchmark.cc
@@ -20,7 +20,7 @@ INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
-CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals
+CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -DNDEBUG -O3 -g
 LIBFLAGS = -fPIC
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
@@ -37,6 +37,9 @@ PROTO_GEN = $(addprefix $(PROTO_GEN_DIR)/,$(PROTOS:.proto=.pb.cc)) $(addprefix $
 .PRECIOUS: $(PROTO_GEN)
 
 all: $(OUT)
+
+install:
+	sudo cp $(OUT) /usr/local/lib/.
 
 # Shared library build
 $(OUT): $(OBJ) $(PROTO_OBJ)
