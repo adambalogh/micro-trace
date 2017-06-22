@@ -62,12 +62,12 @@ SocketHandler::Result ClientSocketHandler::BeforeRead(const void* buf,
         state_ == SocketState::WILL_WRITE,
         "ClientSocketHandler that was expected to write, read instead");
 
-    set_current_context(context());
-
     return Result::Ok;
 }
 
 void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
+    set_current_context(context());
+
     if (ret == 0) {
         // peer shutdown
         return;
