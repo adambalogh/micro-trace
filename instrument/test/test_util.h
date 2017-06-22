@@ -194,6 +194,10 @@ class EmptyOriginalFunctions : public OriginalFunctions {
                  int flags) const {
         return 11;
     }
+    int uv_tcp_connect(uv_connect_t *req, uv_tcp_t *handle,
+                       const struct sockaddr *addr, uv_connect_cb cb) const {
+        return 0;
+    }
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const {
         client->io_watcher.fd = ++last_socket;
         return 0;
@@ -230,6 +234,8 @@ class DumbSocketHandler : public SocketHandler {
     }
 
     DumbSocketHandler(int fd, const SocketRole role) : fd_(fd), role_(role) {}
+
+    void Async() {}
 
     Result BeforeRead(const void *buf, size_t len) { return Result::Ok; }
     void AfterRead(const void *buf, size_t len, ssize_t ret) {}

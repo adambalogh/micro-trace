@@ -11,6 +11,18 @@ struct RequestLogWrapper;
 class ClientSocketHandler : public AbstractSocketHandler {
    private:
     /*
+     * Indicates if this socket is blocking or non-blocking.
+     *
+     * The only difference it makes is how the context is followed.
+     * If the type is BLOCKING, we assume that the socket might be from a
+     * connection pool in a threaded-server, so the context is copied before
+     * every outgoing write. If it is non-blocking, we assume that it's not part
+     * of a connection pool, so the context is only copied when the socket is
+     * set up.
+     */
+    enum class SocketType { BLOCKING, ASYNC };
+
+    /*
      * A transaction is a request-respone sequence between this client and
      * a server.
      */
@@ -64,5 +76,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
      * It is initially empty.
      */
     std::unique_ptr<Transaction> txn_;
+
+    SocketType socket_type_;
 };
 }

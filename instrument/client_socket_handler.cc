@@ -33,7 +33,8 @@ struct RequestLogWrapper {
 ClientSocketHandler::ClientSocketHandler(int sockfd)
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
                             SocketState::WILL_WRITE),
-      txn_(nullptr) {}
+      txn_(nullptr),
+      socket_type_(SocketType::BLOCKING) {}
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
@@ -56,7 +57,10 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     log->set_role(proto::RequestLog::CLIENT);
 }
 
-void ClientSocketHandler::Async() {}
+void ClientSocketHandler::Async() {
+    socket_type_ = SocketType::ASYNC;
+    context_.reset(new Context(get_current_context()));
+}
 
 SocketHandler::Result ClientSocketHandler::BeforeRead(const void* buf,
                                                       size_t len) {
@@ -119,7 +123,10 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
 
     // New transaction
     if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-        context_.reset(new Context(get_current_context()));
+        // Only copy context if it is a blocking socket
+        if (socket_type_ == SocketType::BLOCKING) {
+            context_.reset(new Context(get_current_context()));
+        }
         set_current_context(*context_);
 
         txn_.reset(new Transaction);
