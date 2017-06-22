@@ -84,15 +84,15 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
 
     // New incoming response
     if (state_ == SocketState::WROTE) {
-        txn_->End();
+        context_->NewSpan();
+        set_current_context(context());
 
+        txn_->End();
         {
             RequestLogWrapper log;
             FillRequestLog(log);
             logger.Log(log.get());
         }
-        context_->NewSpan();
-        set_current_context(context());
     }
 
     state_ = SocketState::READ;

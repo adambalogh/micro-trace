@@ -163,7 +163,10 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
  * specific to uv_tcp_connect(), but not connect().
  */
 int uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle,
-                   const struct sockaddr* addr, uv_connect_cb cb) {}
+                   const struct sockaddr* addr, uv_connect_cb cb) {
+    int ret = orig().uv_tcp_connect(req, handle, addr, cb);
+    return ret;
+}
 
 /* uv_getaddrinfo */
 
