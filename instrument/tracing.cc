@@ -164,6 +164,8 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
 int uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle,
                    const struct sockaddr* addr, uv_connect_cb cb) {
     int ret = orig().uv_tcp_connect(req, handle, addr, cb);
+    auto* sock = GetSocket(uv_fd(handle));
+    sock->Async();
     return ret;
 }
 

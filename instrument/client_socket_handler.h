@@ -42,6 +42,8 @@ class ClientSocketHandler : public AbstractSocketHandler {
    public:
     ClientSocketHandler(int sockfd);
 
+    virtual void Async() override;
+
     virtual Result BeforeRead(const void* buf, size_t len) override;
     virtual void AfterRead(const void* buf, size_t len, ssize_t ret) override;
 

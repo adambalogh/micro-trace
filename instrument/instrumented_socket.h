@@ -27,6 +27,8 @@ class InstrumentedSocket : public SocketInterface {
     InstrumentedSocket(const int fd, std::unique_ptr<SocketHandler> handler,
                        const OriginalFunctions &orig);
 
+    void Async() override;
+
     ssize_t RecvFrom(void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) override;
     ssize_t Recv(void *buf, size_t len, int flags) override;

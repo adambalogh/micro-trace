@@ -56,6 +56,8 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     log->set_role(proto::RequestLog::CLIENT);
 }
 
+void ClientSocketHandler::Async() {}
+
 SocketHandler::Result ClientSocketHandler::BeforeRead(const void* buf,
                                                       size_t len) {
     LOG_ERROR_IF(

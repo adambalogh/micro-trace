@@ -69,6 +69,8 @@ class SocketHandler {
 
     virtual ~SocketHandler() = default;
 
+    virtual void Async() = 0;
+
     virtual Result BeforeRead(const void* buf, size_t len) = 0;
     virtual void AfterRead(const void* buf, size_t len, ssize_t ret) = 0;
 

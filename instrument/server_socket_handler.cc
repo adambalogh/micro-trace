@@ -9,6 +9,11 @@ ServerSocketHandler::ServerSocketHandler(int sockfd)
     : AbstractSocketHandler(sockfd, SocketRole::SERVER,
                             SocketState::WILL_READ) {}
 
+void ServerSocketHandler::Async() {
+    VERIFY(false,
+           "Async() called with ServerSocket, which is currently not expected");
+}
+
 SocketHandler::Result ServerSocketHandler::BeforeRead(const void* buf,
                                                       size_t len) {
     LOG_ERROR_IF(
