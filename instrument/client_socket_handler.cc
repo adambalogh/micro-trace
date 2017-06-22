@@ -82,12 +82,10 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     // New transaction
     if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
         // Only copy context if it is a blocking socket
-        printf("dangerous\n");
         if (socket_type_ == SocketType::BLOCKING) {
             context_.reset(new Context(get_current_context()));
         }
         set_current_context(context());
-        printf("passed\n");
 
         txn_.reset(new Transaction);
         txn_->Start();
