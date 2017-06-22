@@ -51,6 +51,9 @@ class OriginalFunctions {
     virtual int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
                          int flags) const = 0;
 
+    virtual int uv_tcp_connect(uv_connect_t *req, uv_tcp_t *handle,
+                               const struct sockaddr *addr,
+                               uv_connect_cb cb) const = 0;
     virtual int uv_accept(uv_stream_t *server, uv_stream_t *client) const = 0;
     virtual int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                                uv_getaddrinfo_cb getaddrinfo_cb,
@@ -96,7 +99,9 @@ class OriginalFunctionsImpl : public OriginalFunctions {
                                    unsigned int vlen, int flags);
 
     /* Libuv functions */
-
+    typedef int (*orig_uv_tcp_connect_t)(uv_connect_t *req, uv_tcp_t *handle,
+                                         const struct sockaddr *addr,
+                                         uv_connect_cb cb);
     typedef int (*orig_uv_accept_t)(uv_stream_t *server, uv_stream_t *client);
     typedef int (*orig_uv_getaddrinfo_t)(uv_loop_t *loop, uv_getaddrinfo_t *req,
                                          uv_getaddrinfo_cb getaddrinfo_cb,
@@ -137,6 +142,9 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen,
                  int flags) const override;
 
+    int uv_tcp_connect(uv_connect_t *req, uv_tcp_t *handle,
+                       const struct sockaddr *addr,
+                       uv_connect_cb cb) const override;
     int uv_accept(uv_stream_t *server, uv_stream_t *client) const override;
     int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                        uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
@@ -163,6 +171,7 @@ class OriginalFunctionsImpl : public OriginalFunctions {
     orig_sendto_t orig_sendto;
     orig_sendmsg_t orig_sendmsg;
     orig_sendmmsg_t orig_sendmmsg;
+    orig_uv_tcp_connect_t orig_uv_tcp_connect;
     orig_uv_accept_t orig_uv_accept;
     orig_uv_getaddrinfo_t orig_uv_getaddrinfo;
     orig_getpeername_t orig_getpeername;

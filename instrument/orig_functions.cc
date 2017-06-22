@@ -107,6 +107,12 @@ int OriginalFunctionsImpl::sendmmsg(int sockfd, struct mmsghdr *msgvec,
     return orig_sendmmsg(sockfd, msgvec, vlen, flags);
 }
 
+int OriginalFunctionsImpl::uv_tcp_connect(uv_connect_t *req, uv_tcp_t *handle,
+                                          const struct sockaddr *addr,
+                                          uv_connect_cb cb) const {
+    return orig_uv_tcp_connect(req, handle, addr, cb);
+}
+
 int OriginalFunctionsImpl::uv_accept(uv_stream_t *server,
                                      uv_stream_t *client) const {
     return orig_uv_accept(server, client);

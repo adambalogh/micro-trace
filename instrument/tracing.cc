@@ -158,6 +158,13 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
     return ret;
 }
 
+/*
+ * uv_tcp_connect will eventually call connect(), so we only add tracing that is
+ * specific to uv_tcp_connect(), but not connect().
+ */
+int uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle,
+                   const struct sockaddr* addr, uv_connect_cb cb) {}
+
 /* uv_getaddrinfo */
 
 void unwrap_getaddrinfo(uv_getaddrinfo_t* req, int status,
