@@ -119,8 +119,7 @@ int accept4(int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
 int uv_accept(uv_stream_t* server, uv_stream_t* client) {
     int ret = orig().uv_accept(server, client);
     if (ret == 0) {
-        int fd = client->io_watcher.fd;
-        HandleAccept(fd);
+        HandleAccept(uv_fd(client));
     }
 
     return ret;

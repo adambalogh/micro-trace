@@ -32,6 +32,7 @@ OriginalFunctionsImpl::OriginalFunctionsImpl() {
     ORIG(orig_sendmsg, "sendmsg");
     ORIG(orig_sendmmsg, "sendmmsg");
 
+    ORIG(orig_uv_tcp_connect, "uv_tcp_connect");
     ORIG(orig_uv_accept, "uv_accept");
     ORIG(orig_uv_getaddrinfo, "uv_getaddrinfo");
 
