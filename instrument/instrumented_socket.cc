@@ -43,9 +43,9 @@ ssize_t InstrumentedSocket::Read(void *buf, size_t count) {
 }
 
 ssize_t InstrumentedSocket::Send(const void *buf, size_t len, int flags) {
-    handler_->BeforeRead(buf, len);
+    handler_->BeforeWrite(set_iovec(buf, len), SINGLE_IOVEC);
     auto ret = orig_.send(fd(), buf, len, flags);
-    handler_->AfterRead(buf, len, ret);
+    handler_->AfterWrite(set_iovec(buf, len), SINGLE_IOVEC, ret);
     return ret;
 }
 

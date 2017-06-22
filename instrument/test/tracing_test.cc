@@ -236,7 +236,7 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         ret = read(first_client, &buf, MSG_LEN);
         const Context first_context = get_current_context();
 
-        // Write to connection pool-- this should be associated with
+        // Write to connection pool -- this should be associated with
         // first_context
         ret = write(connection_pool, &buf, MSG_LEN);
         EXPECT_EQ(first_context, get_current_context());
