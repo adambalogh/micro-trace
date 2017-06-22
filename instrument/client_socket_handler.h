@@ -75,7 +75,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
      * connection pool in a threaded-server, so the context is copied before
      * every outgoing write. If it is non-blocking, we assume that it's not part
      * of a connection pool, so the context is only copied when the socket is
-     * set up.
+     * set up, and remains the same throughout its lifetime.
      *
      * By default, it is BLOCKING.
      */

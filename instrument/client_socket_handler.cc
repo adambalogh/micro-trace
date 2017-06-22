@@ -47,9 +47,9 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     conn->set_client_port(conn_.client_port);
 
     proto::Context* ctx = log->mutable_context();
-    ctx->set_trace_id(context_->trace());
-    ctx->set_span_id(context_->span());
-    ctx->set_parent_span(context_->parent_span());
+    ctx->set_trace_id(context().trace());
+    ctx->set_span_id(context().span());
+    ctx->set_parent_span(context().parent_span());
 
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
@@ -60,6 +60,46 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
 void ClientSocketHandler::Async() {
     socket_type_ = SocketType::ASYNC;
     context_.reset(new Context(get_current_context()));
+}
+
+SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
+                                                       int iovcnt) {
+    return Result::Ok;
+}
+
+void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
+                                     ssize_t ret) {
+    if (ret == -1 || ret == 0) {
+        return;
+    }
+
+    VERIFY(ret > 0, "write invalid return value");
+
+    if (!conn_init_) {
+        SetConnection();
+    }
+
+    // New transaction
+    if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+        // Only copy context if it is a blocking socket
+        printf("dangerous\n");
+        if (socket_type_ == SocketType::BLOCKING) {
+            context_.reset(new Context(get_current_context()));
+        }
+        set_current_context(context());
+        printf("passed\n");
+
+        txn_.reset(new Transaction);
+        txn_->Start();
+
+        ++num_transactions_;
+    }
+    // Continue sending request
+    else if (state_ == SocketState::WROTE) {
+        set_current_context(context());
+    }
+
+    state_ = SocketState::WROTE;
 }
 
 SocketHandler::Result ClientSocketHandler::BeforeRead(const void* buf,
@@ -102,44 +142,6 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     }
 
     state_ = SocketState::READ;
-}
-
-SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
-                                                       int iovcnt) {
-    return Result::Ok;
-}
-
-void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
-                                     ssize_t ret) {
-    if (ret == -1 || ret == 0) {
-        return;
-    }
-
-    VERIFY(ret > 0, "write invalid return value");
-
-    if (!conn_init_) {
-        SetConnection();
-    }
-
-    // New transaction
-    if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-        // Only copy context if it is a blocking socket
-        if (socket_type_ == SocketType::BLOCKING) {
-            context_.reset(new Context(get_current_context()));
-        }
-        set_current_context(*context_);
-
-        txn_.reset(new Transaction);
-        txn_->Start();
-
-        ++num_transactions_;
-    }
-    // Continue sending request
-    else if (state_ == SocketState::WROTE) {
-        set_current_context(context());
-    }
-
-    state_ = SocketState::WROTE;
 }
 
 SocketHandler::Result ClientSocketHandler::BeforeClose() { return Result::Ok; }
