@@ -1,5 +1,5 @@
 all:
-	cp ../instrument/build/trace.so first/.
-	cp ../instrument/build/trace.so second/.
-	cp ../instrument/build/trace.so third/.
+	cp ../instrument/build/libtrace.so first/.
+	cp ../instrument/build/libtrace.so second/.
+	cp ../instrument/build/libtrace.so third/.
 	docker-compose build

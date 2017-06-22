@@ -16,10 +16,10 @@ WORKDIR /usr/src/app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY trace.so /usr/local/lib/.
+COPY libtrace.so /usr/local/lib/.
 COPY libprotobuf.so.13 /usr/local/lib/.
 COPY server.py .
 
 EXPOSE 5001
-ENV LD_PRELOAD /usr/local/lib/trace.so
+ENV LD_PRELOAD /usr/local/lib/libtrace.so
 CMD ["python", "server.py"]
