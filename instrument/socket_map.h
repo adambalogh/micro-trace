@@ -17,8 +17,10 @@ class SocketMap {
     const int DEFAULT_SIZE = 1024;
 
     SocketMap() : size_(DEFAULT_SIZE), map_(new value_type[DEFAULT_SIZE]) {}
-
     ~SocketMap() { delete[] map_; }
+
+    SocketMap(const SocketMap&) = delete;
+    SocketMap(SocketMap&&) = delete;
 
     SocketInterface* Get(const int sockfd) {
         std::unique_lock<std::mutex> l(mu_);
