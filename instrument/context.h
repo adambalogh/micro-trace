@@ -13,6 +13,10 @@ namespace microtrace {
  * each thread. By default, the trace is undefined.
  */
 
+/*
+ * An Uuid is derived from a boost::uuids::uuids object, its lower 64 bits
+ * is stored in low_, and upper 64 bits in high_.
+ */
 class Uuid {
    public:
     Uuid();
@@ -37,8 +41,6 @@ class Context {
     static bool SameTrace(const Context& a, const Context& b) {
         return a.trace() == b.trace();
     }
-
-    std::string to_string() const;
 
     const uuid_t& trace() const { return trace_; }
     const uuid_t& span() const { return span_; }

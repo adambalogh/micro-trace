@@ -9,8 +9,6 @@
 
 #include "common.h"
 
-#define UNDEFINED_TRACE -2
-
 namespace microtrace {
 
 static thread_local Context current_context;
@@ -36,7 +34,7 @@ static boost::uuids::uuid boost_uuid() {
 
 Uuid::Uuid() : high_(0), low_(0) {
     const auto uuid = boost_uuid();
-    const int byte_size = 8;
+    const int byte_size = 8;  // in bits
 
     static_assert(1 == sizeof(boost::uuids::uuid::value_type),
                   "Boost Uuid byte should be 8 bits");
@@ -64,11 +62,6 @@ void Context::NewSpan() {
     parent_span_ = span_;
     span_ = Uuid{};
 }
-
-// std::string Context::to_string() const {
-//    return "[trace_id: " + *trace_ + ", span: " + *span_ + ", parent_span:" +
-//           *parent_span_ + "]";
-//}
 
 bool operator==(const Context& a, const Context& b) {
     return a.trace() == b.trace() && a.span() == b.span();
