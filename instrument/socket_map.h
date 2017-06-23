@@ -14,7 +14,7 @@ class SocketMap {
     typedef std::unique_ptr<SocketInterface> value_type;
 
     // Should be power of 2
-    const int DEFAULT_SIZE = 1;
+    const int DEFAULT_SIZE = 1024;
 
     SocketMap() : size_(DEFAULT_SIZE), map_(new value_type[DEFAULT_SIZE]) {}
 
