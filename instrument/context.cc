@@ -27,13 +27,13 @@ void set_current_context(const Context& context) {
 
 bool is_context_undefined() { return context_undefined; }
 
-static boost::uuids::uuid boost_uuid() {
+static boost::uuids::uuid new_boost_uuid() {
     static thread_local boost::uuids::random_generator gen;
     return gen();
 }
 
 Uuid::Uuid() : high_(0), low_(0) {
-    const auto uuid = boost_uuid();
+    const auto uuid = new_boost_uuid();
     const int byte_size = 8;  // in bits
 
     static_assert(1 == sizeof(boost::uuids::uuid::value_type),
