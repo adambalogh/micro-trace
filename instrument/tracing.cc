@@ -15,6 +15,7 @@
 #include "instrumented_socket.h"
 #include "orig_functions.h"
 #include "server_socket_handler.h"
+#include "socket_map.h"
 #include "tracing.h"
 
 using namespace microtrace;
@@ -45,11 +46,9 @@ struct CallbackWrap {
 
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
-static std::mutex socket_map_mu;
-
 static auto& socket_map() {
-    static std::unordered_map<int, std::unique_ptr<SocketInterface>> socket_map;
-    return socket_map;
+    static SocketMap socket_map_;
+    return socket_map_;
 }
 
 static auto& getaddrinfo_cbs() {
@@ -59,24 +58,15 @@ static auto& getaddrinfo_cbs() {
 }
 
 static void SaveSocket(std::unique_ptr<SocketInterface> entry) {
-    std::unique_lock<std::mutex> l(socket_map_mu);
-    LOG_ERROR_IF(socket_map().count(entry->fd()), "Socket created twice");
-    socket_map()[entry->fd()] = std::move(entry);
+    const int fd = entry->fd();
+    socket_map().Set(fd, std::move(entry));
 }
 
 static SocketInterface* GetSocket(const int sockfd) {
-    std::unique_lock<std::mutex> l(socket_map_mu);
-    auto it = socket_map().find(sockfd);
-    if (it == socket_map().end()) {
-        return nullptr;
-    }
-    return it->second.get();
+    return socket_map().Get(sockfd);
 }
 
-static void DeleteSocket(const int sockfd) {
-    std::unique_lock<std::mutex> l(socket_map_mu);
-    socket_map().erase(sockfd);
-}
+static void DeleteSocket(const int sockfd) { socket_map().Delete(sockfd); }
 
 static void SaveGetAddrinfoCb(std::unique_ptr<GetAddrinfoCbWrap> wrap) {
     getaddrinfo_cbs()[wrap->req_ptr] = std::move(wrap);
