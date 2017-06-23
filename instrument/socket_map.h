@@ -14,7 +14,7 @@ class SocketMap {
     typedef std::unique_ptr<SocketInterface> value_type;
 
     // Should be power of 2
-    const int DEFAULT_SIZE = 1024;
+    const int DEFAULT_SIZE = 1;
 
     SocketMap() : size_(DEFAULT_SIZE), map_(new value_type[DEFAULT_SIZE]) {}
 
@@ -28,7 +28,7 @@ class SocketMap {
 
     void Set(const int sockfd, value_type val) {
         std::unique_lock<std::mutex> l(mu_);
-        if (sockfd >= size_) {
+        if (!in_range(sockfd)) {
             Resize(sockfd);
         }
         LOG_ERROR_IF(map_[sockfd] == false, "Socket created twice");
