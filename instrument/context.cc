@@ -1,6 +1,7 @@
 #include "context.h"
 
 #include <assert.h>
+#include <bitset>
 #include <string>
 
 #include <boost/uuid/random_generator.hpp>
@@ -28,27 +29,46 @@ void set_current_context(const Context& context) {
 
 bool is_context_undefined() { return context_undefined; }
 
-// TODO random_generator is not thread-safe
-uuid_t new_uuid() {
+static boost::uuids::uuid boost_uuid() {
     static thread_local boost::uuids::random_generator gen;
     return gen();
 }
 
-Context::Context()
-    : trace_(
-          std::make_shared<std::string>(boost::uuids::to_string(new_uuid()))),
-      span_(trace_),
-      parent_span_(trace_) {}
+Uuid::Uuid() : high_(0), low_(0) {
+    const auto uuid = boost_uuid();
+    const int byte_size = 8;
+
+    static_assert(1 == sizeof(boost::uuids::uuid::value_type),
+                  "Boost Uuid byte should be 8 bits");
+    static_assert(16 == uuid.size(), "Boost Uuid should be 16 bytes");
+
+    for (int i = 0; i < 8; ++i) {
+        high_ = (high_ << byte_size);
+        high_ |= *(uuid.begin() + i);
+    }
+    for (int i = 0; i < 8; ++i) {
+        low_ = (low_ << byte_size);
+        low_ |= *(uuid.begin() + 8 + i);
+    }
+}
+
+bool operator==(const Uuid& a, const Uuid& b) {
+    return a.high() == b.high() && a.low() == b.low();
+}
+
+bool operator!=(const Uuid& a, const Uuid& b) { return !operator==(a, b); }
+
+Context::Context() : trace_(Uuid{}), span_(trace_), parent_span_(trace_) {}
 
 void Context::NewSpan() {
     parent_span_ = span_;
-    span_ = std::make_shared<std::string>(boost::uuids::to_string(new_uuid()));
+    span_ = Uuid{};
 }
 
-std::string Context::to_string() const {
-    return "[trace_id: " + *trace_ + ", span: " + *span_ + ", parent_span:" +
-           *parent_span_ + "]";
-}
+// std::string Context::to_string() const {
+//    return "[trace_id: " + *trace_ + ", span: " + *span_ + ", parent_span:" +
+//           *parent_span_ + "]";
+//}
 
 bool operator==(const Context& a, const Context& b) {
     return a.trace() == b.trace() && a.span() == b.span();

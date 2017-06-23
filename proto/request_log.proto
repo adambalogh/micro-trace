@@ -12,12 +12,17 @@ message Connection {
     optional string server_service_name = 6;
 }
 
-message Context {
-    required string trace_id = 1;
-    required string span_id = 2;
-    required string parent_span = 3;
+message Uuid {
+    required uint64 high = 1;
+    required uint64 low = 2;
 }
+
 message RequestLog {
+    message Context {
+        required Uuid trace_id = 1;
+        required Uuid span_id = 2;
+        required Uuid parent_span = 3;
+    }
     required Context context = 1;
 
     // The number of seconds since epoch this request was sent/received

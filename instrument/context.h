@@ -13,7 +13,22 @@ namespace microtrace {
  * each thread. By default, the trace is undefined.
  */
 
-typedef boost::uuids::uuid uuid_t;
+class Uuid {
+   public:
+    Uuid();
+
+    uint64_t high() const { return high_; }
+    uint64_t low() const { return low_; }
+
+   private:
+    uint64_t high_;
+    uint64_t low_;
+};
+
+bool operator==(const Uuid& a, const Uuid& b);
+bool operator!=(const Uuid& a, const Uuid& b);
+
+typedef Uuid uuid_t;
 
 class Context {
    public:
@@ -25,9 +40,9 @@ class Context {
 
     std::string to_string() const;
 
-    const std::string& trace() const { return *trace_; }
-    const std::string& span() const { return *span_; }
-    const std::string& parent_span() const { return *parent_span_; }
+    const uuid_t& trace() const { return trace_; }
+    const uuid_t& span() const { return span_; }
+    const uuid_t& parent_span() const { return parent_span_; }
 
     /*
      * Generates and assigns a new span to this context, and saves the current
@@ -39,19 +54,19 @@ class Context {
     /*
      * A trace uniquely identifies a user request.
      */
-    std::shared_ptr<const std::string> trace_;
+    uuid_t trace_;
 
     /*
      * A span, along with a trace, identifies an action that can be attributed
      * to that trace.
      */
-    std::shared_ptr<const std::string> span_;
+    uuid_t span_;
 
     /*
      * The span that *probably* caused the current span. The parent span must
      * belong to the same trace as the current one.
      */
-    std::shared_ptr<const std::string> parent_span_;
+    uuid_t parent_span_;
 };
 
 bool operator==(const Context& a, const Context& b);
