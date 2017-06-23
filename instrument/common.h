@@ -12,12 +12,13 @@
 #define LIBMICROTRACE_EXPORTED
 #endif
 
-#define VERIFY(condition, ...)                  \
-    do {                                        \
-        if ((condition) == false) {             \
-            console_log->critical(__VA_ARGS__); \
-            abort();                            \
-        }                                       \
+#define VERIFY(condition, format, ...)                                   \
+    do {                                                                 \
+        if ((condition) == false) {                                      \
+            console_log->critical("{}:{} - " format, __FILE__, __LINE__, \
+                                  ##__VA_ARGS__);                        \
+            abort();                                                     \
+        }                                                                \
     } while (0)
 
 #ifdef DEBUG
