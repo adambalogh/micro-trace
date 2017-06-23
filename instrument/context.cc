@@ -21,9 +21,9 @@ const Context& get_current_context() {
     return current_context;
 }
 
-void set_current_context(const Context context) {
+void set_current_context(const Context& context) {
     context_undefined = false;
-    current_context = std::move(context);
+    current_context = context;
 }
 
 bool is_context_undefined() { return context_undefined; }
@@ -35,17 +35,19 @@ uuid_t new_uuid() {
 }
 
 Context::Context()
-    : trace_(boost::uuids::to_string(new_uuid())),
+    : trace_(
+          std::make_shared<std::string>(boost::uuids::to_string(new_uuid()))),
       span_(trace_),
       parent_span_(trace_) {}
 
 void Context::NewSpan() {
     parent_span_ = span_;
-    span_ = boost::uuids::to_string(new_uuid());
+    span_ = std::make_shared<std::string>(boost::uuids::to_string(new_uuid()));
 }
 
 std::string Context::to_string() const {
-    return "[trace_id: " + trace_ + ", span: " + span_ + "]";
+    return "[trace_id: " + *trace_ + ", span: " + *span_ + ", parent_span:" +
+           *parent_span_ + "]";
 }
 
 bool operator==(const Context& a, const Context& b) {

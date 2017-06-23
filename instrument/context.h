@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <boost/uuid/uuid.hpp>
@@ -24,15 +25,9 @@ class Context {
 
     std::string to_string() const;
 
-    const std::string& trace() const { return trace_; }
-
-    void set_span(const std::string& span) { span_ = span; }
-    const std::string& span() const { return span_; }
-
-    void set_parent_span(const std::string& parent_span) {
-        parent_span_ = parent_span;
-    }
-    const std::string& parent_span() const { return parent_span_; }
+    const std::string& trace() const { return *trace_; }
+    const std::string& span() const { return *span_; }
+    const std::string& parent_span() const { return *parent_span_; }
 
     /*
      * Generates and assigns a new span to this context, and saves the current
@@ -44,19 +39,19 @@ class Context {
     /*
      * A trace uniquely identifies a user request.
      */
-    std::string trace_;
+    std::shared_ptr<const std::string> trace_;
 
     /*
      * A span, along with a trace, identifies an action that can be attributed
      * to that trace.
      */
-    std::string span_;
+    std::shared_ptr<const std::string> span_;
 
     /*
      * The span that *probably* caused the current span. The parent span must
      * belong to the same trace as the current one.
      */
-    std::string parent_span_;
+    std::shared_ptr<const std::string> parent_span_;
 };
 
 bool operator==(const Context& a, const Context& b);
@@ -71,7 +66,7 @@ const Context& get_current_context();
 /*
  * Sets the current context.
  */
-void set_current_context(const Context context);
+void set_current_context(const Context& context);
 
 /*
  * Returns true if the current context is not defined.
