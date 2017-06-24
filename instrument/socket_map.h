@@ -24,13 +24,13 @@ class SocketMap {
     SocketMap(SocketMap&&) = delete;
 
     SocketInterface* Get(const int sockfd) const {
-        std::shared_lock<std::shared_timed_mutex> l(mu_);
+        std::shared_lock<mutex_type> l(mu_);
         VERIFY(in_range(sockfd), "Invalid sockfd");
         return map_[sockfd].get();
     }
 
     void Set(const int sockfd, value_type val) {
-        std::unique_lock<std::shared_timed_mutex> l(mu_);
+        std::unique_lock<mutex_type> l(mu_);
         if (!in_range(sockfd)) {
             Resize(sockfd);
         }
@@ -39,12 +39,15 @@ class SocketMap {
     }
 
     void Delete(const int sockfd) {
-        std::unique_lock<std::shared_timed_mutex> l(mu_);
+        std::unique_lock<mutex_type> l(mu_);
         VERIFY(in_range(sockfd), "Invalid sockfd");
         map_[sockfd].reset();
     }
 
    private:
+    // Note: there is no shared_mutex in GCC 5
+    typedef std::shared_timed_mutex mutex_type;
+
     inline bool in_range(int sockfd) const { return sockfd < size_; }
 
     void Resize(const int min_size) {
@@ -63,7 +66,7 @@ class SocketMap {
     }
 
     // Guards public methods
-    mutable std::shared_timed_mutex mu_;
+    mutable mutex_type mu_;
 
     int size_;
     value_type* map_;
