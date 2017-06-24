@@ -20,7 +20,7 @@ INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
-CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
+CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g -DNDEBUG
 LIBFLAGS = -fPIC
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
@@ -36,7 +36,9 @@ PROTO_GEN = $(addprefix $(PROTO_GEN_DIR)/,$(PROTOS:.proto=.pb.cc)) $(addprefix $
 
 .PRECIOUS: $(PROTO_GEN)
 
-all: $(OUT)
+all:
+	$(OUT)
+	make install
 
 install:
 	sudo cp $(OUT) /usr/local/lib/.
