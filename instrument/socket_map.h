@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <shared_mutex>
 
 #include "common.h"
 
@@ -22,14 +23,14 @@ class SocketMap {
     SocketMap(const SocketMap&) = delete;
     SocketMap(SocketMap&&) = delete;
 
-    SocketInterface* Get(const int sockfd) {
-        std::unique_lock<std::mutex> l(mu_);
+    SocketInterface* Get(const int sockfd) const {
+        std::shared_lock<std::shared_timed_mutex> l(mu_);
         VERIFY(in_range(sockfd), "Invalid sockfd");
         return map_[sockfd].get();
     }
 
     void Set(const int sockfd, value_type val) {
-        std::unique_lock<std::mutex> l(mu_);
+        std::unique_lock<std::shared_timed_mutex> l(mu_);
         if (!in_range(sockfd)) {
             Resize(sockfd);
         }
@@ -38,7 +39,7 @@ class SocketMap {
     }
 
     void Delete(const int sockfd) {
-        std::unique_lock<std::mutex> l(mu_);
+        std::unique_lock<std::shared_timed_mutex> l(mu_);
         VERIFY(in_range(sockfd), "Invalid sockfd");
         map_[sockfd].reset();
     }
@@ -62,7 +63,7 @@ class SocketMap {
     }
 
     // Guards public methods
-    std::mutex mu_;
+    mutable std::shared_timed_mutex mu_;
 
     int size_;
     value_type* map_;
