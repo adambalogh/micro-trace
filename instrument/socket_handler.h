@@ -50,19 +50,20 @@ enum class SocketRole { CLIENT, SERVER };
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
 /*
- * InstrumentedSocket is an abstraction over an OS socket, which helps tracing
- * sockets by merging all socket operations into Write, Read, and Close.
+ * SocketHandler is used for wrapping socket systemcalls.
+ * Every Before* handler must be called before the corresponding socket
+ * operation is executed, after which the appropriate After* handler must be
+ * called.
  *
- * The actual socket operation should be passed as an argument to each of these
- * functions.
+ * The tracing logic is implemented in SocketHandlers.
  */
 class SocketHandler {
    public:
     /*
-     * Indicates the result of calling a Before* handler.
+     * Indicates the result of calling a Before handler.
      *
      * Ok indicates that the operation should be executed, and Stop means
-     * tha the operation should not continue, and the corresponding After*
+     * tha the operation should not continue, and the corresponding After
      * handler should not be called either.
      */
     enum class Result { Ok, Stop };
