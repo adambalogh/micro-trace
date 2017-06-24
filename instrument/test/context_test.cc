@@ -25,12 +25,12 @@ TEST(Context, New) {
 
 TEST(Context, NewSpan) {
     Context ctx;
-    const std::string orig_trace = ctx.trace();
-    const std::string orig_span = ctx.span();
-    const std::string orig_parent = ctx.parent_span();
+    const auto orig_trace = ctx.trace();
+    const auto orig_span = ctx.span();
+    const auto orig_parent = ctx.parent_span();
 
     ctx.NewSpan();
-    const std::string second_span = ctx.span();
+    const auto second_span = ctx.span();
     EXPECT_EQ(orig_trace, ctx.trace());
     EXPECT_NE(orig_span, ctx.span());
     EXPECT_EQ(orig_parent, ctx.parent_span());
@@ -48,9 +48,9 @@ TEST(Context, Equality) {
     EXPECT_NE(first, second);
     EXPECT_EQ(first, first);
 
-    second.set_span(first.span());
-    second.set_parent_span(second.parent_span());
-    EXPECT_NE(second, first);
+    Context new_first = first;
+    new_first.NewSpan();
+    EXPECT_NE(new_first, first);
 }
 
 TEST(Context, CurrentContext) {
