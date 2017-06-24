@@ -65,7 +65,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// TCP client handling function
 void HandleTCPClient(TCPSocket *sock) {
     cout << "Handling client ";
     try {
@@ -88,14 +87,11 @@ void HandleTCPClient(TCPSocket *sock) {
         // Echo message back to client
         sock->send(echoBuffer, recvMsgSize);
     }
-    // Destructor closes socket
 }
 
 void *ThreadMain(void *clntSock) {
-    // Guarantees that thread resources are deallocated upon return
     pthread_detach(pthread_self());
 
-    // Extract socket file descriptor from argument
     HandleTCPClient((TCPSocket *)clntSock);
 
     delete (TCPSocket *)clntSock;
