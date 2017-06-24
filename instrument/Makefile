@@ -36,8 +36,7 @@ PROTO_GEN = $(addprefix $(PROTO_GEN_DIR)/,$(PROTOS:.proto=.pb.cc)) $(addprefix $
 
 .PRECIOUS: $(PROTO_GEN)
 
-all:
-	$(OUT)
+all: $(OUT)
 	make install
 
 install:
