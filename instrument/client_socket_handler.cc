@@ -9,9 +9,6 @@
 
 namespace microtrace {
 
-// TODO make this an injectable member variable
-NullRequestLogger logger;
-
 /*
  * Wraps a proto::RequestLog. On destruction, it releases the fields that have
  * been borrowed, and not owned by the underlying RequestLog.
@@ -30,11 +27,13 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocketHandler::ClientSocketHandler(int sockfd)
+ClientSocketHandler::ClientSocketHandler(
+    int sockfd, std::shared_ptr<RequestLogger> request_logger)
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
                             SocketState::WILL_WRITE),
       txn_(nullptr),
-      socket_type_(SocketType::BLOCKING) {}
+      socket_type_(SocketType::BLOCKING),
+      request_logger_(std::move(request_logger)) {}
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
@@ -138,7 +137,7 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
         {
             RequestLogWrapper log;
             FillRequestLog(log);
-            logger.Log(log.get());
+            request_logger_->Log(log.get());
         }
     }
 

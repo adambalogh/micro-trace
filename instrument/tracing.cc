@@ -14,6 +14,7 @@
 #include "context.h"
 #include "instrumented_socket.h"
 #include "orig_functions.h"
+#include "request_logger.h"
 #include "server_socket_handler.h"
 #include "socket_map.h"
 #include "tracing.h"
@@ -33,6 +34,7 @@ using namespace microtrace;
 namespace microtrace {
 
 static const int DNS_PORT = 53;
+static std::shared_ptr<RequestLogger> null_logger(new StdoutRequestLogger);
 
 template <class CbType>
 struct CallbackWrap {
@@ -125,7 +127,7 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    auto handler = std::make_unique<ClientSocketHandler>(sockfd);
+    auto handler = std::make_unique<ClientSocketHandler>(sockfd, null_logger);
     auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
