@@ -127,7 +127,8 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    auto handler = std::make_unique<ClientSocketHandler>(sockfd, null_logger);
+    auto handler =
+        std::make_unique<ClientSocketHandler>(sockfd, null_logger.get());
     auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));

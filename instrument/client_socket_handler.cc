@@ -27,13 +27,13 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocketHandler::ClientSocketHandler(
-    int sockfd, std::shared_ptr<RequestLogger> request_logger)
+ClientSocketHandler::ClientSocketHandler(int sockfd,
+                                         RequestLogger* request_logger)
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
                             SocketState::WILL_WRITE),
       txn_(nullptr),
       socket_type_(SocketType::BLOCKING),
-      request_logger_(std::move(request_logger)) {}
+      request_logger_(request_logger) {}
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,

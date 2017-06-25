@@ -43,8 +43,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
     };
 
    public:
-    ClientSocketHandler(int sockfd,
-                        std::shared_ptr<RequestLogger> request_logger);
+    ClientSocketHandler(int sockfd, RequestLogger* request_logger);
 
     virtual void Async() override;
 
@@ -83,6 +82,6 @@ class ClientSocketHandler : public AbstractSocketHandler {
      */
     SocketType socket_type_;
 
-    std::shared_ptr<RequestLogger> request_logger_;
+    RequestLogger* const request_logger_;
 };
 }
