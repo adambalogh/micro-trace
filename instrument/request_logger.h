@@ -8,12 +8,6 @@
 
 namespace microtrace {
 
-template <class LogImpl>
-class BufferedRequestLogger;
-class FileRequestLogger;
-
-typedef BufferedRequestLogger<FileRequestLogger> BufferedFileRequestLogger;
-
 class RequestLogger {
    public:
     virtual ~RequestLogger() = default;
