@@ -41,6 +41,8 @@
 
 namespace microtrace {
 
+const std::string REQUEST_LOG_PATH = "/var/log/microtrace/request_log.txt";
+
 inline int uv_fd(const uv_stream_t* stream) { return stream->io_watcher.fd; }
 inline int uv_fd(const uv_tcp_t* tcp) {
     return uv_fd(reinterpret_cast<const uv_stream_t*>(tcp));

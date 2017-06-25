@@ -14,6 +14,8 @@
 
 #include "spdlog/spdlog.h"
 
+#include "common.h"
+
 using ::google::protobuf::TextFormat;
 
 namespace microtrace {
@@ -35,7 +37,8 @@ SpdRequestLoggerInstance::SpdRequestLoggerInstance() {
     const int queue_size = pow(2, 14);  // TODO find a good number here
     spdlog::set_async_mode(queue_size,
                            spdlog::async_overflow_policy::block_retry);
-    auto spdlogger = spdlog::stdout_logger_mt("protobuf");
+    auto spdlogger =
+        spdlog::basic_logger_mt("request_logger", REQUEST_LOG_PATH);
     spdlog::set_sync_mode();  // Make sure other loggers are not async
     spdlogger->set_pattern("%v");
 

@@ -16,6 +16,7 @@ WORKDIR /usr/src/app
 COPY package.json .
 RUN npm install
 
+RUN mkdir -p /var/log/microtrace
 COPY libtrace.so /usr/local/lib/.
 COPY libprotobuf.so.13 /usr/local/lib/.
 COPY server.js .
