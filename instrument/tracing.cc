@@ -19,8 +19,6 @@
 #include "socket_map.h"
 #include "tracing.h"
 
-using namespace microtrace;
-
 #define SOCK_CALL(fd, traced, normal) \
     do {                              \
         auto* sock = GetSocket(fd);   \
@@ -31,11 +29,15 @@ using namespace microtrace;
         }                             \
     } while (0)
 
+using namespace microtrace;
+
 namespace microtrace {
 
 static const int DNS_PORT = 53;
 
-static std::shared_ptr<RequestLogger> null_logger(new StdoutRequestLogger);
+// TODO make these easy to switch
+static std::shared_ptr<RequestLogger> null_logger(new NullRequestLogger);
+static std::shared_ptr<RequestLogger> stdout_logger(new StdoutRequestLogger);
 
 template <class CbType>
 struct CallbackWrap {

@@ -4,3 +4,4 @@ Dependencies:
 * Protocol Buffers
 * libuv
 * Boost Uuid
+* Spdlog
