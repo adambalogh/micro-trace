@@ -34,6 +34,7 @@ using namespace microtrace;
 namespace microtrace {
 
 static const int DNS_PORT = 53;
+
 static std::shared_ptr<RequestLogger> null_logger(new StdoutRequestLogger);
 
 template <class CbType>
@@ -47,6 +48,11 @@ struct CallbackWrap {
 };
 
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
+
+static auto& spd_instance() {
+    static SpdRequestLoggerInstance spd_instance_;
+    return spd_instance_;
+}
 
 static auto& socket_map() {
     static SocketMap socket_map_;
@@ -128,7 +134,7 @@ int socket(int domain, int type, int protocol) {
     }
 
     auto handler =
-        std::make_unique<ClientSocketHandler>(sockfd, null_logger.get());
+        std::make_unique<ClientSocketHandler>(sockfd, spd_instance().get());
     auto socket = std::make_unique<InstrumentedSocket>(
         sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
