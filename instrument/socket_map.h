@@ -5,17 +5,16 @@
 #include <shared_mutex>
 
 #include "common.h"
+#include "socket_interface.h"
 
 namespace microtrace {
-
-class SocketInterface;
 
 class SocketMap {
    public:
     typedef std::unique_ptr<SocketInterface> value_type;
 
     // Should be power of 2
-    const int DEFAULT_SIZE = 1024;
+    const static int DEFAULT_SIZE = 1024;
 
     SocketMap() : size_(DEFAULT_SIZE), map_(new value_type[DEFAULT_SIZE]) {}
     ~SocketMap() { delete[] map_; }
