@@ -56,3 +56,11 @@ TEST(SocketMapTest, Resize) {
         EXPECT_EQ(nullptr, map.Get(i));
     }
 }
+
+// We make sure that if an out of range fd is used, it doesn't throw any errors
+TEST(SocketMapTest, OutOfRange) {
+    SocketMap map;
+
+    EXPECT_EQ(nullptr, map.Get(SocketMap::DEFAULT_SIZE * 100));
+    map.Delete(SocketMap::DEFAULT_SIZE * 20);
+}

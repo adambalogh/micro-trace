@@ -1,5 +1,6 @@
 #pragma once
 
+#include "request_logger.h"
 #include "socket_handler.h"
 
 #include <chrono>
@@ -80,5 +81,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
      * By default, it is BLOCKING.
      */
     SocketType socket_type_;
+
+    std::shared_ptr<RequestLogger> request_logger_;
 };
 }
