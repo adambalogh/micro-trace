@@ -13,7 +13,7 @@ OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 BENCHMARKS = tracing_benchmark.cc
 BENCHMARK_EXEC = $(addprefix $(BENCH_DIR)/,$(BENCHMARKS:.cc=))
 
-TESTS = context_test.cc tracing_test.cc instrumented_socket_test.cc
+TESTS = context_test.cc tracing_test.cc instrumented_socket_test.cc socket_map_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
