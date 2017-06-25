@@ -9,6 +9,12 @@
 
 namespace microtrace {
 
+/*
+ * SocketMap associates file descriptors with SocketInterfaces.
+ *
+ * The public methods never throw an exception or do abort if an invalid fd is
+ * used, instead they return null or do nothing.
+ */
 class SocketMap {
    public:
     typedef std::unique_ptr<SocketInterface> value_type;
@@ -24,7 +30,9 @@ class SocketMap {
 
     SocketInterface* Get(const int sockfd) const {
         std::shared_lock<mutex_type> l(mu_);
-        VERIFY(in_range(sockfd), "Invalid sockfd");
+        if (!in_range(sockfd)) {
+            return nullptr;
+        }
         return map_[sockfd].get();
     }
 
@@ -33,14 +41,15 @@ class SocketMap {
         if (!in_range(sockfd)) {
             Resize(sockfd);
         }
-        LOG_ERROR_IF(map_[sockfd] == false, "Socket created twice");
+        LOG_ERROR_IF(map_[sockfd] == true, "Socket created twice");
         map_[sockfd] = std::move(val);
     }
 
     void Delete(const int sockfd) {
         std::unique_lock<mutex_type> l(mu_);
-        VERIFY(in_range(sockfd), "Invalid sockfd");
-        map_[sockfd].reset();
+        if (in_range(sockfd)) {
+            map_[sockfd].reset();
+        }
     }
 
    private:

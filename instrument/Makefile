@@ -20,8 +20,8 @@ INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
-CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g -DNDEBUG
-LIBFLAGS = -fPIC
+CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
+LIBFLAGS = -fPIC -DNDEBUG
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
 
@@ -44,7 +44,7 @@ install:
 
 # Shared library build
 $(OUT): $(OBJ) $(PROTO_OBJ)
-	$(CXX) $(OUT_FLAGS) $(CXXFLAGS) $(LIBFLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS) 
+	$(CXX) $(OUT_FLAGS) $(CXXFLAGS) $(LIBFLAGS) $(RELEASE_FLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS) 
 
 # Compile generated protobuf
 $(BUILD_DIR)/%.pb.o: $(PROTO_GEN_DIR)/%.pb.cc
