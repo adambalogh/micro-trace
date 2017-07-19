@@ -110,6 +110,10 @@ class SocketHandler {
 
     virtual SocketState state() const = 0;
 
+    virtual const Context& context() const;
+    virtual bool has_context() const;
+    virtual void set_context(std::unique_ptr<Context> c);
+
     /*
      * Returns the next logical action the socket will take if the given
      * operation is executed.
@@ -155,10 +159,16 @@ class AbstractSocketHandler : public SocketHandler {
      */
     int SetConnection();
 
-    bool has_context() const { return static_cast<bool>(context_); }
-    inline const Context& context() const {
+    bool has_context() const override { return static_cast<bool>(context_); }
+
+    const inline Context& context() const override {
         VERIFY(has_context(), "context() called when it is empty");
         return *context_;
+    }
+
+    void set_context(std::unique_ptr<Context> c) override {
+        VERIFY(c, "set_context called with empty context");
+        context_ = std::move(c);
     }
 
     const int sockfd_;

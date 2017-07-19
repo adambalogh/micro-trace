@@ -79,6 +79,8 @@ Context::Context() {
     *context_.mutable_parent_span() = context_.trace_id();
 }
 
+Context::Context(proto::Context ctx) : context_(std::move(ctx)) {}
+
 void Context::NewSpan() {
     *context_.mutable_parent_span() = context_.span_id();
     *context_.mutable_span_id() = NewUuid();

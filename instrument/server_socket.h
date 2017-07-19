@@ -41,6 +41,10 @@ class ServerSocket : public InstrumentedSocket {
 
     ssize_t ReadContextIfNecessary();
 
+    // Buffer for reading context bytes
     std::string context_buffer;
+
+    // Reusable context object for parsing
+    proto::Context context_storage_;
 };
 }

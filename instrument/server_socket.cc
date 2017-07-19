@@ -64,7 +64,11 @@ ssize_t ServerSocket::ReadContextIfNecessary() {
         VERIFY(start == context_buffer.size(),
                "Could not read context when it was expected");
 
-        printf("blocking context read\n");
+        VERIFY(context_storage_.ParseFromString(context_buffer),
+               "could not parse Context protobuf object");
+        // Pass parsed context to handler
+        handler_->set_context(
+            std::make_unique<Context>(std::move(context_storage_)));
     } else {
         printf("non-blocking context read\n");
     }

@@ -27,7 +27,15 @@ inline ssize_t ContextProtoSize() { return 3 * sizeof(uint64_t); }
 
 class Context {
    public:
+    /*
+     * Generates a random context.
+     */
     Context();
+
+    /*
+     * Returns a context filled with the values of ctx.
+     */
+    Context(proto::Context ctx);
 
     static bool SameTrace(const Context& a, const Context& b) {
         return a.trace() == b.trace();

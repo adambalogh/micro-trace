@@ -55,7 +55,14 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
 
     // New transaction
     if (get_next_action(SocketOperation::READ) == SocketAction::RECV_REQUEST) {
-        context_.reset(new Context);
+        // If we are frontend, generate a random context
+        if (server_type() == ServerType::FRONTEND) {
+            context_.reset(new Context);
+        }
+
+        // Otherwise we are backend, it was passed to us by client
+        // and context_ is already set to it by ServerSocket
+
         set_current_context(*context_);
         ++num_transactions_;
     }
