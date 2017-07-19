@@ -85,22 +85,13 @@ bool ClientSocketHandler::SendContext() {
         // TODO implement
         printf("non-blocking context\n");
     } else {
-        ssize_t ret;
-        // Send context prefix
-        ret = orig_.write(fd(), CONTEXT_PREFIX, CONTEXT_PREFIX_SIZE);
-        if (ret <= 0) {
-            return true;
-        }
-        VERIFY(ret == CONTEXT_PREFIX_SIZE, "Could not send context prefix");
-
         // Send context
-        ret = orig_.write(fd(), string_arr(data), data.size());
+        auto ret = orig_.write(fd(), string_arr(data), data.size());
         if (ret <= 0) {
             return true;
         }
         VERIFY(ret == static_cast<ssize_t>(data.size()),
                "Could not send context");
-        printf("sent context %d\n", ret);
     }
 
     return true;

@@ -67,6 +67,13 @@ enum class SocketAction {
 enum class SocketType { BLOCKING, ASYNC };
 
 /*
+ * Indicates the type of the server we are running on.
+ * Frontend receives requests from the internet, Backend receives from inside
+ * the cluster.
+ */
+enum class ServerType { FRONTEND, BACKEND };
+
+/*
  * SocketHandler is used for wrapping socket systemcalls.
  * Every Before* handler must be called before the corresponding socket
  * operation is executed, after which the appropriate After* handler must be
@@ -114,6 +121,8 @@ class SocketHandler {
     virtual bool role_client() const = 0;
 
     virtual SocketType type() const = 0;
+
+    virtual ServerType server_type() const = 0;
 };
 
 class AbstractSocketHandler : public SocketHandler {
@@ -131,6 +140,8 @@ class AbstractSocketHandler : public SocketHandler {
     bool role_client() const override { return role_ == SocketRole::CLIENT; }
 
     SocketType type() const override { return type_; }
+
+    ServerType server_type() const override { return server_type_; }
 
    protected:
     /*
@@ -188,7 +199,12 @@ class AbstractSocketHandler : public SocketHandler {
      */
     Connection conn_;
 
+    /*
+     * Indicates if the socket is blocking or non-blocking.
+     */
     SocketType type_;
+
+    ServerType server_type_;
 
     const OriginalFunctions& orig_;
 };

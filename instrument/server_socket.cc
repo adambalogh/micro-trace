@@ -10,7 +10,7 @@ namespace microtrace {
 ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
                            const OriginalFunctions &orig)
     : InstrumentedSocket(fd, std::move(handler), orig) {
-    context_buffer.resize(CONTEXT_PREFIX_SIZE + ContextProtoSize());
+    context_buffer.resize(ContextProtoSize());
     VERIFY(handler_->role_server(),
            "ServerSocket given a non-server socket handler");
 }
@@ -20,54 +20,49 @@ void ServerSocket::Async() { handler_->Async(); }
 ssize_t ServerSocket::FillFromContextBuffer(void *buf, size_t len,
                                             ssize_t ret) {
     char *const char_buf = static_cast<char *>(buf);
+
     // TODO handle this
     VERIFY(len >= ret, "read len < ret size");
-    for (size_t i = 0; i < ret; ++i) {
+
+    for (ssize_t i = 0; i < ret; ++i) {
         char_buf[i] = context_buffer[i];
     }
-    return context_buffer.size();
+    return ret;
 }
 
 ssize_t ServerSocket::ReadContextIfNecessary() {
+    // Frontend servers don't receive context
+    if (handler_->server_type() == ServerType::FRONTEND) {
+        return -1;
+    }
+
+    // We only receive context at the start of a new incoming request
     if (handler_->get_next_action(SocketOperation::READ) !=
         SocketAction::RECV_REQUEST) {
         return -1;
     }
 
     if (handler_->type() == SocketType::BLOCKING) {
-        int max_try = 3;
+        int max_try = 5;
         int start = 0;
 
         // TODO make sure errors are handled correctly here
-        // TODO check prefix as we read here
         do {
             // TODO use appropriate read function
             ssize_t ret = orig_.read(fd(), string_arr(context_buffer) + start,
                                      context_buffer.size() - start);
+
             start += ret;
             --max_try;
-            for (int i = 0; i < CONTEXT_PREFIX_SIZE - start; ++i) {
-                if (context_buffer[start + i] != CONTEXT_PREFIX[start + i]) {
-                    return start;
-                }
-            }
         } while (start != context_buffer.size() && max_try > 0);
 
+        // An error has occured
         if (start <= 0) {
             return -1;
         }
-        if (start < static_cast<ssize_t>(context_buffer.size())) {
-            return start;
-        }
 
-        // VERIFY(ret == static_cast<ssize_t>(context_buffer.size()),
-        //       "Could not read context in one read, read {} bytes", ret);
-
-        for (int i = 0; i < CONTEXT_PREFIX_SIZE; ++i) {
-            if (context_buffer[i] != CONTEXT_PREFIX[i]) {
-                return start;
-            }
-        }
+        VERIFY(start == context_buffer.size(),
+               "Could not read context when it was expected");
 
         printf("blocking context read\n");
     } else {

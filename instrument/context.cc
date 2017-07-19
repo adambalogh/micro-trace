@@ -23,8 +23,8 @@ namespace microtrace {
 
 // Should be able to differentiate between normal and
 // context-prefixed messages
-const char* CONTEXT_PREFIX = "CTX432z$pW";
-const ssize_t CONTEXT_PREFIX_SIZE = 10;
+const char* CONTEXT_PREFIX = "CTX432z$";
+const ssize_t CONTEXT_PREFIX_SIZE = 8;
 
 static thread_local Context current_context;
 static thread_local bool context_undefined = true;
