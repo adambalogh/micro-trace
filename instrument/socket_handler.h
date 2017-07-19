@@ -110,9 +110,9 @@ class SocketHandler {
 
     virtual SocketState state() const = 0;
 
-    virtual const Context& context() const;
-    virtual bool has_context() const;
-    virtual void set_context(std::unique_ptr<Context> c);
+    virtual const Context& context() const = 0;
+    virtual bool has_context() const = 0;
+    virtual void set_context(std::unique_ptr<Context> c) = 0;
 
     /*
      * Returns the next logical action the socket will take if the given
@@ -139,6 +139,16 @@ class AbstractSocketHandler : public SocketHandler {
 
     SocketState state() const override { return state_; }
 
+    const Context& context() const override {
+        VERIFY(has_context(), "context() called when it is empty");
+        return *context_;
+    }
+    bool has_context() const override { return static_cast<bool>(context_); }
+    void set_context(std::unique_ptr<Context> c) override {
+        VERIFY(c, "set_context called with empty context");
+        context_ = std::move(c);
+    }
+
     SocketRole role() const override { return role_; }
     bool role_server() const override { return role_ == SocketRole::SERVER; }
     bool role_client() const override { return role_ == SocketRole::CLIENT; }
@@ -158,18 +168,6 @@ class AbstractSocketHandler : public SocketHandler {
      * returned by the Socket API functions.
      */
     int SetConnection();
-
-    bool has_context() const override { return static_cast<bool>(context_); }
-
-    const inline Context& context() const override {
-        VERIFY(has_context(), "context() called when it is empty");
-        return *context_;
-    }
-
-    void set_context(std::unique_ptr<Context> c) override {
-        VERIFY(c, "set_context called with empty context");
-        context_ = std::move(c);
-    }
 
     const int sockfd_;
 
