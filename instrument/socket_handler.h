@@ -84,6 +84,9 @@ class SocketHandler {
 
     virtual int fd() const = 0;
     virtual SocketRole role() const = 0;
+
+    virtual bool role_server() const = 0;
+    virtual bool role_client() const = 0;
 };
 
 class AbstractSocketHandler : public SocketHandler {
@@ -92,7 +95,10 @@ class AbstractSocketHandler : public SocketHandler {
                           const SocketState state);
 
     int fd() const override { return sockfd_; }
+
     SocketRole role() const override { return role_; }
+    bool role_server() const override { return role_ == SocketRole::SERVER; }
+    bool role_client() const override { return role_ == SocketRole::CLIENT; }
 
    protected:
     /*
@@ -105,9 +111,6 @@ class AbstractSocketHandler : public SocketHandler {
      * returned by the Socket API functions.
      */
     int SetConnection();
-
-    bool role_server() const { return role_ == SocketRole::SERVER; }
-    bool role_client() const { return role_ == SocketRole::CLIENT; }
 
     bool has_context() const { return static_cast<bool>(context_); }
     const Context& context() const {

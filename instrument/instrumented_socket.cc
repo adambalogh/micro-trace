@@ -18,7 +18,6 @@ InstrumentedSocket::InstrumentedSocket(const int fd,
 
 void InstrumentedSocket::Async() { handler_->Async(); }
 
-// TODO handle special case when len == 0
 ssize_t InstrumentedSocket::RecvFrom(void *buf, size_t len, int flags,
                                      struct sockaddr *src_addr,
                                      socklen_t *addrlen) {

@@ -45,7 +45,7 @@ class InstrumentedSocket : public SocketInterface {
 
     int fd() const override { return fd_; }
 
-   private:
+   protected:
     struct iovec *set_iovec(const void *buf, size_t len) {
         iov.iov_base = const_cast<void *>(buf);
         iov.iov_len = len;
