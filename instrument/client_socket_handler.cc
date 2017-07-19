@@ -43,7 +43,7 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     conn->set_allocated_client_ip(&conn_.client_ip);
     conn->set_client_port(conn_.client_port);
 
-    proto::RequestLog::Context* ctx = log->mutable_context();
+    proto::Context* ctx = log->mutable_context();
     ctx->mutable_trace_id()->set_high(context().trace().high());
     ctx->mutable_trace_id()->set_low(context().trace().low());
     ctx->mutable_span_id()->set_high(context().span().high());

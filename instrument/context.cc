@@ -27,12 +27,19 @@ void set_current_context(const Context& context) {
 
 bool is_context_undefined() { return context_undefined; }
 
+bool operator==(const proto::Uuid& a, const proto::Uuid& b) {
+    return a.low() == b.low() && a.high() == b.high();
+}
+
 static boost::uuids::uuid new_boost_uuid() {
     static thread_local boost::uuids::random_generator gen;
     return gen();
 }
 
-Uuid::Uuid() : high_(0), low_(0) {
+proto::Uuid NewUuid() {
+    uint64_t low = 0;
+    uint64_t high = 0;
+
     const auto uuid = new_boost_uuid();
     const int byte_size = 8;  // in bits
 
@@ -41,26 +48,29 @@ Uuid::Uuid() : high_(0), low_(0) {
     static_assert(16 == uuid.size(), "Boost Uuid should be 16 bytes");
 
     for (int i = 0; i < 8; ++i) {
-        high_ = (high_ << byte_size);
-        high_ |= *(uuid.begin() + i);
+        high = (high << byte_size);
+        high |= *(uuid.begin() + i);
     }
     for (int i = 0; i < 8; ++i) {
-        low_ = (low_ << byte_size);
-        low_ |= *(uuid.begin() + 8 + i);
+        low = (low << byte_size);
+        low |= *(uuid.begin() + 8 + i);
     }
+
+    proto::Uuid ret;
+    ret.set_low(low);
+    ret.set_high(high);
+    return ret;
 }
 
-bool operator==(const Uuid& a, const Uuid& b) {
-    return a.high() == b.high() && a.low() == b.low();
+Context::Context() {
+    *context_.mutable_trace_id() = NewUuid();
+    *context_.mutable_span_id() = context_.trace_id();
+    *context_.mutable_parent_span() = context_.trace_id();
 }
-
-bool operator!=(const Uuid& a, const Uuid& b) { return !operator==(a, b); }
-
-Context::Context() : trace_(Uuid{}), span_(trace_), parent_span_(trace_) {}
 
 void Context::NewSpan() {
-    parent_span_ = span_;
-    span_ = Uuid{};
+    *context_.mutable_parent_span() = context_.span_id();
+    *context_.mutable_span_id() = NewUuid();
 }
 
 bool operator==(const Context& a, const Context& b) {

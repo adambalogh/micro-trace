@@ -5,6 +5,8 @@
 
 #include <boost/uuid/uuid.hpp>
 
+#include "request_log.pb.h"
+
 namespace microtrace {
 
 /*
@@ -13,28 +15,7 @@ namespace microtrace {
  * each thread. By default, the trace is undefined.
  */
 
-/*
- * An Uuid is derived from a boost::uuids::uuids object, its lower 64 bits
- * is stored in low_, and upper 64 bits in high_.
- */
-class Uuid {
-   public:
-    Uuid();
-
-    uint64_t high() const { return high_; }
-    uint64_t low() const { return low_; }
-
-   private:
-    uint64_t high_;
-    uint64_t low_;
-};
-
-static_assert(sizeof(Uuid) == sizeof(uint64_t) * 2, "Uuid must be POD");
-
-bool operator==(const Uuid& a, const Uuid& b);
-bool operator!=(const Uuid& a, const Uuid& b);
-
-typedef Uuid uuid_t;
+bool operator==(const proto::Uuid& a, const proto::Uuid& b);
 
 class Context {
    public:
@@ -44,9 +25,9 @@ class Context {
         return a.trace() == b.trace();
     }
 
-    const uuid_t& trace() const { return trace_; }
-    const uuid_t& span() const { return span_; }
-    const uuid_t& parent_span() const { return parent_span_; }
+    const proto::Uuid& trace() const { return context_.trace_id(); }
+    const proto::Uuid& span() const { return context_.span_id(); }
+    const proto::Uuid& parent_span() const { return context_.parent_span(); }
 
     /*
      * Generates and assigns a new span to this context, and saves the current
@@ -55,22 +36,7 @@ class Context {
     void NewSpan();
 
    private:
-    /*
-     * A trace uniquely identifies a user request.
-     */
-    uuid_t trace_;
-
-    /*
-     * A span, along with a trace, identifies an action that can be attributed
-     * to that trace.
-     */
-    uuid_t span_;
-
-    /*
-     * The span that *probably* caused the current span. The parent span must
-     * belong to the same trace as the current one.
-     */
-    uuid_t parent_span_;
+    proto::Context context_;
 };
 
 bool operator==(const Context& a, const Context& b);

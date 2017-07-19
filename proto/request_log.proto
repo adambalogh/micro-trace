@@ -17,12 +17,26 @@ message Uuid {
     required uint64 low = 2;
 }
 
+message Context {
+    /*
+     * A trace uniquely identifies a user request.
+     */
+    required Uuid trace_id = 1;
+
+    /*
+     * A span, along with a trace, identifies an action that can be attributed
+     * to that trace.
+     */
+    required Uuid span_id = 2;
+
+    /*
+     * The span that *probably* caused the current span. The parent span must
+     * belong to the same trace as the current one.
+     */
+    required Uuid parent_span = 3;
+}
+
 message RequestLog {
-    message Context {
-        required Uuid trace_id = 1;
-        required Uuid span_id = 2;
-        required Uuid parent_span = 3;
-    }
     required Context context = 1;
 
     // The number of seconds since epoch this request was sent/received
