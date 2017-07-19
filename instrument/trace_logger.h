@@ -13,9 +13,9 @@ namespace microtrace {
 /*
  * Implementations should be thread-safe.
  */
-class RequestLogger {
+class TraceLogger {
    public:
-    virtual ~RequestLogger() = default;
+    virtual ~TraceLogger() = default;
 
     virtual void Log(const proto::RequestLog& log) = 0;
 };
@@ -23,7 +23,7 @@ class RequestLogger {
 /*
  * Discards logs. Should only be used for testing or debugging.
  */
-class NullRequestLogger : public RequestLogger {
+class NullTraceLogger : public TraceLogger {
    public:
     void Log(const proto::RequestLog& log) override {}
 };
@@ -31,14 +31,14 @@ class NullRequestLogger : public RequestLogger {
 /*
  * Logs to stdout. Generally, it should only be used for testing.
  */
-class StdoutRequestLogger : public RequestLogger {
+class StdoutTraceLogger : public TraceLogger {
    public:
     void Log(const proto::RequestLog& log) override;
 };
 
-class SpdRequestLogger : public RequestLogger {
+class SpdTraceLogger : public TraceLogger {
    public:
-    SpdRequestLogger(std::shared_ptr<spdlog::logger> spdlog)
+    SpdTraceLogger(std::shared_ptr<spdlog::logger> spdlog)
         : spdlog_(std::move(spdlog)) {}
 
     void Log(const proto::RequestLog& log) override;
@@ -48,11 +48,11 @@ class SpdRequestLogger : public RequestLogger {
     std::shared_ptr<spdlog::logger> spdlog_;
 };
 
-class SpdRequestLoggerInstance {
+class SpdTraceLoggerInstance {
    public:
-    typedef SpdRequestLogger instance;
+    typedef SpdTraceLogger instance;
 
-    SpdRequestLoggerInstance();
+    SpdTraceLoggerInstance();
     instance* get();
 
    private:

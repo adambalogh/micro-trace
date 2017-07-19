@@ -14,9 +14,9 @@
 #include "context.h"
 #include "instrumented_socket.h"
 #include "orig_functions.h"
-#include "request_logger.h"
 #include "server_socket_handler.h"
 #include "socket_map.h"
+#include "trace_logger.h"
 #include "tracing.h"
 
 #define SOCK_CALL(fd, traced, normal) \
@@ -36,8 +36,8 @@ namespace microtrace {
 static const int DNS_PORT = 53;
 
 // TODO make these easy to switch
-static std::shared_ptr<RequestLogger> null_logger(new NullRequestLogger);
-static std::shared_ptr<RequestLogger> stdout_logger(new StdoutRequestLogger);
+static std::shared_ptr<TraceLogger> null_logger(new NullTraceLogger);
+static std::shared_ptr<TraceLogger> stdout_logger(new StdoutTraceLogger);
 
 template <class CbType>
 struct CallbackWrap {
@@ -52,7 +52,7 @@ struct CallbackWrap {
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
 static auto& spd_instance() {
-    static SpdRequestLoggerInstance spd_instance_;
+    static SpdTraceLoggerInstance spd_instance_;
     return spd_instance_;
 }
 

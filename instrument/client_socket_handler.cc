@@ -5,7 +5,6 @@
 #include "spdlog/spdlog.h"
 
 #include "common.h"
-#include "request_logger.h"
 
 namespace microtrace {
 
@@ -27,13 +26,12 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocketHandler::ClientSocketHandler(int sockfd,
-                                         RequestLogger* request_logger)
+ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger)
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
                             SocketState::WILL_WRITE),
       txn_(nullptr),
       socket_type_(SocketType::BLOCKING),
-      request_logger_(request_logger) {}
+      trace_logger_(trace_logger) {}
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
@@ -137,7 +135,7 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
         {
             RequestLogWrapper log;
             FillRequestLog(log);
-            request_logger_->Log(log.get());
+            trace_logger_->Log(log.get());
         }
     }
 

@@ -1,4 +1,4 @@
-#include "request_logger.h"
+#include "trace_logger.h"
 
 #include <math.h>
 #include <iostream>
@@ -20,20 +20,20 @@ using ::google::protobuf::TextFormat;
 
 namespace microtrace {
 
-void StdoutRequestLogger::Log(const proto::RequestLog& log) {
+void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::string str;
     TextFormat::PrintToString(log, &str);
     std::cout << str << std::endl;
     std::cout << std::flush;
 }
 
-void SpdRequestLogger::Log(const proto::RequestLog& log) {
+void SpdTraceLogger::Log(const proto::RequestLog& log) {
     std::string str;
     TextFormat::PrintToString(log, &str);
     spdlog_->info(str);
 }
 
-SpdRequestLoggerInstance::SpdRequestLoggerInstance() {
+SpdTraceLoggerInstance::SpdTraceLoggerInstance() {
     const int queue_size = pow(2, 14);  // TODO find a good number here
     spdlog::set_async_mode(queue_size,
                            spdlog::async_overflow_policy::block_retry);
@@ -45,7 +45,7 @@ SpdRequestLoggerInstance::SpdRequestLoggerInstance() {
     logger_.reset(new instance(std::move(spdlogger)));
 }
 
-SpdRequestLoggerInstance::instance* SpdRequestLoggerInstance::get() {
+SpdTraceLoggerInstance::instance* SpdTraceLoggerInstance::get() {
     return logger_.get();
 }
 }

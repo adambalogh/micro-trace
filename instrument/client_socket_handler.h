@@ -1,7 +1,7 @@
 #pragma once
 
-#include "request_logger.h"
 #include "socket_handler.h"
+#include "trace_logger.h"
 
 #include <chrono>
 
@@ -43,7 +43,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
     };
 
    public:
-    ClientSocketHandler(int sockfd, RequestLogger* request_logger);
+    ClientSocketHandler(int sockfd, TraceLogger* trace_logger);
 
     virtual void Async() override;
 
@@ -82,6 +82,6 @@ class ClientSocketHandler : public AbstractSocketHandler {
      */
     SocketType socket_type_;
 
-    RequestLogger* const request_logger_;
+    TraceLogger* const trace_logger_;
 };
 }
