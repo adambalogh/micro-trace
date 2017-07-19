@@ -5,6 +5,7 @@
 #include "spdlog/spdlog.h"
 
 #include "common.h"
+#include "orig_functions.h"
 
 namespace microtrace {
 
@@ -26,12 +27,14 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
-ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger)
+ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
+                                         const OriginalFunctions& orig)
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
                             SocketState::WILL_WRITE),
       txn_(nullptr),
       socket_type_(SocketType::BLOCKING),
-      trace_logger_(trace_logger) {}
+      trace_logger_(trace_logger),
+      orig_(orig) {}
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
@@ -76,7 +79,20 @@ SocketAction ClientSocketHandler::get_next_action(
     return SocketAction::NONE;
 }
 
-bool ClientSocketHandler::SendContext() { return true; }
+bool ClientSocketHandler::SendContext() {
+    auto data = context().Serialize();
+    int count = 3;  // We retry no more than 3 times
+    size_t start = 0;
+    int ret;
+
+    do {
+        ret = orig_.write(fd(), string_arr(data) + start, data.size() - start);
+        start += ret;
+        --count;
+    } while (start == data.size() || count == 0);
+
+    return start == data.size();
+}
 
 bool ClientSocketHandler::SendContextIfNecessary() {
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {

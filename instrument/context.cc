@@ -79,6 +79,12 @@ void Context::NewSpan() {
     *context_.mutable_span_id() = NewUuid();
 }
 
+std::string Context::Serialize() const {
+    std::string data;
+    context_.SerializeToString(&data);
+    return data;
+}
+
 bool operator==(const Context& a, const Context& b) {
     return a.trace() == b.trace() && a.span() == b.span();
 }

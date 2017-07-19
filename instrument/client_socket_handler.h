@@ -8,6 +8,7 @@
 namespace microtrace {
 
 struct RequestLogWrapper;
+struct OriginalFunctions;
 
 class ClientSocketHandler : public AbstractSocketHandler {
    private:
@@ -43,7 +44,8 @@ class ClientSocketHandler : public AbstractSocketHandler {
     };
 
    public:
-    ClientSocketHandler(int sockfd, TraceLogger* trace_logger);
+    ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
+                        const OriginalFunctions& orig);
 
     virtual void Async() override;
 
@@ -100,5 +102,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
     SocketType socket_type_;
 
     TraceLogger* const trace_logger_;
+
+    const OriginalFunctions& orig_;
 };
 }

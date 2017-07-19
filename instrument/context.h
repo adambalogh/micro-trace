@@ -38,6 +38,8 @@ class Context {
      */
     void NewSpan();
 
+    std::string Serialize() const;
+
    private:
     proto::Context context_;
 };
