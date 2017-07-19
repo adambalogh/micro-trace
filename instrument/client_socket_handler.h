@@ -96,8 +96,6 @@ class ClientSocketHandler : public AbstractSocketHandler {
      */
     std::unique_ptr<Transaction> txn_;
 
-    SocketType type_;
-
     TraceLogger* const trace_logger_;
 };
 }
