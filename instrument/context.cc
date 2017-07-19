@@ -9,6 +9,16 @@
 
 #include "common.h"
 
+namespace proto {
+bool operator==(const proto::Uuid& a, const proto::Uuid& b) {
+    return a.low() == b.low() && a.high() == b.high();
+}
+
+bool operator!=(const proto::Uuid& a, const proto::Uuid& b) {
+    return !operator==(a, b);
+}
+}
+
 namespace microtrace {
 
 static thread_local Context current_context;
@@ -27,16 +37,12 @@ void set_current_context(const Context& context) {
 
 bool is_context_undefined() { return context_undefined; }
 
-bool operator==(const proto::Uuid& a, const proto::Uuid& b) {
-    return a.low() == b.low() && a.high() == b.high();
-}
-
 static boost::uuids::uuid new_boost_uuid() {
     static thread_local boost::uuids::random_generator gen;
     return gen();
 }
 
-proto::Uuid NewUuid() {
+static proto::Uuid NewUuid() {
     uint64_t low = 0;
     uint64_t high = 0;
 

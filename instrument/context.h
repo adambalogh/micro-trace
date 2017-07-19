@@ -7,6 +7,11 @@
 
 #include "request_log.pb.h"
 
+namespace proto {
+bool operator==(const proto::Uuid& a, const proto::Uuid& b);
+bool operator!=(const proto::Uuid& a, const proto::Uuid& b);
+}
+
 namespace microtrace {
 
 /*
@@ -14,8 +19,6 @@ namespace microtrace {
  * every thread of execution. The trace may change throughout the lifeteime of
  * each thread. By default, the trace is undefined.
  */
-
-bool operator==(const proto::Uuid& a, const proto::Uuid& b);
 
 class Context {
    public:
