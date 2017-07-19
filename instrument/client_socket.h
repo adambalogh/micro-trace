@@ -31,20 +31,5 @@ class ClientSocket : public InstrumentedSocket {
     ssize_t SendMsg(const struct msghdr *msg, int flags) override;
 
     int Close() override;
-
-   private:
-    /*
-     * Sends the current context to the other end.
-     *
-     * Returns true if the trace was successfully written to TCP buffer.
-     */
-    bool SendContext();
-
-    /*
-     * Sends the context only if it is the beginning of a new request.
-     *
-     * Returns false if the context was necessary to send but was unsuccessful.
-     */
-    bool SendContextIfNecessary();
 };
 }

@@ -63,6 +63,20 @@ class ClientSocketHandler : public AbstractSocketHandler {
     bool has_txn() const { return static_cast<bool>(txn_); }
 
    private:
+    /*
+     * Sends the current context to the other end.
+     *
+     * Returns true if the trace was successfully written to TCP buffer.
+     */
+    bool SendContext();
+
+    /*
+     * Sends the context only if it is the beginning of a new request.
+     *
+     * Returns false if the context was necessary to send but was unsuccessful.
+     */
+    bool SendContextIfNecessary();
+
     void FillRequestLog(RequestLogWrapper& log);
 
     /*

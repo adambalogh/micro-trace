@@ -75,8 +75,19 @@ SocketAction ClientSocketHandler::get_next_action(
     }
     return SocketAction::NONE;
 }
+
+bool ClientSocketHandler::SendContext() { return true; }
+
+bool ClientSocketHandler::SendContextIfNecessary() {
+    if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
+        return SendContext();
+    }
+    return true;
+}
+
 SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
                                                        int iovcnt) {
+    VERIFY(SendContextIfNecessary(), "Could not send context");
     return Result::Ok;
 }
 
