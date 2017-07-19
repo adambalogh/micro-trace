@@ -49,6 +49,19 @@ enum class SocketRole { CLIENT, SERVER };
 
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
+enum class SocketOperation { WRITE, READ };
+
+/*
+ * Logical actions a socket can take.
+ */
+enum class SocketAction {
+    SEND_REQUEST,
+    RECV_REQUEST,
+    SEND_RESPONSE,
+    RECV_RESPONSE,
+    NONE  // No new action, continues current action
+};
+
 /*
  * SocketHandler is used for wrapping socket systemcalls.
  * Every Before* handler must be called before the corresponding socket
@@ -83,8 +96,16 @@ class SocketHandler {
     virtual void AfterClose(int ret) = 0;
 
     virtual int fd() const = 0;
-    virtual SocketRole role() const = 0;
 
+    virtual SocketState state() const = 0;
+
+    /*
+     * Returns the next logical action the socket will take if the given
+     * operation is executed.
+     */
+    virtual SocketAction get_next_action(const SocketOperation op) const = 0;
+
+    virtual SocketRole role() const = 0;
     virtual bool role_server() const = 0;
     virtual bool role_client() const = 0;
 };
@@ -95,6 +116,8 @@ class AbstractSocketHandler : public SocketHandler {
                           const SocketState state);
 
     int fd() const override { return sockfd_; }
+
+    SocketState state() const override { return state_; }
 
     SocketRole role() const override { return role_; }
     bool role_server() const override { return role_ == SocketRole::SERVER; }

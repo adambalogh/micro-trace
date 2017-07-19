@@ -19,5 +19,7 @@ class ServerSocketHandler : public AbstractSocketHandler {
 
     virtual Result BeforeClose() override;
     virtual void AfterClose(int ret) override;
+
+    SocketAction get_next_action(const SocketOperation op) const override;
 };
 }

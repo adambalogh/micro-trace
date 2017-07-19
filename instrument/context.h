@@ -29,6 +29,8 @@ class Uuid {
     uint64_t low_;
 };
 
+static_assert(sizeof(Uuid) == sizeof(uint64_t) * 2, "Uuid must be POD");
+
 bool operator==(const Uuid& a, const Uuid& b);
 bool operator!=(const Uuid& a, const Uuid& b);
 

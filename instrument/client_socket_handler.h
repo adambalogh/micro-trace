@@ -57,6 +57,9 @@ class ClientSocketHandler : public AbstractSocketHandler {
     virtual Result BeforeClose() override;
     virtual void AfterClose(int ret) override;
 
+    virtual SocketAction get_next_action(
+        const SocketOperation op) const override;
+
     bool has_txn() const { return static_cast<bool>(txn_); }
 
    private:

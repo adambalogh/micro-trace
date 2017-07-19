@@ -11,7 +11,7 @@ ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
                            const OriginalFunctions &orig)
     : InstrumentedSocket(fd, std::move(handler), orig) {
     VERIFY(handler_->role_server(),
-           "ServerSocket given a non-client socket handler");
+           "ServerSocket given a non-server socket handler");
 }
 
 void ServerSocket::Async() { handler_->Async(); }

@@ -38,8 +38,13 @@ ssize_t ClientSocket::Read(void *buf, size_t count) {
     return ret;
 }
 
+bool ClientSocket::SendContext() { return true; }
+
+bool ClientSocket::SendContextIfNecessary() { return true; }
+
 ssize_t ClientSocket::Send(const void *buf, size_t len, int flags) {
     handler_->BeforeWrite(set_iovec(buf, len), SINGLE_IOVEC);
+    VERIFY(SendContextIfNecessary(), "Could not send context");
     auto ret = orig_.send(fd(), buf, len, flags);
     handler_->AfterWrite(set_iovec(buf, len), SINGLE_IOVEC, ret);
     return ret;

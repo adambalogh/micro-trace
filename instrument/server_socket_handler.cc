@@ -14,6 +14,20 @@ void ServerSocketHandler::Async() {
            "Async() called with ServerSocket, which is currently not expected");
 }
 
+SocketAction ServerSocketHandler::get_next_action(
+    const SocketOperation op) const {
+    if (op == SocketOperation::WRITE) {
+        if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+            return SocketAction::SEND_RESPONSE;
+        }
+    } else if (op == SocketOperation::READ) {
+        if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
+            return SocketAction::RECV_REQUEST;
+        }
+    }
+    return SocketAction::NONE;
+}
+
 SocketHandler::Result ServerSocketHandler::BeforeRead(const void* buf,
                                                       size_t len) {
     LOG_ERROR_IF(
@@ -39,7 +53,7 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     }
 
     // New transaction
-    if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
+    if (get_next_action(SocketOperation::READ) == SocketAction::RECV_REQUEST) {
         context_.reset(new Context);
         set_current_context(*context_);
         ++num_transactions_;

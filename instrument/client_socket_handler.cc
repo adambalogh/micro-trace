@@ -62,6 +62,19 @@ void ClientSocketHandler::Async() {
     context_.reset(new Context(get_current_context()));
 }
 
+SocketAction ClientSocketHandler::get_next_action(
+    const SocketOperation op) const {
+    if (op == SocketOperation::WRITE) {
+        if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+            return SocketAction::SEND_REQUEST;
+        }
+    } else if (op == SocketOperation::READ) {
+        if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
+            return SocketAction::RECV_RESPONSE;
+        }
+    }
+    return SocketAction::NONE;
+}
 SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
                                                        int iovcnt) {
     return Result::Ok;
@@ -80,7 +93,7 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     }
 
     // New transaction
-    if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+    if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         // Only copy context if it is a blocking socket
         if (socket_type_ == SocketType::BLOCKING) {
             context_.reset(new Context(get_current_context()));

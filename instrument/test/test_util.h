@@ -254,6 +254,11 @@ class DumbSocketHandler : public SocketHandler {
     bool role_server() const override { return role_ == SocketRole::SERVER; }
     bool role_client() const override { return role_ == SocketRole::CLIENT; }
 
+    SocketState state() const { return SocketState::WILL_READ; }
+    SocketAction get_next_action(const SocketOperation op) const {
+        return SocketAction::NONE;
+    }
+
    private:
     int fd_;
     SocketRole role_;
