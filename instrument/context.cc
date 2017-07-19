@@ -9,16 +9,6 @@
 
 #include "common.h"
 
-namespace proto {
-bool operator==(const proto::Uuid& a, const proto::Uuid& b) {
-    return a.low() == b.low() && a.high() == b.high();
-}
-
-bool operator!=(const proto::Uuid& a, const proto::Uuid& b) {
-    return !operator==(a, b);
-}
-}
-
 namespace microtrace {
 
 // Should be able to differentiate between normal and
@@ -47,10 +37,7 @@ static boost::uuids::uuid new_boost_uuid() {
     return gen();
 }
 
-static proto::Uuid NewUuid() {
-    uint64_t low = 0;
-    uint64_t high = 0;
-
+Uuid::Uuid() : high_(0), low_(0) {
     const auto uuid = new_boost_uuid();
     const int byte_size = 8;  // in bits
 
@@ -59,37 +46,28 @@ static proto::Uuid NewUuid() {
     static_assert(16 == uuid.size(), "Boost Uuid should be 16 bytes");
 
     for (int i = 0; i < 8; ++i) {
-        high = (high << byte_size);
-        high |= *(uuid.begin() + i);
+        high_ = (high_ << byte_size);
+        high_ |= *(uuid.begin() + i);
     }
     for (int i = 0; i < 8; ++i) {
-        low = (low << byte_size);
-        low |= *(uuid.begin() + 8 + i);
+        low_ = (low_ << byte_size);
+        low_ |= *(uuid.begin() + 8 + i);
     }
-
-    proto::Uuid ret;
-    ret.set_low(low);
-    ret.set_high(high);
-    return ret;
 }
 
-Context::Context() {
-    *context_.mutable_trace_id() = NewUuid();
-    *context_.mutable_span_id() = context_.trace_id();
-    *context_.mutable_parent_span() = context_.trace_id();
+bool operator==(const Uuid& a, const Uuid& b) {
+    return a.high() == b.high() && a.low() == b.low();
 }
 
-Context::Context(proto::Context ctx) : context_(std::move(ctx)) {}
+bool operator!=(const Uuid& a, const Uuid& b) { return !operator==(a, b); }
+
+Context::Context() {}
+
+Context::Context(ContextStorage ctx) : context_(std::move(ctx)) {}
 
 void Context::NewSpan() {
-    *context_.mutable_parent_span() = context_.span_id();
-    *context_.mutable_span_id() = NewUuid();
-}
-
-std::string Context::Serialize() const {
-    std::string data;
-    context_.SerializeToString(&data);
-    return data;
+    context_.parent_span = context_.span_id;
+    context_.span_id = Uuid{};
 }
 
 bool operator==(const Context& a, const Context& b) {

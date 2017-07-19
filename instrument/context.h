@@ -7,23 +7,46 @@
 
 #include "request_log.pb.h"
 
-namespace proto {
-bool operator==(const proto::Uuid& a, const proto::Uuid& b);
-bool operator!=(const proto::Uuid& a, const proto::Uuid& b);
-}
-
 namespace microtrace {
 
-extern const char* CONTEXT_PREFIX;
-extern const ssize_t CONTEXT_PREFIX_SIZE;
+/*
+ * An Uuid is derived from a boost::uuids::uuids object, its lower 64 bits
+ * is stored in low_, and upper 64 bits in high_.
+ */
+class Uuid {
+   public:
+    Uuid();
 
-inline ssize_t ContextProtoSize() { return 3 * sizeof(uint64_t); }
+    uint64_t high() const { return high_; }
+    uint64_t low() const { return low_; }
+
+   private:
+    uint64_t high_;
+    uint64_t low_;
+};
+
+bool operator==(const Uuid& a, const Uuid& b);
+bool operator!=(const Uuid& a, const Uuid& b);
+
+typedef Uuid uuid_t;
 
 /*
  * This module is responsible for keeping track of the trace associated with the
  * every thread of execution. The trace may change throughout the lifeteime of
  * each thread. By default, the trace is undefined.
  */
+
+struct ContextStorage {
+    ContextStorage()
+        : trace_id(Uuid{}), span_id(trace_id), parent_span(trace_id) {}
+
+    uuid_t trace_id;
+    uuid_t span_id;
+    uuid_t parent_span;
+};
+
+static_assert(sizeof(ContextStorage) == sizeof(uint64_t) * 2 * 3,
+              "ContextStorage must be POD");
 
 class Context {
    public:
@@ -35,15 +58,15 @@ class Context {
     /*
      * Returns a context filled with the values of ctx.
      */
-    Context(proto::Context ctx);
+    Context(ContextStorage ctx);
 
     static bool SameTrace(const Context& a, const Context& b) {
         return a.trace() == b.trace();
     }
 
-    const proto::Uuid& trace() const { return context_.trace_id(); }
-    const proto::Uuid& span() const { return context_.span_id(); }
-    const proto::Uuid& parent_span() const { return context_.parent_span(); }
+    const uuid_t& trace() const { return context_.trace_id; }
+    const uuid_t& span() const { return context_.span_id; }
+    const uuid_t& parent_span() const { return context_.parent_span; }
 
     /*
      * Generates and assigns a new span to this context, and saves the current
@@ -51,10 +74,10 @@ class Context {
      */
     void NewSpan();
 
-    std::string Serialize() const;
+    const ContextStorage& storage() const { return context_; }
 
    private:
-    proto::Context context_;
+    ContextStorage context_;
 };
 
 bool operator==(const Context& a, const Context& b);

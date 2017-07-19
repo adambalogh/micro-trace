@@ -1,6 +1,7 @@
 #include "client_socket_handler.h"
 
 #include <chrono>
+#include <iostream>
 
 #include "spdlog/spdlog.h"
 
@@ -78,20 +79,20 @@ SocketAction ClientSocketHandler::get_next_action(
 }
 
 bool ClientSocketHandler::SendContext() {
-    auto data = context().Serialize();
-    assert(data.size() == ContextProtoSize());
-
+    // TODO implement properly
     if (type_ == SocketType::ASYNC) {
-        // TODO implement
-        printf("non-blocking context\n");
+        auto ret = orig_.write(
+            fd(), reinterpret_cast<const void*>(&context().storage()),
+            sizeof(ContextStorage));
+        VERIFY(ret == sizeof(ContextStorage), "yolo");
     } else {
-        // Send context
-        auto ret = orig_.write(fd(), string_arr(data), data.size());
+        auto ret = orig_.write(
+            fd(), reinterpret_cast<const void*>(&context().storage()),
+            sizeof(ContextStorage));
         if (ret <= 0) {
             return true;
         }
-        VERIFY(ret == static_cast<ssize_t>(data.size()),
-               "Could not send context");
+        VERIFY(ret == sizeof(ContextStorage), "Could not send context");
     }
 
     return true;

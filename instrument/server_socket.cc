@@ -1,6 +1,7 @@
 #include "server_socket.h"
 
 #include <assert.h>
+#include <iostream>
 
 #include "orig_functions.h"
 #include "request_log.pb.h"
@@ -10,7 +11,7 @@ namespace microtrace {
 ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
                            const OriginalFunctions &orig)
     : InstrumentedSocket(fd, std::move(handler), orig) {
-    context_buffer.resize(ContextProtoSize());
+    context_buffer.resize(sizeof(ContextStorage));
     VERIFY(handler_->role_server(),
            "ServerSocket given a non-server socket handler");
 }
@@ -43,7 +44,7 @@ ssize_t ServerSocket::ReadContextIfNecessary() {
     }
 
     if (handler_->type() == SocketType::BLOCKING) {
-        int max_try = 5;
+        int max_try = 3;
         int start = 0;
 
         // TODO make sure errors are handled correctly here
@@ -64,11 +65,13 @@ ssize_t ServerSocket::ReadContextIfNecessary() {
         VERIFY(start == context_buffer.size(),
                "Could not read context when it was expected");
 
-        VERIFY(context_storage_.ParseFromString(context_buffer),
-               "could not parse Context protobuf object");
+        ContextStorage context_storage;
+        memcpy(&context_storage, string_arr(context_buffer),
+               context_buffer.size());
+
         // Pass parsed context to handler
         handler_->set_context(
-            std::make_unique<Context>(std::move(context_storage_)));
+            std::make_unique<Context>(std::move(context_storage)));
     } else {
         printf("non-blocking context read\n");
     }
