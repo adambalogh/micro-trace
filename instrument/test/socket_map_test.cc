@@ -2,6 +2,7 @@
 
 #include "socket_map.h"
 
+#include "client_socket.h"
 #include "test_util.h"
 
 using namespace microtrace;
@@ -18,7 +19,7 @@ TEST(SocketMapTest, InitiallyEmpty) {
 TEST(SocketMapTest, SetGetDelete) {
     SocketMap map;
 
-    auto socket = std::make_unique<InstrumentedSocket>(
+    auto socket = std::make_unique<ClientSocket>(
         0, DumbSocketHandler::New(0, SocketRole::CLIENT), empty_orig);
 
     map.Set(0, std::move(socket));
@@ -36,14 +37,14 @@ TEST(SocketMapTest, Resize) {
     SocketMap map;
 
     // Add first socket in range
-    auto first_socket = std::make_unique<InstrumentedSocket>(
+    auto first_socket = std::make_unique<ClientSocket>(
         0, DumbSocketHandler::New(0, SocketRole::CLIENT), empty_orig);
     map.Set(0, std::move(first_socket));
     auto* first_ptr = map.Get(0);
 
     // Add second socket out of range
     const int out_of_range = SocketMap::DEFAULT_SIZE * 10;
-    auto second_socket = std::make_unique<InstrumentedSocket>(
+    auto second_socket = std::make_unique<ClientSocket>(
         out_of_range, DumbSocketHandler::New(out_of_range, SocketRole::CLIENT),
         empty_orig);
     map.Set(out_of_range, std::move(second_socket));

@@ -6,8 +6,9 @@ BENCH_DIR = $(addprefix $(BUILD_DIR)/, benchmark)
 OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = $(PWD)
-SRCS = instrumented_socket.cc tracing.cc orig_functions.cc context.cc socket_handler.cc \
-	  client_socket_handler.cc server_socket_handler.cc common.cc trace_logger.cc
+SRCS = tracing.cc orig_functions.cc context.cc socket_handler.cc \
+	  client_socket_handler.cc server_socket_handler.cc common.cc trace_logger.cc \
+	  client_socket.cc server_socket.cc
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
 
 BENCHMARKS = tracing_benchmark.cc

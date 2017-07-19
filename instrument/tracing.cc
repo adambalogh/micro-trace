@@ -10,10 +10,11 @@
 #include <random>
 #include <unordered_map>
 
+#include "client_socket.h"
 #include "client_socket_handler.h"
 #include "context.h"
-#include "instrumented_socket.h"
 #include "orig_functions.h"
+#include "server_socket.h"
 #include "server_socket_handler.h"
 #include "socket_map.h"
 #include "trace_logger.h"
@@ -98,8 +99,8 @@ static void HandleAccept(const int sockfd) {
     }
 
     auto handler = std::make_unique<ServerSocketHandler>(sockfd);
-    auto socket = std::make_unique<InstrumentedSocket>(
-        sockfd, std::move(handler), orig());
+    auto socket =
+        std::make_unique<ServerSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
 }
 }  // namespace microtrace
@@ -137,8 +138,8 @@ int socket(int domain, int type, int protocol) {
 
     auto handler =
         std::make_unique<ClientSocketHandler>(sockfd, spd_instance().get());
-    auto socket = std::make_unique<InstrumentedSocket>(
-        sockfd, std::move(handler), orig());
+    auto socket =
+        std::make_unique<ClientSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
 
     return sockfd;

@@ -22,26 +22,16 @@ typedef std::function<ssize_t()> IoFunction;
  */
 class InstrumentedSocket : public SocketInterface {
    public:
+    static const int SINGLE_IOVEC = 1;
+
     InstrumentedSocket(const InstrumentedSocket &) = delete;
 
     InstrumentedSocket(const int fd, std::unique_ptr<SocketHandler> handler,
-                       const OriginalFunctions &orig);
-
-    void Async() override;
-
-    ssize_t RecvFrom(void *buf, size_t len, int flags,
-                     struct sockaddr *src_addr, socklen_t *addrlen) override;
-    ssize_t Recv(void *buf, size_t len, int flags) override;
-    ssize_t Read(void *buf, size_t count) override;
-    ssize_t Write(const void *buf, size_t count) override;
-    ssize_t Writev(const struct iovec *iov, int iovcnt) override;
-    ssize_t Send(const void *buf, size_t len, int flags) override;
-    ssize_t SendTo(const void *buf, size_t len, int flags,
-                   const struct sockaddr *dest_addr,
-                   socklen_t addrlen) override;
-    ssize_t SendMsg(const struct msghdr *msg, int flags) override;
-
-    int Close() override;
+                       const OriginalFunctions &orig)
+        : fd_(fd), handler_(std::move(handler)), orig_(orig) {
+        VERIFY(fd == handler_->fd(),
+               "handler and underlying socket's fd is not the same");
+    }
 
     int fd() const override { return fd_; }
 

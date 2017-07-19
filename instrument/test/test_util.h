@@ -249,7 +249,10 @@ class DumbSocketHandler : public SocketHandler {
     void AfterClose(int ret) {}
 
     int fd() const { return fd_; }
+
     SocketRole role() const { return role_; }
+    bool role_server() const override { return role_ == SocketRole::SERVER; }
+    bool role_client() const override { return role_ == SocketRole::CLIENT; }
 
    private:
     int fd_;
