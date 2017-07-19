@@ -6,7 +6,7 @@ namespace microtrace {
 
 class ServerSocketHandler : public AbstractSocketHandler {
    public:
-    ServerSocketHandler(int sockfd);
+    ServerSocketHandler(int sockfd, const OriginalFunctions& orig);
 
     virtual void Async() override;
 

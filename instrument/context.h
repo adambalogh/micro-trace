@@ -14,6 +14,11 @@ bool operator!=(const proto::Uuid& a, const proto::Uuid& b);
 
 namespace microtrace {
 
+extern const char* CONTEXT_PREFIX;
+extern const ssize_t CONTEXT_PREFIX_SIZE;
+
+inline ssize_t ContextProtoSize() { return 3 * sizeof(uint64_t); }
+
 /*
  * This module is responsible for keeping track of the trace associated with the
  * every thread of execution. The trace may change throughout the lifeteime of

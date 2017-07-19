@@ -10,30 +10,98 @@ namespace microtrace {
 ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
                            const OriginalFunctions &orig)
     : InstrumentedSocket(fd, std::move(handler), orig) {
+    context_buffer.resize(CONTEXT_PREFIX_SIZE + ContextProtoSize());
     VERIFY(handler_->role_server(),
            "ServerSocket given a non-server socket handler");
 }
 
 void ServerSocket::Async() { handler_->Async(); }
 
+ssize_t ServerSocket::FillFromContextBuffer(void *buf, size_t len) {
+    char *const char_buf = static_cast<char *>(buf);
+    VERIFY(len >= context_buffer.size(), "read len < context_buffer size");
+    for (size_t i = 0; i < context_buffer.size(); ++i) {
+        char_buf[i] = context_buffer[i];
+    }
+    return context_buffer.size();
+}
+
+bool ServerSocket::ReadContextIfNecessary() {
+    if (handler_->get_next_action(SocketOperation::READ) !=
+        SocketAction::RECV_REQUEST) {
+        return true;
+    }
+
+    if (handler_->type() == SocketType::BLOCKING) {
+        int max_try = 3;
+        int start = 0;
+
+        // TODO make sure errors are handled correctly here
+        // TODO check prefix as we read here
+        do {
+            ssize_t ret = orig_.read(fd(), string_arr(context_buffer) + start,
+                                     context_buffer.size() - start);
+            start += ret;
+            --max_try;
+        } while (start != context_buffer.size() && max_try > 0);
+
+        if (start <= 0) {
+            return true;
+        }
+        if (start < static_cast<ssize_t>(context_buffer.size())) {
+            return false;
+        }
+
+        // VERIFY(ret == static_cast<ssize_t>(context_buffer.size()),
+        //       "Could not read context in one read, read {} bytes", ret);
+
+        for (int i = 0; i < CONTEXT_PREFIX_SIZE; ++i) {
+            if (context_buffer[i] != CONTEXT_PREFIX[i]) {
+                return false;
+            }
+        }
+
+        printf("blocking context read\n");
+    } else {
+        printf("non-blocking context read\n");
+    }
+
+    return true;
+}
+
 ssize_t ServerSocket::RecvFrom(void *buf, size_t len, int flags,
                                struct sockaddr *src_addr, socklen_t *addrlen) {
     handler_->BeforeRead(buf, len);
-    auto ret = orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
+    ssize_t ret;
+    if (!ReadContextIfNecessary()) {
+        ret = FillFromContextBuffer(buf, len);
+    } else {
+        ret = orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
+    }
     handler_->AfterRead(buf, len, ret);
     return ret;
 }
 
 ssize_t ServerSocket::Recv(void *buf, size_t len, int flags) {
     handler_->BeforeRead(buf, len);
-    auto ret = orig_.recv(fd(), buf, len, flags);
+    ssize_t ret;
+    if (!ReadContextIfNecessary()) {
+        ret = FillFromContextBuffer(buf, len);
+    } else {
+        ret = orig_.recv(fd(), buf, len, flags);
+    }
     handler_->AfterRead(buf, len, ret);
     return ret;
 }
 
 ssize_t ServerSocket::Read(void *buf, size_t count) {
     handler_->BeforeRead(buf, count);
-    auto ret = orig_.read(fd(), buf, count);
+    ssize_t ret;
+    if (!ReadContextIfNecessary()) {
+        ret = FillFromContextBuffer(buf, count);
+    } else {
+        ret = orig_.read(fd(), buf, count);
+    }
     handler_->AfterRead(buf, count, ret);
     return ret;
 }

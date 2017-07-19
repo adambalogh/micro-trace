@@ -31,5 +31,16 @@ class ServerSocket : public InstrumentedSocket {
     ssize_t SendMsg(const struct msghdr *msg, int flags) override;
 
     int Close() override;
+
+   private:
+    /*
+     * Fills the given read buffer from the content of the unused
+     * context_buffer.
+     */
+    ssize_t FillFromContextBuffer(void *buf, size_t len);
+
+    bool ReadContextIfNecessary();
+
+    std::string context_buffer;
 };
 }

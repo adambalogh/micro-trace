@@ -13,8 +13,8 @@ message Connection {
 }
 
 message Uuid {
-    required uint64 high = 1;
-    required uint64 low = 2;
+    required fixed64 high = 1;
+    required fixed64 low = 2;
 }
 
 message Context {

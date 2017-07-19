@@ -26,13 +26,16 @@ std::string Connection::to_string() const {
 }
 
 AbstractSocketHandler::AbstractSocketHandler(int sockfd, const SocketRole role,
-                                             const SocketState state)
+                                             const SocketState state,
+                                             const OriginalFunctions& orig)
     : sockfd_(sockfd),
       context_(nullptr),
       role_(role),
       state_(state),
       num_transactions_(0),
-      conn_init_(false) {
+      conn_init_(false),
+      type_(SocketType::BLOCKING),
+      orig_(orig) {
     DLOG("New AbstractSocketHandler %d", sockfd);
 }
 

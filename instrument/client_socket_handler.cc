@@ -29,12 +29,10 @@ struct RequestLogWrapper {
 
 ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
                                          const OriginalFunctions& orig)
-    : AbstractSocketHandler(sockfd, SocketRole::CLIENT,
-                            SocketState::WILL_WRITE),
+    : AbstractSocketHandler(sockfd, SocketRole::CLIENT, SocketState::WILL_WRITE,
+                            orig),
       txn_(nullptr),
-      socket_type_(SocketType::BLOCKING),
-      trace_logger_(trace_logger),
-      orig_(orig) {}
+      trace_logger_(trace_logger) {}
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
@@ -61,7 +59,7 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
 }
 
 void ClientSocketHandler::Async() {
-    socket_type_ = SocketType::ASYNC;
+    type_ = SocketType::ASYNC;
     context_.reset(new Context(get_current_context()));
 }
 
@@ -81,17 +79,31 @@ SocketAction ClientSocketHandler::get_next_action(
 
 bool ClientSocketHandler::SendContext() {
     auto data = context().Serialize();
-    int count = 3;  // We retry no more than 3 times
-    size_t start = 0;
-    int ret;
+    assert(data.size() == ContextProtoSize());
 
-    do {
-        ret = orig_.write(fd(), string_arr(data) + start, data.size() - start);
-        start += ret;
-        --count;
-    } while (start == data.size() || count == 0);
+    if (type_ == SocketType::ASYNC) {
+        // TODO implement
+        printf("non-blocking context\n");
+    } else {
+        ssize_t ret;
+        // Send context prefix
+        ret = orig_.write(fd(), CONTEXT_PREFIX, CONTEXT_PREFIX_SIZE);
+        if (ret <= 0) {
+            return true;
+        }
+        VERIFY(ret == CONTEXT_PREFIX_SIZE, "Could not send context prefix");
 
-    return start == data.size();
+        // Send context
+        ret = orig_.write(fd(), string_arr(data), data.size());
+        if (ret <= 0) {
+            return true;
+        }
+        VERIFY(ret == static_cast<ssize_t>(data.size()),
+               "Could not send context");
+        printf("sent context %d\n", ret);
+    }
+
+    return true;
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
@@ -103,7 +115,26 @@ bool ClientSocketHandler::SendContextIfNecessary() {
 
 SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
                                                        int iovcnt) {
+    // New transaction
+    if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
+        // Only copy context if it is a blocking socket
+        if (type_ == SocketType::BLOCKING) {
+            context_.reset(new Context(get_current_context()));
+        }
+        set_current_context(context());
+
+        txn_.reset(new Transaction);
+        txn_->Start();
+
+        ++num_transactions_;
+    }
+    // Continue sending request
+    else if (state_ == SocketState::WROTE) {
+        set_current_context(context());
+    }
+
     VERIFY(SendContextIfNecessary(), "Could not send context");
+
     return Result::Ok;
 }
 
@@ -117,24 +148,6 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
 
     if (!conn_init_) {
         SetConnection();
-    }
-
-    // New transaction
-    if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
-        // Only copy context if it is a blocking socket
-        if (socket_type_ == SocketType::BLOCKING) {
-            context_.reset(new Context(get_current_context()));
-        }
-        set_current_context(context());
-
-        txn_.reset(new Transaction);
-        txn_->Start();
-
-        ++num_transactions_;
-    }
-    // Continue sending request
-    else if (state_ == SocketState::WROTE) {
-        set_current_context(context());
     }
 
     state_ = SocketState::WROTE;

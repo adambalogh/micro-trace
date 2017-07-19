@@ -1,18 +1,19 @@
 #include "server_socket_handler.h"
 
+#include <iostream>
+
 #include "common.h"
 #include "context.h"
+#include "orig_functions.h"
 
 namespace microtrace {
 
-ServerSocketHandler::ServerSocketHandler(int sockfd)
-    : AbstractSocketHandler(sockfd, SocketRole::SERVER,
-                            SocketState::WILL_READ) {}
+ServerSocketHandler::ServerSocketHandler(int sockfd,
+                                         const OriginalFunctions& orig)
+    : AbstractSocketHandler(sockfd, SocketRole::SERVER, SocketState::WILL_READ,
+                            orig) {}
 
-void ServerSocketHandler::Async() {
-    VERIFY(false,
-           "Async() called with ServerSocket, which is currently not expected");
-}
+void ServerSocketHandler::Async() { type_ = SocketType::ASYNC; }
 
 SocketAction ServerSocketHandler::get_next_action(
     const SocketOperation op) const {

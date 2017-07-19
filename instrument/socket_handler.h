@@ -8,6 +8,8 @@
 
 namespace microtrace {
 
+struct OriginalFunctions;
+
 /*
  * Identifies a unique connection between two machines.
  *
@@ -62,6 +64,8 @@ enum class SocketAction {
     NONE  // No new action, continues current action
 };
 
+enum class SocketType { BLOCKING, ASYNC };
+
 /*
  * SocketHandler is used for wrapping socket systemcalls.
  * Every Before* handler must be called before the corresponding socket
@@ -108,12 +112,15 @@ class SocketHandler {
     virtual SocketRole role() const = 0;
     virtual bool role_server() const = 0;
     virtual bool role_client() const = 0;
+
+    virtual SocketType type() const = 0;
 };
 
 class AbstractSocketHandler : public SocketHandler {
    public:
     AbstractSocketHandler(int sockfd, const SocketRole role,
-                          const SocketState state);
+                          const SocketState state,
+                          const OriginalFunctions& orig);
 
     int fd() const override { return sockfd_; }
 
@@ -122,6 +129,8 @@ class AbstractSocketHandler : public SocketHandler {
     SocketRole role() const override { return role_; }
     bool role_server() const override { return role_ == SocketRole::SERVER; }
     bool role_client() const override { return role_ == SocketRole::CLIENT; }
+
+    SocketType type() const override { return type_; }
 
    protected:
     /*
@@ -136,7 +145,7 @@ class AbstractSocketHandler : public SocketHandler {
     int SetConnection();
 
     bool has_context() const { return static_cast<bool>(context_); }
-    const Context& context() const {
+    inline const Context& context() const {
         VERIFY(has_context(), "context() called when it is empty");
         return *context_;
     }
@@ -178,5 +187,9 @@ class AbstractSocketHandler : public SocketHandler {
      * the socket's lifetime, and becomes invalid after Close() has been called.
      */
     Connection conn_;
+
+    SocketType type_;
+
+    const OriginalFunctions& orig_;
 };
 }

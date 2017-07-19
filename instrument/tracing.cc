@@ -98,7 +98,7 @@ static void HandleAccept(const int sockfd) {
         return;
     }
 
-    auto handler = std::make_unique<ServerSocketHandler>(sockfd);
+    auto handler = std::make_unique<ServerSocketHandler>(sockfd, orig());
     auto socket =
         std::make_unique<ServerSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
