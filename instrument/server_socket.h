@@ -37,9 +37,9 @@ class ServerSocket : public InstrumentedSocket {
      * Fills the given read buffer from the content of the unused
      * context_buffer.
      */
-    ssize_t FillFromContextBuffer(void *buf, size_t len);
+    ssize_t FillFromContextBuffer(void *buf, size_t len, ssize_t ret);
 
-    bool ReadContextIfNecessary();
+    ssize_t ReadContextIfNecessary();
 
     std::string context_buffer;
 };

@@ -259,6 +259,8 @@ class DumbSocketHandler : public SocketHandler {
         return SocketAction::NONE;
     }
 
+    virtual SocketType type() const { return SocketType::BLOCKING; }
+
    private:
     int fd_;
     SocketRole role_;

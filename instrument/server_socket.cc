@@ -17,19 +17,21 @@ ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
 
 void ServerSocket::Async() { handler_->Async(); }
 
-ssize_t ServerSocket::FillFromContextBuffer(void *buf, size_t len) {
+ssize_t ServerSocket::FillFromContextBuffer(void *buf, size_t len,
+                                            ssize_t ret) {
     char *const char_buf = static_cast<char *>(buf);
-    VERIFY(len >= context_buffer.size(), "read len < context_buffer size");
-    for (size_t i = 0; i < context_buffer.size(); ++i) {
+    // TODO handle this
+    VERIFY(len >= ret, "read len < ret size");
+    for (size_t i = 0; i < ret; ++i) {
         char_buf[i] = context_buffer[i];
     }
     return context_buffer.size();
 }
 
-bool ServerSocket::ReadContextIfNecessary() {
+ssize_t ServerSocket::ReadContextIfNecessary() {
     if (handler_->get_next_action(SocketOperation::READ) !=
         SocketAction::RECV_REQUEST) {
-        return true;
+        return -1;
     }
 
     if (handler_->type() == SocketType::BLOCKING) {
@@ -39,17 +41,23 @@ bool ServerSocket::ReadContextIfNecessary() {
         // TODO make sure errors are handled correctly here
         // TODO check prefix as we read here
         do {
+            // TODO use appropriate read function
             ssize_t ret = orig_.read(fd(), string_arr(context_buffer) + start,
                                      context_buffer.size() - start);
             start += ret;
             --max_try;
+            for (int i = 0; i < CONTEXT_PREFIX_SIZE - start; ++i) {
+                if (context_buffer[start + i] != CONTEXT_PREFIX[start + i]) {
+                    return start;
+                }
+            }
         } while (start != context_buffer.size() && max_try > 0);
 
         if (start <= 0) {
-            return true;
+            return -1;
         }
         if (start < static_cast<ssize_t>(context_buffer.size())) {
-            return false;
+            return start;
         }
 
         // VERIFY(ret == static_cast<ssize_t>(context_buffer.size()),
@@ -57,7 +65,7 @@ bool ServerSocket::ReadContextIfNecessary() {
 
         for (int i = 0; i < CONTEXT_PREFIX_SIZE; ++i) {
             if (context_buffer[i] != CONTEXT_PREFIX[i]) {
-                return false;
+                return start;
             }
         }
 
@@ -66,15 +74,15 @@ bool ServerSocket::ReadContextIfNecessary() {
         printf("non-blocking context read\n");
     }
 
-    return true;
+    return -1;
 }
 
 ssize_t ServerSocket::RecvFrom(void *buf, size_t len, int flags,
                                struct sockaddr *src_addr, socklen_t *addrlen) {
     handler_->BeforeRead(buf, len);
     ssize_t ret;
-    if (!ReadContextIfNecessary()) {
-        ret = FillFromContextBuffer(buf, len);
+    if ((ret = ReadContextIfNecessary()) != -1) {
+        ret = FillFromContextBuffer(buf, len, ret);
     } else {
         ret = orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
     }
@@ -85,8 +93,8 @@ ssize_t ServerSocket::RecvFrom(void *buf, size_t len, int flags,
 ssize_t ServerSocket::Recv(void *buf, size_t len, int flags) {
     handler_->BeforeRead(buf, len);
     ssize_t ret;
-    if (!ReadContextIfNecessary()) {
-        ret = FillFromContextBuffer(buf, len);
+    if ((ret = ReadContextIfNecessary()) != -1) {
+        ret = FillFromContextBuffer(buf, len, ret);
     } else {
         ret = orig_.recv(fd(), buf, len, flags);
     }
@@ -97,8 +105,8 @@ ssize_t ServerSocket::Recv(void *buf, size_t len, int flags) {
 ssize_t ServerSocket::Read(void *buf, size_t count) {
     handler_->BeforeRead(buf, count);
     ssize_t ret;
-    if (!ReadContextIfNecessary()) {
-        ret = FillFromContextBuffer(buf, count);
+    if ((ret = ReadContextIfNecessary()) != -1) {
+        ret = FillFromContextBuffer(buf, count, ret);
     } else {
         ret = orig_.read(fd(), buf, count);
     }
