@@ -14,7 +14,7 @@ ServerSocket::ServerSocket(const int fd,
     : InstrumentedSocket(fd, orig), handler_(std::move(handler)) {
     context_buffer.resize(sizeof(ContextStorage));
 
-    VERIFY(fd == handler_->fd(),
+    VERIFY(fd_ == handler_->fd(),
            "handler and underlying socket's fd is not the same");
     VERIFY(handler_->role_server(),
            "ServerSocket given a non-server socket handler");
@@ -142,7 +142,9 @@ ssize_t ServerSocket::SendMsg(const struct msghdr *msg, int flags) {
 int ServerSocket::Close() {
     handler_->BeforeClose();
     auto ret = orig_.close(this->fd());
+    printf("before %d ServerSocket::AfterClose\n", fd());
     handler_->AfterClose(ret);
+    printf("after ServerSocket::AfterClose\n");
     return ret;
 }
 }

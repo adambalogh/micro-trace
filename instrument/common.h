@@ -2,6 +2,7 @@
 
 #include <netinet/in.h>
 #include <uv.h>
+#include <iostream>
 #include <string>
 
 #include "spdlog/spdlog.h"

@@ -41,7 +41,8 @@ class SocketMap {
         if (!in_range(sockfd)) {
             Resize(sockfd);
         }
-        LOG_ERROR_IF(map_[sockfd] == true, "Socket created twice");
+        LOG_ERROR_IF(static_cast<bool>(map_[sockfd]) == true,
+                     "Socket created twice: {}", sockfd);
         map_[sockfd] = std::move(val);
     }
 

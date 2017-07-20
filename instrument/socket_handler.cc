@@ -26,7 +26,7 @@ std::string Connection::to_string() const {
     return str;
 }
 
-ServerType GetServerType() {
+static ServerType GetServerType() {
     auto type = std::getenv("MICROTRACE_SERVER_TYPE");
     VERIFY(type != nullptr, "MICROTRACE_SERVER_TYPE is not defined");
 
@@ -50,9 +50,7 @@ AbstractSocketHandler::AbstractSocketHandler(int sockfd, const SocketRole role,
       type_(SocketType::BLOCKING),
       server_type_(GetServerType()),
       context_processed_(false),
-      orig_(orig) {
-    DLOG("New AbstractSocketHandler %d", sockfd);
-}
+      orig_(orig) {}
 
 void SetConnectionEndPoint(
     const int fd, std::string* ip, short unsigned* port,
