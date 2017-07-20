@@ -142,9 +142,7 @@ ssize_t ServerSocket::SendMsg(const struct msghdr *msg, int flags) {
 int ServerSocket::Close() {
     handler_->BeforeClose();
     auto ret = orig_.close(this->fd());
-    printf("before %d ServerSocket::AfterClose\n", fd());
     handler_->AfterClose(ret);
-    printf("after ServerSocket::AfterClose\n");
     return ret;
 }
 }
