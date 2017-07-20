@@ -29,4 +29,4 @@ EXPOSE 5001
 ENV LD_PRELOAD /usr/local/lib/libtrace.so
 ENV MICROTRACE_SERVER_TYPE backend
 
-CMD ["gunicorn", "server:app", "-b :5001"]
+CMD ["gunicorn", "-b", ":5001", "--threads", "3", "server:app"]
