@@ -97,6 +97,7 @@ bool ClientSocketHandler::SendContext() {
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
+    // Only send context if it is the start of a new transaction and it hasn't been sent before.
     if (!is_context_processed() &&
         get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         return SendContext();
@@ -172,8 +173,6 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
 
     // New incoming response
     if (get_next_action(SocketOperation::READ) == SocketAction::RECV_RESPONSE) {
-        set_current_context(context());
-
         txn_->End();
         {
             RequestLogWrapper log;
@@ -181,8 +180,9 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
             trace_logger_->Log(log.get());
         }
 
-        // Start new span only after we recevied the response
+        // Start new span after we started recieving the response
         context_->NewSpan();
+        set_current_context(context());
     }
 
     // After a read is successfully executed, we set context_processed to
