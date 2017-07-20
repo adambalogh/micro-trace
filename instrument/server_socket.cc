@@ -57,15 +57,15 @@ ssize_t ServerSocket::ReadContextIfNecessary() {
 
     // We only receive context at the start of a new incoming request
     if (!handler_->is_context_processed() &&
-        handler_->get_next_action(SocketOperation::READ) !=
+        handler_->get_next_action(SocketOperation::READ) ==
             SocketAction::RECV_REQUEST) {
-        return 1;
-    }
-
-    if (handler_->type() == SocketType::BLOCKING) {
-        return ReadContextBlocking();
+        if (handler_->type() == SocketType::BLOCKING) {
+            return ReadContextBlocking();
+        } else {
+            return ReadContextAsync();
+        }
     } else {
-        return ReadContextAsync();
+        return 1;
     }
 }
 

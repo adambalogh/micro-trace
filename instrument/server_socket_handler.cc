@@ -80,6 +80,7 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
         set_current_context(context());
     }
 
+    context_processed_ = false;
     state_ = SocketState::READ;
 }
 
@@ -100,8 +101,6 @@ void ServerSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     if (!conn_init_) {
         SetConnection();
     }
-
-    context_processed_ = false;
 
     state_ = SocketState::WROTE;
 }
