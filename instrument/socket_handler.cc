@@ -47,6 +47,7 @@ AbstractSocketHandler::AbstractSocketHandler(int sockfd, const SocketRole role,
       conn_init_(false),
       type_(SocketType::BLOCKING),
       server_type_(GetServerType()),
+      context_processed_(false),
       orig_(orig) {
     DLOG("New AbstractSocketHandler %d", sockfd);
 }

@@ -26,12 +26,8 @@ class InstrumentedSocket : public SocketInterface {
 
     InstrumentedSocket(const InstrumentedSocket &) = delete;
 
-    InstrumentedSocket(const int fd, std::unique_ptr<SocketHandler> handler,
-                       const OriginalFunctions &orig)
-        : fd_(fd), handler_(std::move(handler)), orig_(orig) {
-        VERIFY(fd == handler_->fd(),
-               "handler and underlying socket's fd is not the same");
-    }
+    InstrumentedSocket(const int fd, const OriginalFunctions &orig)
+        : fd_(fd), orig_(orig) {}
 
     int fd() const override { return fd_; }
 
@@ -43,8 +39,6 @@ class InstrumentedSocket : public SocketInterface {
     }
 
     const int fd_;
-
-    const std::unique_ptr<SocketHandler> handler_;
 
     /*
      * Cache for iovec struct

@@ -112,7 +112,6 @@ class SocketHandler {
 
     virtual const Context& context() const = 0;
     virtual bool has_context() const = 0;
-    virtual void set_context(std::unique_ptr<Context> c) = 0;
 
     /*
      * Returns the next logical action the socket will take if the given
@@ -127,6 +126,8 @@ class SocketHandler {
     virtual SocketType type() const = 0;
 
     virtual ServerType server_type() const = 0;
+
+    virtual bool is_context_processed() const = 0;
 };
 
 class AbstractSocketHandler : public SocketHandler {
@@ -143,11 +144,8 @@ class AbstractSocketHandler : public SocketHandler {
         VERIFY(has_context(), "context() called when it is empty");
         return *context_;
     }
+
     bool has_context() const override { return static_cast<bool>(context_); }
-    void set_context(std::unique_ptr<Context> c) override {
-        VERIFY(c, "set_context called with empty context");
-        context_ = std::move(c);
-    }
 
     SocketRole role() const override { return role_; }
     bool role_server() const override { return role_ == SocketRole::SERVER; }
@@ -156,6 +154,8 @@ class AbstractSocketHandler : public SocketHandler {
     SocketType type() const override { return type_; }
 
     ServerType server_type() const override { return server_type_; }
+
+    bool is_context_processed() const { return context_processed_; }
 
    protected:
     /*
@@ -213,6 +213,15 @@ class AbstractSocketHandler : public SocketHandler {
     SocketType type_;
 
     ServerType server_type_;
+
+    /*
+     * Indicates if the context for the current transaction has been processed
+     * yet or not.
+     *
+     * For a server socket it means that it has been read, for a client it means
+     * that it has been sent.
+     */
+    bool context_processed_;
 
     const OriginalFunctions& orig_;
 };

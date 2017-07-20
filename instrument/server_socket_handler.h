@@ -21,5 +21,7 @@ class ServerSocketHandler : public AbstractSocketHandler {
     virtual void AfterClose(int ret) override;
 
     SocketAction get_next_action(const SocketOperation op) const override;
+
+    void ContextReadCallback(std::unique_ptr<Context> c);
 };
 }

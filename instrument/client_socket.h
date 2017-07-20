@@ -2,9 +2,9 @@
 #include <functional>
 #include <memory>
 
+#include "client_socket_handler.h"
 #include "common.h"
 #include "instrumented_socket.h"
-#include "socket_handler.h"
 #include "socket_interface.h"
 
 namespace microtrace {
@@ -13,7 +13,7 @@ class ClientSocket : public InstrumentedSocket {
    public:
     ClientSocket(const ClientSocket &) = delete;
 
-    ClientSocket(const int fd, std::unique_ptr<SocketHandler> handler,
+    ClientSocket(const int fd, std::unique_ptr<ClientSocketHandler> handler,
                  const OriginalFunctions &orig);
 
     void Async() override;
@@ -31,5 +31,8 @@ class ClientSocket : public InstrumentedSocket {
     ssize_t SendMsg(const struct msghdr *msg, int flags) override;
 
     int Close() override;
+
+   private:
+    std::unique_ptr<ClientSocketHandler> handler_;
 };
 }

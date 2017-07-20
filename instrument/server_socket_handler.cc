@@ -29,6 +29,13 @@ SocketAction ServerSocketHandler::get_next_action(
     return SocketAction::NONE;
 }
 
+void ServerSocketHandler::ContextReadCallback(std::unique_ptr<Context> c) {
+    VERIFY(c, "ContextReadCallback called with empty context");
+    context_ = std::move(c);
+    context_->NewSpan();
+    context_processed_ = true;
+}
+
 SocketHandler::Result ServerSocketHandler::BeforeRead(const void* buf,
                                                       size_t len) {
     LOG_ERROR_IF(
@@ -47,12 +54,6 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
         return;
     }
 
-    std::cout << "got msg: " << ret << std::endl;
-    fwrite(buf, ret, 1, stdout);
-    std::cout << std::endl
-              << "==========" << std::endl
-              << std::flush << std::endl;
-
     VERIFY(ret > 0, "read invalid return value");
 
     if (!conn_init_) {
@@ -66,10 +67,9 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
             context_.reset(new Context);
         }
         // Otherwise we are backend, it was passed to us by client
-        // and context_ is already set to it by ServerSocket, we need to start
-        // a new span.
+        // and context_ is already set through ContextReadCallback.
         else {
-            context_->NewSpan();
+            VERIFY(context_, "Backend server context is empty");
         }
 
         set_current_context(*context_);
@@ -100,6 +100,8 @@ void ServerSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     if (!conn_init_) {
         SetConnection();
     }
+
+    context_processed_ = false;
 
     state_ = SocketState::WROTE;
 }

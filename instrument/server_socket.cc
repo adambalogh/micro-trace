@@ -8,10 +8,14 @@
 
 namespace microtrace {
 
-ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
+ServerSocket::ServerSocket(const int fd,
+                           std::unique_ptr<ServerSocketHandler> handler,
                            const OriginalFunctions &orig)
-    : InstrumentedSocket(fd, std::move(handler), orig) {
+    : InstrumentedSocket(fd, orig), handler_(std::move(handler)) {
     context_buffer.resize(sizeof(ContextStorage));
+
+    VERIFY(fd == handler_->fd(),
+           "handler and underlying socket's fd is not the same");
     VERIFY(handler_->role_server(),
            "ServerSocket given a non-server socket handler");
 }
@@ -33,13 +37,10 @@ ssize_t ServerSocket::ReadContextBlocking() {
     ContextStorage context_storage;
     memcpy(&context_storage, string_arr(context_buffer), context_buffer.size());
 
-    std::cout << "got context" << std::endl
-              << context_storage.to_string() << std::endl
-              << std::flush;
-
-    // Pass parsed context to handler
-    handler_->set_context(
+    // Pass context to handler
+    handler_->ContextReadCallback(
         std::make_unique<Context>(std::move(context_storage)));
+
     return context_buffer.size();
 }
 
@@ -55,8 +56,9 @@ ssize_t ServerSocket::ReadContextIfNecessary() {
     }
 
     // We only receive context at the start of a new incoming request
-    if (handler_->get_next_action(SocketOperation::READ) !=
-        SocketAction::RECV_REQUEST) {
+    if (!handler_->is_context_processed() &&
+        handler_->get_next_action(SocketOperation::READ) !=
+            SocketAction::RECV_REQUEST) {
         return 1;
     }
 
@@ -80,7 +82,6 @@ ssize_t ServerSocket::RecvFrom(void *buf, size_t len, int flags,
 }
 
 ssize_t ServerSocket::Recv(void *buf, size_t len, int flags) {
-    std::cout << "Recv" << std::endl;
     handler_->BeforeRead(buf, len);
     auto ret = ReadContextIfNecessary();
     if (ret <= 0) {
@@ -88,7 +89,6 @@ ssize_t ServerSocket::Recv(void *buf, size_t len, int flags) {
     }
     ret = orig_.recv(fd(), buf, len, flags);
     handler_->AfterRead(buf, len, ret);
-    std::cout << "AfterRead" << std::endl << std::flush;
     return ret;
 }
 

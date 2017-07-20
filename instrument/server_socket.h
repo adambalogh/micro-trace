@@ -4,7 +4,7 @@
 
 #include "common.h"
 #include "instrumented_socket.h"
-#include "socket_handler.h"
+#include "server_socket_handler.h"
 #include "socket_interface.h"
 
 namespace microtrace {
@@ -13,7 +13,7 @@ class ServerSocket : public InstrumentedSocket {
    public:
     ServerSocket(const ServerSocket &) = delete;
 
-    ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
+    ServerSocket(const int fd, std::unique_ptr<ServerSocketHandler> handler,
                  const OriginalFunctions &orig);
 
     void Async() override;
@@ -37,6 +37,8 @@ class ServerSocket : public InstrumentedSocket {
 
     ssize_t ReadContextBlocking();
     ssize_t ReadContextAsync();
+
+    std::unique_ptr<ServerSocketHandler> handler_;
 
     // Buffer for reading context bytes
     std::string context_buffer;

@@ -96,12 +96,13 @@ bool ClientSocketHandler::SendContext() {
               << context().storage().to_string() << std::endl
               << std::flush;
 
+    context_processed_ = true;
     return true;
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
-    if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
-        std::cout << "Sending context" << std::endl;
+    if (!is_context_processed() &&
+        get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         return SendContext();
     }
     return true;
@@ -142,12 +143,6 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     if (!conn_init_) {
         SetConnection();
     }
-
-    std::cout << "sending msg: " << ret << std::endl;
-    for (int i = 0; i < iovcnt; ++i) {
-        fwrite(iov[i].iov_base, iov[i].iov_len, 1, stdout);
-    }
-    std::cout << std::endl << "======" << std::endl << std::flush << std::endl;
 
     state_ = SocketState::WROTE;
 }
@@ -190,6 +185,10 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
             trace_logger_->Log(log.get());
         }
     }
+
+    // After a read is successfully executed, we set context_processed to
+    // false, so at the next write it will be sent
+    context_processed_ = false;
 
     state_ = SocketState::READ;
 }

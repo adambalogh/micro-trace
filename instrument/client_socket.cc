@@ -7,9 +7,12 @@
 
 namespace microtrace {
 
-ClientSocket::ClientSocket(const int fd, std::unique_ptr<SocketHandler> handler,
+ClientSocket::ClientSocket(const int fd,
+                           std::unique_ptr<ClientSocketHandler> handler,
                            const OriginalFunctions &orig)
-    : InstrumentedSocket(fd, std::move(handler), orig) {
+    : InstrumentedSocket(fd, orig), handler_(std::move(handler)) {
+    VERIFY(fd_ == handler_->fd(),
+           "handler and underlying socket's fd is not the same");
     VERIFY(handler_->role_client(),
            "ClientSocket given a non-client socket handler");
 }
