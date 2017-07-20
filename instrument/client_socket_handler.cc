@@ -78,22 +78,36 @@ SocketAction ClientSocketHandler::get_next_action(
     return SocketAction::NONE;
 }
 
+bool ClientSocketHandler::SendContextBlocking() {
+    // This should succeed at first - the send buffer is empty at this point
+    auto ret =
+        orig_.write(fd(), reinterpret_cast<const void*>(&context().storage()),
+                    sizeof(ContextStorage));
+    VERIFY(ret == sizeof(ContextStorage), "Could not send context in one send");
+    return true;
+}
+
+// TODO implement properly
+bool ClientSocketHandler::SendContextAsync() {
+    auto ret =
+        orig_.write(fd(), reinterpret_cast<const void*>(&context().storage()),
+                    sizeof(ContextStorage));
+    VERIFY(ret == sizeof(ContextStorage), "yolo");
+    return true;
+}
+
 bool ClientSocketHandler::SendContext() {
-    // TODO implement properly
+    bool result;
     if (type_ == SocketType::ASYNC) {
-        auto ret = orig_.write(
-            fd(), reinterpret_cast<const void*>(&context().storage()),
-            sizeof(ContextStorage));
-        VERIFY(ret == sizeof(ContextStorage), "yolo");
+        result = SendContextAsync();
     } else {
-        auto ret = orig_.write(
-            fd(), reinterpret_cast<const void*>(&context().storage()),
-            sizeof(ContextStorage));
-        VERIFY(ret == sizeof(ContextStorage), "Could not send context");
+        result = SendContextBlocking();
     }
 
-    context_processed_ = true;
-    return true;
+    if (result) {
+        context_processed_ = true;
+    }
+    return result;
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {

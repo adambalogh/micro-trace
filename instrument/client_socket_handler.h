@@ -81,6 +81,9 @@ class ClientSocketHandler : public AbstractSocketHandler {
      */
     bool SendContext();
 
+    bool SendContextBlocking();
+    bool SendContextAsync();
+
     /*
      * Sends the context only if it is the beginning of a new request.
      *
