@@ -6,7 +6,7 @@ var http = require('http');
 
 
 app.get('/', function(req, res) {
-    http.get("http://second:5001", (response) => {
+    http.get({agent: false, hostname: "second", port: 5001}, (response) => {
         var body = '';
         response.on('data', (chunk) => { body += chunk; });
         response.on('end', () => {

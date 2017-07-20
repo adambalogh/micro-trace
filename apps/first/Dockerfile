@@ -23,4 +23,5 @@ COPY server.js .
 
 EXPOSE 3000
 ENV LD_PRELOAD /usr/local/lib/libtrace.so
+ENV MICROTRACE_SERVER_TYPE frontend
 CMD ["npm", "start"]

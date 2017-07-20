@@ -16,11 +16,17 @@ WORKDIR /usr/src/app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN apt-get -y install gdb
+
 RUN mkdir -p /var/log/microtrace
 COPY libtrace.so /usr/local/lib/.
 COPY libprotobuf.so.13 /usr/local/lib/.
 COPY server.py .
+COPY dummy.py .
+
 
 EXPOSE 5001
 ENV LD_PRELOAD /usr/local/lib/libtrace.so
-CMD ["python", "server.py"]
+ENV MICROTRACE_SERVER_TYPE backend
+
+CMD ["gunicorn", "server:app", "-b :5001"]

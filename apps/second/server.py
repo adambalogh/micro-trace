@@ -1,21 +1,15 @@
-import cherrypy
-import urllib3
+from flask import Flask
 import requests
-
-cherrypy.config.update({
-    'server.socket_port': 5001,
-    'server.socket_host': '0.0.0.0'
-})
+import urllib3
 
 THIRD_URL = 'http://third:3131'
 
+app = Flask(__name__)
+
 http = urllib3.PoolManager()
 
-class HelloWorld(object):
-    @cherrypy.expose
-    def index(self):
-        r = http.request('GET', THIRD_URL)
-        return r.data
 
-if __name__ == '__main__':
-    cherrypy.quickstart(HelloWorld())
+@app.route('/')
+def hello_world():
+    r = http.request('GET', THIRD_URL)
+    return r.data

@@ -27,7 +27,7 @@
 #include <cstdlib>    // For atoi()
 #include <iostream>   // For cout, cerr
 
-const int RCVBUFSIZE = 32;
+const int RCVBUFSIZE = 60;
 
 void HandleTCPClient(TCPSocket *sock);  // TCP client handling function
 void *ThreadMain(void *arg);            // Main program of a thread

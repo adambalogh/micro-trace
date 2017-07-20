@@ -8,6 +8,9 @@ services:
         build: second
         ports:
             - "5001:5001"
+        security_opt:
+            - seccomp:unconfined
+
     third:
         build: third
         ports:
