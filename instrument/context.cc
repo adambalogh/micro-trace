@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <bitset>
+#include <iostream>
 #include <string>
 
 #include <boost/uuid/random_generator.hpp>
@@ -10,11 +11,6 @@
 #include "common.h"
 
 namespace microtrace {
-
-// Should be able to differentiate between normal and
-// context-prefixed messages
-const char* CONTEXT_PREFIX = "CTX432z$";
-const ssize_t CONTEXT_PREFIX_SIZE = 8;
 
 static thread_local Context current_context;
 static thread_local bool context_undefined = true;

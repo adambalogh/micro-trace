@@ -27,7 +27,6 @@ ssize_t ServerSocket::ReadContextBlocking() {
         orig_.read(fd(), string_arr(context_buffer), context_buffer.size());
 
     if (ret <= 0) {
-        printf("failed to read\n");
         return ret;
     }
 

@@ -92,10 +92,6 @@ bool ClientSocketHandler::SendContext() {
         VERIFY(ret == sizeof(ContextStorage), "Could not send context");
     }
 
-    std::cout << "sent context" << std::endl
-              << context().storage().to_string() << std::endl
-              << std::flush;
-
     context_processed_ = true;
     return true;
 }
@@ -112,7 +108,6 @@ SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
                                                        int iovcnt) {
     // New transaction
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
-        std::cout << "new transaction" << std::endl;
         // Only copy current context if it is a blocking socket, because the
         // socket might be in a connection pool. Since in threaded servers, one
         // thread handles a single user request, current context is what we
@@ -120,10 +115,6 @@ SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
         if (type_ == SocketType::BLOCKING) {
             context_.reset(new Context(get_current_context()));
         }
-
-        txn_.reset(new Transaction);
-        txn_->Start();
-        ++num_transactions_;
     }
 
     set_current_context(context());
@@ -142,6 +133,12 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
 
     if (!conn_init_) {
         SetConnection();
+    }
+
+    if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
+        txn_.reset(new Transaction);
+        txn_->Start();
+        ++num_transactions_;
     }
 
     state_ = SocketState::WROTE;
@@ -174,8 +171,7 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     }
 
     // New incoming response
-    if (state_ == SocketState::WROTE) {
-        context_->NewSpan();
+    if (get_next_action(SocketOperation::READ) == SocketAction::RECV_RESPONSE) {
         set_current_context(context());
 
         txn_->End();
@@ -184,6 +180,9 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
             FillRequestLog(log);
             trace_logger_->Log(log.get());
         }
+
+        // Start new span only after we recevied the response
+        context_->NewSpan();
     }
 
     // After a read is successfully executed, we set context_processed to

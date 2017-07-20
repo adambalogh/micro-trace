@@ -32,7 +32,6 @@ SocketAction ServerSocketHandler::get_next_action(
 void ServerSocketHandler::ContextReadCallback(std::unique_ptr<Context> c) {
     VERIFY(c, "ContextReadCallback called with empty context");
     context_ = std::move(c);
-    context_->NewSpan();
     context_processed_ = true;
 }
 
@@ -72,6 +71,7 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
             VERIFY(context_, "Backend server context is empty");
         }
 
+        context_->NewSpan();
         set_current_context(*context_);
         ++num_transactions_;
     }
