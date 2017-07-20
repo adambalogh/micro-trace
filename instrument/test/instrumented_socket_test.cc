@@ -37,8 +37,9 @@ const int RET = 55;
 const EmptyOriginalFunctions empty_orig;
 
 TEST(ClientSocketTest, Init) {
-    ClientSocket socket{FD, DumbSocketHandler::New(FD, SocketRole::CLIENT),
-                        empty_orig};
+    ClientSocket socket{
+        FD, std::make_unique<DumbClientSocketHandler>(FD, SocketRole::CLIENT),
+        empty_orig};
 
     EXPECT_EQ(FD, socket.fd());
 }
@@ -55,8 +56,9 @@ TEST(ClientSocketTest, SocketApiCalls) {
     Method(mock, close) = SUCCESSFUL_CLOSE;
 
     OriginalFunctions& mock_orig = mock.get();
-    ClientSocket socket{FD, DumbSocketHandler::New(FD, SocketRole::CLIENT),
-                        mock_orig};
+    ClientSocket socket{
+        FD, std::make_unique<DumbClientSocketHandler>(FD, SocketRole::CLIENT),
+        mock_orig};
 
     EXPECT_EQ(RET, socket.Read(BUF, LEN));
     Verify(Method(mock, read).Using(FD, BUF, LEN));

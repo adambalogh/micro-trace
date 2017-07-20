@@ -5,8 +5,10 @@
 #include <queue>
 #include <thread>
 
+#include "client_socket_handler.h"
 #include "instrumented_socket.h"
 #include "orig_functions.h"
+#include "server_socket_handler.h"
 
 using namespace microtrace;
 
@@ -227,13 +229,10 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     }
 };
 
-class DumbSocketHandler : public SocketHandler {
+class DumbClientSocketHandler : public ClientSocketHandler {
    public:
-    static std::unique_ptr<SocketHandler> New(int fd, const SocketRole role) {
-        return std::make_unique<DumbSocketHandler>(fd, role);
-    }
-
-    DumbSocketHandler(int fd, const SocketRole role) : fd_(fd), role_(role) {}
+    DumbClientSocketHandler(int fd, const SocketRole role)
+        : fd_(fd), role_(role) {}
 
     void Async() {}
 
@@ -261,7 +260,55 @@ class DumbSocketHandler : public SocketHandler {
 
     virtual SocketType type() const { return SocketType::BLOCKING; }
 
+    const Context &context() const { return ctx_; }
+    bool has_context() const { return true; }
+    ServerType server_type() const { return ServerType::FRONTEND; }
+    bool is_context_processed() const { return false; }
+
    private:
     int fd_;
     SocketRole role_;
+    Context ctx_;
+};
+
+class DumbServerSocketHandler : public ServerSocketHandler {
+   public:
+    DumbServerSocketHandler(int fd, const SocketRole role)
+        : fd_(fd), role_(role) {}
+
+    void Async() {}
+
+    Result BeforeRead(const void *buf, size_t len) { return Result::Ok; }
+    void AfterRead(const void *buf, size_t len, ssize_t ret) {}
+
+    Result BeforeWrite(const struct iovec *iov, int iovcnt) {
+        return Result::Ok;
+    }
+    void AfterWrite(const struct iovec *iov, int iovcnt, ssize_t ret) {}
+
+    Result BeforeClose() { return Result::Ok; }
+    void AfterClose(int ret) {}
+
+    int fd() const { return fd_; }
+
+    SocketRole role() const { return role_; }
+    bool role_server() const override { return role_ == SocketRole::SERVER; }
+    bool role_client() const override { return role_ == SocketRole::CLIENT; }
+
+    SocketState state() const { return SocketState::WILL_READ; }
+    SocketAction get_next_action(const SocketOperation op) const {
+        return SocketAction::NONE;
+    }
+
+    virtual SocketType type() const { return SocketType::BLOCKING; }
+
+    const Context &context() const { return ctx_; }
+    bool has_context() const { return true; }
+    ServerType server_type() const { return ServerType::FRONTEND; }
+    bool is_context_processed() const { return false; }
+
+   private:
+    int fd_;
+    SocketRole role_;
+    Context ctx_;
 };
