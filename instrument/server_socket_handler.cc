@@ -47,6 +47,12 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
         return;
     }
 
+    std::cout << "got msg: " << ret << std::endl;
+    fwrite(buf, ret, 1, stdout);
+    std::cout << std::endl
+              << "==========" << std::endl
+              << std::flush << std::endl;
+
     VERIFY(ret > 0, "read invalid return value");
 
     if (!conn_init_) {
@@ -59,9 +65,12 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
         if (server_type() == ServerType::FRONTEND) {
             context_.reset(new Context);
         }
-
         // Otherwise we are backend, it was passed to us by client
-        // and context_ is already set to it by ServerSocket
+        // and context_ is already set to it by ServerSocket, we need to start
+        // a new span.
+        else {
+            context_->NewSpan();
+        }
 
         set_current_context(*context_);
         ++num_transactions_;

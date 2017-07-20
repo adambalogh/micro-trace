@@ -89,17 +89,19 @@ bool ClientSocketHandler::SendContext() {
         auto ret = orig_.write(
             fd(), reinterpret_cast<const void*>(&context().storage()),
             sizeof(ContextStorage));
-        if (ret <= 0) {
-            return true;
-        }
         VERIFY(ret == sizeof(ContextStorage), "Could not send context");
     }
+
+    std::cout << "sent context" << std::endl
+              << context().storage().to_string() << std::endl
+              << std::flush;
 
     return true;
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
+        std::cout << "Sending context" << std::endl;
         return SendContext();
     }
     return true;
@@ -109,22 +111,21 @@ SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
                                                        int iovcnt) {
     // New transaction
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
-        // Only copy context if it is a blocking socket
+        std::cout << "new transaction" << std::endl;
+        // Only copy current context if it is a blocking socket, because the
+        // socket might be in a connection pool. Since in threaded servers, one
+        // thread handles a single user request, current context is what we
+        // need.
         if (type_ == SocketType::BLOCKING) {
             context_.reset(new Context(get_current_context()));
         }
-        set_current_context(context());
 
         txn_.reset(new Transaction);
         txn_->Start();
-
         ++num_transactions_;
     }
-    // Continue sending request
-    else if (state_ == SocketState::WROTE) {
-        set_current_context(context());
-    }
 
+    set_current_context(context());
     VERIFY(SendContextIfNecessary(), "Could not send context");
 
     return Result::Ok;
@@ -141,6 +142,12 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     if (!conn_init_) {
         SetConnection();
     }
+
+    std::cout << "sending msg: " << ret << std::endl;
+    for (int i = 0; i < iovcnt; ++i) {
+        fwrite(iov[i].iov_base, iov[i].iov_len, 1, stdout);
+    }
+    std::cout << std::endl << "======" << std::endl << std::flush << std::endl;
 
     state_ = SocketState::WROTE;
 }

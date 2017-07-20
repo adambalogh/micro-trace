@@ -29,6 +29,7 @@ int sendmmsg(int sockfd, struct mmsghdr *msgvec, unsigned int vlen, int flags);
 
 int uv_tcp_connect(uv_connect_t *req, uv_tcp_t *handle,
                    const struct sockaddr *addr, uv_connect_cb cb);
+int uv_listen(uv_stream_t *stream, int backlog, uv_connection_cb cb);
 int uv_accept(uv_stream_t *server, uv_stream_t *client);
 int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char *node,

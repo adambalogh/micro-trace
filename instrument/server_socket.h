@@ -33,13 +33,10 @@ class ServerSocket : public InstrumentedSocket {
     int Close() override;
 
    private:
-    /*
-     * Fills the given read buffer from the content of the unused
-     * context_buffer.
-     */
-    ssize_t FillFromContextBuffer(void *buf, size_t len, ssize_t ret);
-
     ssize_t ReadContextIfNecessary();
+
+    ssize_t ReadContextBlocking();
+    ssize_t ReadContextAsync();
 
     // Buffer for reading context bytes
     std::string context_buffer;

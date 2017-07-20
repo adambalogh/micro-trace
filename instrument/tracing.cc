@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -20,14 +21,15 @@
 #include "trace_logger.h"
 #include "tracing.h"
 
-#define SOCK_CALL(fd, traced, normal) \
-    do {                              \
-        auto* sock = GetSocket(fd);   \
-        if (sock == nullptr) {        \
-            return orig().normal;     \
-        } else {                      \
-            return sock->traced;      \
-        }                             \
+#define SOCK_CALL(fd, traced, normal)                       \
+    do {                                                    \
+        auto* sock = GetSocket(fd);                         \
+        if (sock == nullptr) {                              \
+            return orig().normal;                           \
+        } else {                                            \
+            std::cout << fd << " " << #traced << std::endl; \
+            return sock->traced;                            \
+        }                                                   \
     } while (0)
 
 using namespace microtrace;
@@ -97,7 +99,6 @@ static void HandleAccept(const int sockfd) {
     if (sockfd == -1) {
         return;
     }
-
     auto handler = std::make_unique<ServerSocketHandler>(sockfd, orig());
     auto socket =
         std::make_unique<ServerSocket>(sockfd, std::move(handler), orig());
@@ -106,6 +107,7 @@ static void HandleAccept(const int sockfd) {
 }  // namespace microtrace
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
+    std::cout << "accept from " << sockfd << std::endl;
     int ret = orig().accept(sockfd, addr, addrlen);
     HandleAccept(ret);
     return ret;

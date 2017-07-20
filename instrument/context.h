@@ -20,6 +20,10 @@ class Uuid {
     uint64_t high() const { return high_; }
     uint64_t low() const { return low_; }
 
+    std::string to_string() const {
+        return std::to_string(high_) + std::to_string(low_);
+    }
+
    private:
     uint64_t high_;
     uint64_t low_;
@@ -39,6 +43,12 @@ typedef Uuid uuid_t;
 struct ContextStorage {
     ContextStorage()
         : trace_id(Uuid{}), span_id(trace_id), parent_span(trace_id) {}
+
+    std::string to_string() const {
+        return "trace_id: " + trace_id.to_string() + "\nspan_id: " +
+               span_id.to_string() + "\nparent_span: " +
+               parent_span.to_string();
+    }
 
     uuid_t trace_id;
     uuid_t span_id;

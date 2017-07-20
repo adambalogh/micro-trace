@@ -18,100 +18,87 @@ ServerSocket::ServerSocket(const int fd, std::unique_ptr<SocketHandler> handler,
 
 void ServerSocket::Async() { handler_->Async(); }
 
-ssize_t ServerSocket::FillFromContextBuffer(void *buf, size_t len,
-                                            ssize_t ret) {
-    char *const char_buf = static_cast<char *>(buf);
+ssize_t ServerSocket::ReadContextBlocking() {
+    ssize_t ret =
+        orig_.read(fd(), string_arr(context_buffer), context_buffer.size());
 
-    // TODO handle this
-    VERIFY(len >= ret, "read len < ret size");
-
-    for (ssize_t i = 0; i < ret; ++i) {
-        char_buf[i] = context_buffer[i];
+    if (ret <= 0) {
+        printf("failed to read\n");
+        return ret;
     }
-    return ret;
+
+    VERIFY(ret == context_buffer.size(),
+           "Could not read context when it was expected");
+
+    ContextStorage context_storage;
+    memcpy(&context_storage, string_arr(context_buffer), context_buffer.size());
+
+    std::cout << "got context" << std::endl
+              << context_storage.to_string() << std::endl
+              << std::flush;
+
+    // Pass parsed context to handler
+    handler_->set_context(
+        std::make_unique<Context>(std::move(context_storage)));
+    return context_buffer.size();
+}
+
+ssize_t ServerSocket::ReadContextAsync() {
+    VERIFY(false, "async context read");
+    return 0;
 }
 
 ssize_t ServerSocket::ReadContextIfNecessary() {
     // Frontend servers don't receive context
     if (handler_->server_type() == ServerType::FRONTEND) {
-        return -1;
+        return 1;
     }
 
     // We only receive context at the start of a new incoming request
     if (handler_->get_next_action(SocketOperation::READ) !=
         SocketAction::RECV_REQUEST) {
-        return -1;
+        return 1;
     }
 
     if (handler_->type() == SocketType::BLOCKING) {
-        int max_try = 3;
-        int start = 0;
-
-        // TODO make sure errors are handled correctly here
-        do {
-            // TODO use appropriate read function
-            ssize_t ret = orig_.read(fd(), string_arr(context_buffer) + start,
-                                     context_buffer.size() - start);
-
-            start += ret;
-            --max_try;
-        } while (start != context_buffer.size() && max_try > 0);
-
-        // An error has occured
-        if (start <= 0) {
-            return -1;
-        }
-
-        VERIFY(start == context_buffer.size(),
-               "Could not read context when it was expected");
-
-        ContextStorage context_storage;
-        memcpy(&context_storage, string_arr(context_buffer),
-               context_buffer.size());
-
-        // Pass parsed context to handler
-        handler_->set_context(
-            std::make_unique<Context>(std::move(context_storage)));
+        return ReadContextBlocking();
     } else {
-        printf("non-blocking context read\n");
+        return ReadContextAsync();
     }
-
-    return -1;
 }
 
 ssize_t ServerSocket::RecvFrom(void *buf, size_t len, int flags,
                                struct sockaddr *src_addr, socklen_t *addrlen) {
     handler_->BeforeRead(buf, len);
-    ssize_t ret;
-    if ((ret = ReadContextIfNecessary()) != -1) {
-        ret = FillFromContextBuffer(buf, len, ret);
-    } else {
-        ret = orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
+    auto ret = ReadContextIfNecessary();
+    if (ret <= 0) {
+        return ret;
     }
+    ret = orig_.recvfrom(fd(), buf, len, flags, src_addr, addrlen);
     handler_->AfterRead(buf, len, ret);
     return ret;
 }
 
 ssize_t ServerSocket::Recv(void *buf, size_t len, int flags) {
+    std::cout << "Recv" << std::endl;
     handler_->BeforeRead(buf, len);
-    ssize_t ret;
-    if ((ret = ReadContextIfNecessary()) != -1) {
-        ret = FillFromContextBuffer(buf, len, ret);
-    } else {
-        ret = orig_.recv(fd(), buf, len, flags);
+    auto ret = ReadContextIfNecessary();
+    if (ret <= 0) {
+        return ret;
     }
+    ret = orig_.recv(fd(), buf, len, flags);
     handler_->AfterRead(buf, len, ret);
+    std::cout << "AfterRead" << std::endl << std::flush;
     return ret;
 }
 
 ssize_t ServerSocket::Read(void *buf, size_t count) {
     handler_->BeforeRead(buf, count);
-    ssize_t ret;
-    if ((ret = ReadContextIfNecessary()) != -1) {
-        ret = FillFromContextBuffer(buf, count, ret);
-    } else {
-        ret = orig_.read(fd(), buf, count);
+    auto ret = ReadContextIfNecessary();
+    if (ret <= 0) {
+        return ret;
     }
+    ret = orig_.read(fd(), buf, count);
     handler_->AfterRead(buf, count, ret);
     return ret;
 }
