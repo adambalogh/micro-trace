@@ -28,6 +28,8 @@ std::string Connection::to_string() const {
 
 ServerType GetServerType() {
     auto type = std::getenv("MICROTRACE_SERVER_TYPE");
+    VERIFY(type != nullptr, "MICROTRACE_SERVER_TYPE is not defined");
+
     if (strcmp(type, "frontend") == 0) {
         return ServerType::FRONTEND;
     } else if (strcmp(type, "backend") == 0) {

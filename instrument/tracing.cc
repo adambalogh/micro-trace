@@ -21,15 +21,14 @@
 #include "trace_logger.h"
 #include "tracing.h"
 
-#define SOCK_CALL(fd, traced, normal)                       \
-    do {                                                    \
-        auto* sock = GetSocket(fd);                         \
-        if (sock == nullptr) {                              \
-            return orig().normal;                           \
-        } else {                                            \
-            std::cout << fd << " " << #traced << std::endl; \
-            return sock->traced;                            \
-        }                                                   \
+#define SOCK_CALL(fd, traced, normal) \
+    do {                              \
+        auto* sock = GetSocket(fd);   \
+        if (sock == nullptr) {        \
+            return orig().normal;     \
+        } else {                      \
+            return sock->traced;      \
+        }                             \
     } while (0)
 
 using namespace microtrace;
@@ -107,7 +106,6 @@ static void HandleAccept(const int sockfd) {
 }  // namespace microtrace
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    std::cout << "accept from " << sockfd << std::endl;
     int ret = orig().accept(sockfd, addr, addrlen);
     HandleAccept(ret);
     return ret;
