@@ -12,8 +12,6 @@ ServerSocket::ServerSocket(const int fd,
                            std::unique_ptr<ServerSocketHandler> handler,
                            const OriginalFunctions &orig)
     : InstrumentedSocket(fd, orig), handler_(std::move(handler)) {
-    context_buffer.resize(sizeof(ContextStorage));
-
     VERIFY(fd_ == handler_->fd(),
            "handler and underlying socket's fd is not the same");
     VERIFY(handler_->role_server(),
@@ -24,23 +22,23 @@ void ServerSocket::Async() { handler_->Async(); }
 
 ssize_t ServerSocket::ReadContextBlocking() {
     ssize_t ret =
-        orig_.read(fd(), string_arr(context_buffer), context_buffer.size());
+        orig_.read(fd(), context_buffer_.data(), context_buffer_.size());
 
     if (ret <= 0) {
         return ret;
     }
 
-    VERIFY(ret == context_buffer.size(),
+    VERIFY(ret == context_buffer_.size(),
            "Could not read context when it was expected");
 
     ContextStorage context_storage;
-    memcpy(&context_storage, string_arr(context_buffer), context_buffer.size());
+    memcpy(&context_storage, context_buffer_.data(), context_buffer_.size());
 
     // Pass context to handler
     handler_->ContextReadCallback(
         std::make_unique<Context>(std::move(context_storage)));
 
-    return context_buffer.size();
+    return context_buffer_.size();
 }
 
 ssize_t ServerSocket::ReadContextAsync() {

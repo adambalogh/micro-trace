@@ -35,6 +35,25 @@ ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
       txn_(nullptr),
       trace_logger_(trace_logger) {}
 
+void ClientSocketHandler::Async() {
+    type_ = SocketType::ASYNC;
+    context_.reset(new Context(get_current_context()));
+}
+
+SocketAction ClientSocketHandler::get_next_action(
+    const SocketOperation op) const {
+    if (op == SocketOperation::WRITE) {
+        if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
+            return SocketAction::SEND_REQUEST;
+        }
+    } else if (op == SocketOperation::READ) {
+        if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
+            return SocketAction::RECV_RESPONSE;
+        }
+    }
+    return SocketAction::NONE;
+}
+
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     VERIFY(conn_init_ == true,
            "FillRequestLog was called when conn_init is false");
@@ -59,25 +78,6 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     log->set_role(proto::RequestLog::CLIENT);
 }
 
-void ClientSocketHandler::Async() {
-    type_ = SocketType::ASYNC;
-    context_.reset(new Context(get_current_context()));
-}
-
-SocketAction ClientSocketHandler::get_next_action(
-    const SocketOperation op) const {
-    if (op == SocketOperation::WRITE) {
-        if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
-            return SocketAction::SEND_REQUEST;
-        }
-    } else if (op == SocketOperation::READ) {
-        if (state_ == SocketState::WILL_READ || state_ == SocketState::WROTE) {
-            return SocketAction::RECV_RESPONSE;
-        }
-    }
-    return SocketAction::NONE;
-}
-
 bool ClientSocketHandler::SendContextBlocking() {
     // This should succeed at first - the send buffer is empty at this point
     auto ret =
@@ -92,16 +92,17 @@ bool ClientSocketHandler::SendContextAsync() {
     auto ret =
         orig_.write(fd(), reinterpret_cast<const void*>(&context().storage()),
                     sizeof(ContextStorage));
-    VERIFY(ret == sizeof(ContextStorage), "yolo");
+    VERIFY(ret == sizeof(ContextStorage),
+           "Context couldn't be sent async in one send");
     return true;
 }
 
 bool ClientSocketHandler::SendContext() {
     bool result;
-    if (type_ == SocketType::ASYNC) {
-        result = SendContextAsync();
-    } else {
+    if (type_ == SocketType::BLOCKING) {
         result = SendContextBlocking();
+    } else {
+        result = SendContextAsync();
     }
 
     if (result) {
@@ -111,7 +112,8 @@ bool ClientSocketHandler::SendContext() {
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
-    // Only send context if it is the start of a new transaction and it hasn't been sent before.
+    // Only send context if it is the start of a new transaction and it hasn't
+    // been sent before.
     if (!is_context_processed() &&
         get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         return SendContext();
