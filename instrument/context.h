@@ -20,6 +20,8 @@ class Uuid {
     uint64_t high() const { return high_; }
     uint64_t low() const { return low_; }
 
+    bool is_zero() const { return high_ == 0 && low_ == 0; }
+
     std::string to_string() const {
         return std::to_string(high_) + std::to_string(low_);
     }
@@ -77,6 +79,13 @@ class Context {
     const uuid_t& trace() const { return context_.trace_id; }
     const uuid_t& span() const { return context_.span_id; }
     const uuid_t& parent_span() const { return context_.parent_span; }
+
+    /*
+     * Returns true if all the fields of this context are zero.
+     */
+    bool is_zero() const {
+        return trace().is_zero() && span().is_zero() && parent_span().is_zero();
+    }
 
     /*
      * Generates and assigns a new span to this context, and saves the current
