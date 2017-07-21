@@ -41,6 +41,8 @@ class ServerSocket : public InstrumentedSocket {
     std::unique_ptr<ServerSocketHandler> handler_;
 
     // Buffer for reading context bytes
-    std::array<char, sizeof(ContextStorage)> context_buffer_;
+    std::array<char, sizeof(ContextStorage)> ctx_buf_;
+
+    size_t ctx_buf_start_;
 };
 }

@@ -1,6 +1,7 @@
 #include "server_socket.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <iostream>
 
 #include "orig_functions.h"
@@ -11,7 +12,9 @@ namespace microtrace {
 ServerSocket::ServerSocket(const int fd,
                            std::unique_ptr<ServerSocketHandler> handler,
                            const OriginalFunctions &orig)
-    : InstrumentedSocket(fd, orig), handler_(std::move(handler)) {
+    : InstrumentedSocket(fd, orig),
+      handler_(std::move(handler)),
+      ctx_buf_start_(0) {
     VERIFY(fd_ == handler_->fd(),
            "handler and underlying socket's fd is not the same");
     VERIFY(handler_->role_server(),
@@ -21,29 +24,58 @@ ServerSocket::ServerSocket(const int fd,
 void ServerSocket::Async() { handler_->Async(); }
 
 ssize_t ServerSocket::ReadContextBlocking() {
-    ssize_t ret =
-        orig_.read(fd(), context_buffer_.data(), context_buffer_.size());
-
-    if (ret <= 0) {
-        return ret;
+    // Since we are a blocking socket, we call read until the whole context is
+    // read. We only stop if read returns an error, if that happens, reading can
+    // be resumed later.
+    while (ctx_buf_start_ != ctx_buf_.size()) {
+        auto ret = orig_.read(fd(), ctx_buf_.data() + ctx_buf_start_,
+                              ctx_buf_.size() - ctx_buf_start_);
+        if (ret <= 0) {
+            return ret;
+        }
+        ctx_buf_start_ += ret;
     }
 
-    VERIFY(ret == context_buffer_.size(),
-           "Could not read context when it was expected");
+    VERIFY(ctx_buf_start_ == ctx_buf_.size(), "Context could not be read");
+    ctx_buf_start_ = 0;  // reset start
 
     ContextStorage context_storage;
-    memcpy(&context_storage, context_buffer_.data(), context_buffer_.size());
+    memcpy(&context_storage, ctx_buf_.data(), ctx_buf_.size());
 
     // Pass context to handler
     handler_->ContextReadCallback(
         std::make_unique<Context>(std::move(context_storage)));
 
-    return context_buffer_.size();
+    return ctx_buf_.size();
 }
 
 ssize_t ServerSocket::ReadContextAsync() {
-    VERIFY(false, "async context read");
-    return 0;
+    // We only do 1 non-blocking read
+    auto ret = orig_.read(fd(), ctx_buf_.data() + ctx_buf_start_,
+                          ctx_buf_.size() - ctx_buf_start_);
+    if (ret <= 0) {
+        return ret;
+    }
+
+    ctx_buf_start_ += ret;
+
+    if (ctx_buf_start_ == ctx_buf_.size()) {
+        ContextStorage context_storage;
+        memcpy(&context_storage, ctx_buf_.data(), ctx_buf_.size());
+
+        // Pass context to handler
+        handler_->ContextReadCallback(
+            std::make_unique<Context>(std::move(context_storage)));
+
+        ctx_buf_start_ = 0;  // reset start
+        return ctx_buf_.size();
+    } else {
+        // In this case we read some bytes but not the whole context, so we
+        // must not let the applcation start reading from this socket, until the
+        // whole context is read, so we return an EAGAIN.
+        errno = EAGAIN;
+        return -1;
+    }
 }
 
 ssize_t ServerSocket::ReadContextIfNecessary() {
