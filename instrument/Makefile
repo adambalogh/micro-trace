@@ -22,7 +22,7 @@ LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
 
 CXX = g++-5
 CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
-LIBFLAGS = -fPIC -DNDEBUG
+LIBFLAGS = -fPIC -DDEBUG
 OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
 

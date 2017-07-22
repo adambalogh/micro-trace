@@ -137,7 +137,7 @@ int socket(int domain, int type, int protocol) {
     }
 
     auto handler = std::make_unique<ClientSocketHandler>(
-        sockfd, stdout_logger.get(), orig());
+        sockfd, spd_instance().get(), orig());
     auto socket =
         std::make_unique<ClientSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
@@ -238,13 +238,15 @@ ssize_t sendmsg(int sockfd, const struct msghdr* msg, int flags) {
 }
 
 int close(int fd) {
-    SocketInterface* sock = GetSocket(fd);
-    if (sock == NULL) {
+    auto* sock = GetSocket(fd);
+    if (sock == nullptr) {
         return orig().close(fd);
     }
+
+    // IMPORTANT: do this before executing close, because it might get
+    // interrupted
+    DeleteSocket(fd);
     int ret = sock->Close();
-    if (ret == 0) {
-        DeleteSocket(fd);
-    }
+
     return ret;
 }
