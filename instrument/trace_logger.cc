@@ -2,7 +2,7 @@
 
 #include <math.h>
 #include <iostream>
-#include <string>
+#include <sstream>
 
 #include "google/protobuf/text_format.h"
 
@@ -28,9 +28,9 @@ void StdoutTraceLogger::Log(const proto::RequestLog& log) {
 }
 
 void SpdTraceLogger::Log(const proto::RequestLog& log) {
-    std::string str;
-    TextFormat::PrintToString(log, &str);
-    spdlog_->info(str);
+    std::string buf;
+    VERIFY(log.SerializeToString(&buf), "Could not serialize RequestLog proto");
+    spdlog_->info("{:b}{}", buf.size(), buf);
 }
 
 SpdTraceLoggerInstance::SpdTraceLoggerInstance() {
