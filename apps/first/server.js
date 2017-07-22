@@ -4,7 +4,6 @@ var express = require('express');
 var app = express();
 var http = require('http');
 
-
 app.get('/', function(req, res) {
     http.get({agent: false, hostname: "second", port: 5001}, (response) => {
         var body = '';

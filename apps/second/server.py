@@ -12,4 +12,5 @@ http = urllib3.PoolManager()
 @app.route('/')
 def hello_world():
     r = http.request('GET', THIRD_URL)
+    r = http.request('GET', THIRD_URL)
     return r.data

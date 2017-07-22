@@ -24,4 +24,5 @@ COPY server.js .
 EXPOSE 3131
 ENV LD_PRELOAD /usr/local/lib/libtrace.so
 ENV MICROTRACE_SERVER_TYPE backend
+
 CMD ["npm", "start"]
