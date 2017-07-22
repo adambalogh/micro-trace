@@ -240,13 +240,10 @@ ssize_t sendmsg(int sockfd, const struct msghdr* msg, int flags) {
 int close(int fd) {
     auto* sock = GetSocket(fd);
     if (sock == nullptr) {
-        return orig().close(fd);
+        // IMPORTANT: do this before executing close, because it might get
+        // interrupted
+        DeleteSocket(fd);
     }
 
-    // IMPORTANT: do this before executing close, because it might get
-    // interrupted
-    DeleteSocket(fd);
-    int ret = sock->Close();
-
-    return ret;
+    return orig().close(fd);
 }
