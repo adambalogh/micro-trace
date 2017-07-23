@@ -17,6 +17,11 @@ class TraceLogger {
    public:
     virtual ~TraceLogger() = default;
 
+    /*
+     * Log should save the log so it can be collected later.
+     *
+     * It shouldn't keep a reference to the given log after the method returns.
+     */
     virtual void Log(const proto::RequestLog& log) = 0;
 };
 
