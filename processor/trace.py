@@ -27,4 +27,7 @@ class UUID(object):
     def __ne__(self, other):
         return not(self == other)
 
+    def __str__(self):
+        return str(self.high) + str(self.low)
+
 

@@ -10,7 +10,7 @@ def read_spans(file_name):
     with open(file_name, 'rb') as f:
         while True:
             s = f.read(SIZE_BYTES)
-            if not s:
+            if len(s) != SIZE_BYTES:
                 break
             size = int(s, 16)
 
@@ -52,10 +52,14 @@ def process_trace(spans):
     for span in spans:
         parent_span = span.parent_span
 
-        # We found the first span
+        # We found the first span in the trace
         if parent_span == span.trace_id:
             assert start == None
             start = span
+            continue
+
+        if parent_span not in span_id:
+            print(str(span.trace_id), str(span.span_id), str(span.parent_span))
             continue
 
         span_id[parent_span].add_callee(span)
@@ -70,10 +74,8 @@ def process(trace_id_map):
     return traces
 
 
-spans = read_spans('trace_log.bin')
-spans.extend(read_spans('log2.bin'))
+spans = read_spans('log.proto')
+spans.extend(read_spans('log2.proto'))
 trace_id_map = group_spans(spans)
 
 traces = process(trace_id_map)
-
-print(traces)
