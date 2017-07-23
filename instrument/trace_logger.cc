@@ -30,7 +30,7 @@ void StdoutTraceLogger::Log(const proto::RequestLog& log) {
 void SpdTraceLogger::Log(const proto::RequestLog& log) {
     std::string buf;
     VERIFY(log.SerializeToString(&buf), "Could not serialize RequestLog proto");
-    spdlog_->info("{:b}{}", buf.size(), buf);
+    spdlog_->info("{:32X}{}", buf.size(), buf);
 }
 
 SpdTraceLoggerInstance::SpdTraceLoggerInstance() {
