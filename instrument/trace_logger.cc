@@ -20,6 +20,8 @@ using ::google::protobuf::TextFormat;
 
 namespace microtrace {
 
+const std::string TRACE_LOG_PATH = "/var/log/microtrace/log.proto";
+
 void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::string str;
     TextFormat::PrintToString(log, &str);
@@ -28,19 +30,25 @@ void StdoutTraceLogger::Log(const proto::RequestLog& log) {
 }
 
 void SpdTraceLogger::Log(const proto::RequestLog& log) {
+    std::cout << "logging" << std::endl << std::flush;
+
     std::string buf;
     VERIFY(log.SerializeToString(&buf), "Could not serialize RequestLog proto");
+
     spdlog_->info("{:32X}{}", buf.size(), buf);
 }
 
 SpdTraceLoggerInstance::SpdTraceLoggerInstance() {
-    const int queue_size = pow(2, 14);  // TODO find a good number here
-    spdlog::set_async_mode(queue_size,
-                           spdlog::async_overflow_policy::block_retry);
-    auto spdlogger = spdlog::basic_logger_mt("trace_logger", TRACE_LOG_PATH);
-    spdlog::set_sync_mode();  // Make sure other loggers are not async
-    spdlogger->set_pattern("%v");
+    const int queue_size = pow(2, 8);  // TODO find a good number here
 
+    // spdlog::set_async_mode(queue_size,
+    //                       spdlog::async_overflow_policy::block_retry,
+    //                       nullptr,
+    //                       std::chrono::seconds(2));
+    auto spdlogger = spdlog::basic_logger_mt("request_logger", TRACE_LOG_PATH);
+    // spdlog::set_sync_mode();  // Make sure other loggers are not async
+
+    spdlogger->set_pattern("%v");
     logger_.reset(new instance(std::move(spdlogger)));
 }
 
