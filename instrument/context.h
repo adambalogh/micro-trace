@@ -15,6 +15,8 @@ namespace microtrace {
  */
 class Uuid {
    public:
+    static Uuid Zero();
+
     Uuid();
 
     uint64_t high() const { return high_; }
@@ -27,6 +29,8 @@ class Uuid {
     }
 
    private:
+    Uuid(uint64_t, uint64_t);
+
     uint64_t high_;
     uint64_t low_;
 };
@@ -43,6 +47,10 @@ typedef Uuid uuid_t;
  */
 
 struct ContextStorage {
+    static ContextStorage Zero() {
+        return ContextStorage{uuid_t::Zero(), uuid_t::Zero(), uuid_t::Zero()};
+    }
+
     ContextStorage()
         : trace_id(Uuid{}), span_id(trace_id), parent_span(trace_id) {}
 
@@ -55,6 +63,10 @@ struct ContextStorage {
     uuid_t trace_id;
     uuid_t span_id;
     uuid_t parent_span;
+
+   private:
+    ContextStorage(uuid_t trace_id, uuid_t span_id, uuid_t parent_span)
+        : trace_id(trace_id), span_id(span_id), parent_span(parent_span) {}
 };
 
 static_assert(sizeof(ContextStorage) == sizeof(uint64_t) * 2 * 3,
@@ -62,6 +74,11 @@ static_assert(sizeof(ContextStorage) == sizeof(uint64_t) * 2 * 3,
 
 class Context {
    public:
+    /*
+     * Returns a context that has zero in all its values
+     */
+    static Context Zero() { return Context{ContextStorage::Zero()}; }
+
     /*
      * Generates a random context.
      */
@@ -117,4 +134,6 @@ void set_current_context(const Context& context);
  * Returns true if the current context is not defined.
  */
 bool is_context_undefined();
+
+const Context& get_empty_context();
 }
