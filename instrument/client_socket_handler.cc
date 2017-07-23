@@ -190,7 +190,9 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     // New incoming response
     if (get_next_action(SocketOperation::READ) == SocketAction::RECV_RESPONSE) {
         txn_->End();
-        {
+        // Log request only if we are not in an empty context, which indicates
+        // that this request shouldn't be traced
+        if (!context().is_zero()) {
             RequestLogWrapper log;
             FillRequestLog(log);
             trace_logger_->Log(log.get());

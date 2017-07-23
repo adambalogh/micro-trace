@@ -77,7 +77,9 @@ class Context {
     /*
      * Returns a context that has zero in all its values
      */
-    static Context Zero() { return Context{ContextStorage::Zero()}; }
+    static std::unique_ptr<Context> Zero() {
+        return std::make_unique<Context>(ContextStorage::Zero());
+    }
 
     /*
      * Generates a random context.
@@ -134,6 +136,4 @@ void set_current_context(const Context& context);
  * Returns true if the current context is not defined.
  */
 bool is_context_undefined();
-
-const Context& get_empty_context();
 }

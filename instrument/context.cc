@@ -15,8 +15,6 @@ namespace microtrace {
 static thread_local Context current_context;
 static thread_local bool context_undefined = true;
 
-static Context empty_context = Context::Zero();
-
 const Context& get_current_context() {
     VERIFY(!context_undefined,
            "get_current_context called when context is undefined");
@@ -29,8 +27,6 @@ void set_current_context(const Context& context) {
 }
 
 bool is_context_undefined() { return context_undefined; }
-
-const Context& get_empty_context() { return empty_context; }
 
 static boost::uuids::uuid new_boost_uuid() {
     static thread_local boost::uuids::random_generator gen;

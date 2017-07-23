@@ -63,7 +63,14 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     if (get_next_action(SocketOperation::READ) == SocketAction::RECV_REQUEST) {
         // If we are frontend, generate a random context
         if (server_type() == ServerType::FRONTEND) {
-            context_.reset(new Context);
+            // We use sampling, if this request should be traced, we generate a
+            // new context, otherwise we use the empty context which indicates
+            // that this shouldn't be traced
+            if (ShouldTrace()) {
+                context_.reset(new Context);
+            } else {
+                context_ = Context::Zero();
+            }
         }
         // Otherwise we are backend, it was passed to us by client
         // and context_ is already set through ContextReadCallback.
