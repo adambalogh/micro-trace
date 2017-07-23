@@ -37,8 +37,7 @@ SpdTraceLoggerInstance::SpdTraceLoggerInstance() {
     const int queue_size = pow(2, 14);  // TODO find a good number here
     spdlog::set_async_mode(queue_size,
                            spdlog::async_overflow_policy::block_retry);
-    auto spdlogger =
-        spdlog::basic_logger_mt("request_logger", REQUEST_LOG_PATH);
+    auto spdlogger = spdlog::basic_logger_mt("trace_logger", TRACE_LOG_PATH);
     spdlog::set_sync_mode();  // Make sure other loggers are not async
     spdlogger->set_pattern("%v");
 
