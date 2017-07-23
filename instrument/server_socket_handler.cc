@@ -1,5 +1,6 @@
 #include "server_socket_handler.h"
 
+#include <cstdlib>
 #include <iostream>
 
 #include "common.h"
@@ -42,6 +43,11 @@ SocketHandler::Result ServerSocketHandler::BeforeRead(const void* buf,
         "ServerSocketHandler that was expected to write, read instead");
 
     return Result::Ok;
+}
+
+bool ServerSocketHandler::ShouldTrace() const {
+    // sampling every 10th request
+    return (std::rand() % 100) < 10;
 }
 
 void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {

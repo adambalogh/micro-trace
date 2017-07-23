@@ -24,6 +24,6 @@ class ServerSocketHandler : public AbstractSocketHandler {
     void ContextReadCallback(std::unique_ptr<Context> c);
 
    private:
-    bool ShouldTrace() const { return true; }
+    bool ShouldTrace() const;
 };
 }

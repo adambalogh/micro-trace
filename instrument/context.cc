@@ -66,8 +66,12 @@ Context::Context() {}
 Context::Context(ContextStorage ctx) : context_(std::move(ctx)) {}
 
 void Context::NewSpan() {
-    context_.parent_span = context_.span_id;
-    context_.span_id = Uuid{};
+    // Only generate new uuids if the context is not empty, otherwise it is
+    // unnecessary
+    if (!trace().is_zero()) {
+        context_.parent_span = context_.span_id;
+        context_.span_id = Uuid{};
+    }
 }
 
 bool operator==(const Context& a, const Context& b) {
