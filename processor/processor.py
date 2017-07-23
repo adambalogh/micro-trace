@@ -1,32 +1,9 @@
 import struct
 
+from trace import *
 from gen import request_log_pb2
 
 SIZE_BYTES = 32
-
-class Trace(object):
-    def __init__(self, start):
-        self.start = start
-
-class Span(object):
-    def __init__(self, trace_id, span_id, parent_span, time):
-        self.trace_id = trace_id
-        self.span_id = span_id
-        self.parent_span = parent_span
-        self.time = time
-        self.callees = []
-
-    def add_callee(self, callee):
-        self.callees.append(callee)
-
-class UUID(object):
-    def __init__(self, high, low):
-        self.high = high
-        self.low = low
-
-    def __hash__(self):
-        return hash((self.high, self.low))
-
 
 def read_spans(file_name):
     spans = []
@@ -63,24 +40,40 @@ def group_spans(spans):
     for s in spans:
         if s.trace_id not in spans_map:
             spans_map[s.trace_id] = []
-        spans_map[s.trace_id] = s
+        spans_map[s.trace_id].append(s)
     return spans_map
 
 def process_trace(spans):
-    start = None
-    spans = {}
+    span_id = {}
     for span in spans:
-        spans[span_id] = Span(span.time)
+        span_id[span.span_id] = span
+
+    start = None
+    for span in spans:
+        parent_span = span.parent_span
+
+        # We found the first span
+        if parent_span == span.trace_id:
+            assert start == None
+            start = span
+            continue
+
+        span_id[parent_span].add_callee(span)
+
+    return Trace(start)
 
 
 def process(trace_id_map):
     traces = []
     for trace_id in trace_id_map.keys():
         traces.append(process_trace(trace_id_map[trace_id]))
+    return traces
 
 
 spans = read_spans('trace_log.bin')
 spans.extend(read_spans('log2.bin'))
 trace_id_map = group_spans(spans)
 
-process(trace_id_map)
+traces = process(trace_id_map)
+
+print(traces)
