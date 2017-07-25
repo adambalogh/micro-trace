@@ -6,21 +6,22 @@
 
 #include "google/protobuf/text_format.h"
 
-// spdlog customizations here
-#define SPDLOG_NO_DATETIME
-#define SPDLOG_NO_THREAD_ID
-#define SPDLOG_NO_NAME
-#define SPDLOG_EOL ""
-
-#include "spdlog/spdlog.h"
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/transport/TSocket.h>
+#include <thrift/transport/TTransportUtils.h>
 
 #include "common.h"
+#include "gen-cpp/Collector.h"
 
 using ::google::protobuf::TextFormat;
 
+using namespace apache::thrift;
+using namespace apache::thrift::protocol;
+using namespace apache::thrift::transport;
+
 namespace microtrace {
 
-const std::string TRACE_LOG_PATH = "/var/log/microtrace/log.proto";
+const std::string COLLECTOR_UNIX_SOCKET = "/tmp/microtrace.thrift";
 
 void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::string str;
@@ -29,30 +30,23 @@ void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::cout << std::flush;
 }
 
-void SpdTraceLogger::Log(const proto::RequestLog& log) {
-    std::cout << "logging" << std::endl << std::flush;
-
-    std::string buf;
-    VERIFY(log.SerializeToString(&buf), "Could not serialize RequestLog proto");
-
-    spdlog_->info("{:32X}{}", buf.size(), buf);
+ThriftLogger::ThriftLogger() {
+    boost::shared_ptr<TTransport> socket(new TSocket(COLLECTOR_UNIX_SOCKET));
+    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+    client_.reset(new CollectorClient(protocol));
+    transport->open();
 }
 
-SpdTraceLoggerInstance::SpdTraceLoggerInstance() {
-    const int queue_size = pow(2, 8);  // TODO find a good number here
-
-    // spdlog::set_async_mode(queue_size,
-    //                       spdlog::async_overflow_policy::block_retry,
-    //                       nullptr,
-    //                       std::chrono::seconds(2));
-    auto spdlogger = spdlog::basic_logger_mt("request_logger", TRACE_LOG_PATH);
-    // spdlog::set_sync_mode();  // Make sure other loggers are not async
-
-    spdlogger->set_pattern("%v");
-    logger_.reset(new instance(std::move(spdlogger)));
+void ThriftLogger::Log(const proto::RequestLog& log) {
+    std::string str;
+    log.SerializeToString(&str);
+    client_->Collect(str);
 }
 
-SpdTraceLoggerInstance::instance* SpdTraceLoggerInstance::get() {
+ThriftLoggerInstance::ThriftLoggerInstance() : logger_(new ThriftLogger) {}
+
+ThriftLoggerInstance::instance* ThriftLoggerInstance::get() {
     return logger_.get();
 }
 }

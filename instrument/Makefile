@@ -9,7 +9,10 @@ SRCS_DIR = $(PWD)
 SRCS = tracing.cc orig_functions.cc context.cc socket_handler.cc \
 	  client_socket_handler.cc server_socket_handler.cc common.cc trace_logger.cc \
 	  client_socket.cc server_socket.cc
+THRIFT_SRC = Collector.cpp 
+
 OBJ = $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.o))
+OBJ += $(addprefix $(BUILD_DIR)/,$(THRIFT_SRC:.cpp=.o))
 
 BENCHMARKS = tracing_benchmark.cc
 BENCHMARK_EXEC = $(addprefix $(BENCH_DIR)/,$(BENCHMARKS:.cc=))
@@ -18,7 +21,7 @@ TESTS = context_test.cc tracing_test.cc instrumented_socket_test.cc socket_map_t
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
-LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lpthread
+LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lthrift -lpthread
 
 CXX = g++-5
 CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
@@ -57,9 +60,13 @@ $(PROTO_GEN_DIR)/%.pb.cc: $(PROTO_DIR)/%.proto
 
 -include $(addprefix $(BUILD_DIR)/,$(SRCS:.cc=.d))
 
+$(BUILD_DIR)/%.o: $(SRCS_DIR)/gen-cpp/%.cpp $(PROTO_OBJ)
+	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
+
 # Library files build
 $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
+
 
 # tracing_test build
 $(BUILD_DIR)/tracing_test: $(SRCS_DIR)/test/tracing_test.cc $(OBJ) $(SRCS_DIR)/test/test_util.h

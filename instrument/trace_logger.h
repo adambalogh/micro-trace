@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "gen-cpp/Collector.h"
 #include "request_log.pb.h"
 
 namespace spdlog {
@@ -41,23 +42,21 @@ class StdoutTraceLogger : public TraceLogger {
     void Log(const proto::RequestLog& log) override;
 };
 
-class SpdTraceLogger : public TraceLogger {
+class ThriftLogger : public TraceLogger {
    public:
-    SpdTraceLogger(std::shared_ptr<spdlog::logger> spdlog)
-        : spdlog_(std::move(spdlog)) {}
+    ThriftLogger();
 
     void Log(const proto::RequestLog& log) override;
 
    private:
-    // must be a thread-safe version
-    std::shared_ptr<spdlog::logger> spdlog_;
+    std::unique_ptr<CollectorClient> client_;
 };
 
-class SpdTraceLoggerInstance {
+class ThriftLoggerInstance {
    public:
-    typedef SpdTraceLogger instance;
+    typedef ThriftLogger instance;
 
-    SpdTraceLoggerInstance();
+    ThriftLoggerInstance();
     instance* get();
 
    private:

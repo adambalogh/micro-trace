@@ -53,9 +53,9 @@ struct CallbackWrap {
 
 typedef CallbackWrap<uv_getaddrinfo_cb> GetAddrinfoCbWrap;
 
-static auto& spd_instance() {
-    static SpdTraceLoggerInstance spd_instance_;
-    return spd_instance_;
+static auto& thrift_instance() {
+    static ThriftLoggerInstance thrift;
+    return thrift;
 }
 
 static auto& socket_map() {
@@ -134,12 +134,15 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
     // We only track IP sockets
+    if (domain == AF_UNIX || domain == AF_LOCAL) {
+        return sockfd;
+    }
     if (!(domain == AF_INET || domain == AF_INET6)) {
         return sockfd;
     }
 
     auto handler = std::make_unique<ClientSocketHandler>(
-        sockfd, spd_instance().get(), orig());
+        sockfd, thrift_instance().get(), orig());
     auto socket =
         std::make_unique<ClientSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
