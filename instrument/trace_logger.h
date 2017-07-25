@@ -49,6 +49,9 @@ class ThriftLogger : public TraceLogger {
     void Log(const proto::RequestLog& log) override;
 
    private:
+    static const int max_size_ = 100;
+    std::vector<std::string> buffer_;
+
     std::unique_ptr<CollectorClient> client_;
 };
 

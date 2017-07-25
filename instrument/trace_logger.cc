@@ -41,7 +41,12 @@ ThriftLogger::ThriftLogger() {
 void ThriftLogger::Log(const proto::RequestLog& log) {
     std::string str;
     log.SerializeToString(&str);
-    client_->Collect(str);
+    buffer_.push_back(std::move(str));
+
+    if (buffer_.size() > max_size_) {
+        client_->Collect(buffer_);
+        buffer_.clear();
+    }
 }
 
 ThriftLoggerInstance::ThriftLoggerInstance() : logger_(new ThriftLogger) {}

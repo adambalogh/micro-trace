@@ -8,12 +8,14 @@ const UNIX_SOCKET = '/tmp/microtrace.thrift';
 const SQL_INSERT = 'INSERT INTO spans(body) VALUES($1)';
 
 var server = thrift.createServer(Collector, {
-    Collect: function(log) {
-        pool.query(SQL_INSERT, [log], (err, res) => {
-            if (err) {
-                console.err(err.stack);
-            }
-        });
+    Collect: function(logs) {
+        for (var i = 0; i < logs.size; ++i) {
+            pool.query(SQL_INSERT, [logs[i]], (err, res) => {
+                if (err) {
+                    console.err(err.stack);
+                }
+            });
+        }
     }
 });
 
