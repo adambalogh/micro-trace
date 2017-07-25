@@ -24,14 +24,6 @@ make install
 
 cd /usr/local/download
 
-wget https://github.com/gabime/spdlog/archive/v0.13.0.tar.gz -O spdlog.tar.gz
-mkdir spdlog
-tar -xzf spdlog.tar.gz -C spdlog --strip-components=1
-cd spdlog/include
-cp -r spdlog /usr/local/include/.
-
-cd /usr/local/download
-
 wget -c 'http://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.tar.gz/download' \
     -O boost.tar.gz
 mkdir boost
