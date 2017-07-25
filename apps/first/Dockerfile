@@ -21,6 +21,7 @@ RUN apt-get -y install gdb
 RUN mkdir -p /var/log/microtrace
 COPY libtrace.so /usr/local/lib/.
 COPY libprotobuf.so.13 /usr/local/lib/.
+COPY libthrift-0.10.0.so /usr/local/lib/.
 COPY server.js .
 
 EXPOSE 3000
