@@ -1,5 +1,7 @@
 {
-    "engines" : { "node" : ">=5.10.0" }, 
+    "engines": {
+        "node": ">=5.10.0"
+    },
     "name": "microtrace-collector",
     "version": "1.0.0",
     "description": "Log collector for MicroTrace",
@@ -9,5 +11,7 @@
         "start": "node server.js"
     },
     "dependencies": {
+        "pg": "^7.0.2",
+        "thrift": "^0.10.0"
     }
 }
