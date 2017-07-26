@@ -3,7 +3,7 @@ var thrift = require('thrift'), Collector = require('./gen-nodejs/Collector');
 const {Pool} = require('pg');
 const pool = new Pool();
 
-const UNIX_SOCKET = '/tmp/microtrace.thrift';
+const PORT = 4138;
 
 const SQL_INSERT = 'INSERT INTO spans(body) VALUES($1)';
 
@@ -25,5 +25,5 @@ process.on('SIGINT', function() {
     process.exit();
 });
 
-console.log('Listening on', UNIX_SOCKET);
-server.listen(UNIX_SOCKET);
+console.log('Listening on', PORT);
+server.listen(PORT, 'localhost');
