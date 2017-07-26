@@ -21,9 +21,9 @@ COPY libtrace.so /usr/local/lib/.
 COPY libprotobuf.so.13 /usr/local/lib/.
 COPY libthrift-0.10.0.so /usr/local/lib/.
 COPY server.js .
+COPY start.sh .
 
-EXPOSE 3131
-ENV LD_PRELOAD /usr/local/lib/libtrace.so
+EXPOSE 8080
 ENV MICROTRACE_SERVER_TYPE backend
 
-CMD ["npm", "start"]
+CMD ["bash", "start.sh"]

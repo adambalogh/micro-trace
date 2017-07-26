@@ -13,4 +13,4 @@ app.get('/', function(req, res) {
     res.send(total.toString());
 });
 
-app.listen(3131, function() { console.log('listening on port 3131!') });
+app.listen(8080, function() { console.log('listening on port 8080!') });

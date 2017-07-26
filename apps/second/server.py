@@ -2,7 +2,7 @@ from flask import Flask
 import requests
 import urllib3
 
-THIRD_URL = 'http://third:3131'
+THIRD_URL = 'http://third-app-service.default:8080'
 
 app = Flask(__name__)
 

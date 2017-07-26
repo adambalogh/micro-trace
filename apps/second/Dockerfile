@@ -23,9 +23,9 @@ COPY libtrace.so /usr/local/lib/.
 COPY libprotobuf.so.13 /usr/local/lib/.
 COPY libthrift-0.10.0.so /usr/local/lib/.
 COPY server.py .
+COPY start.sh .
 
 EXPOSE 5001
-ENV LD_PRELOAD /usr/local/lib/libtrace.so
 ENV MICROTRACE_SERVER_TYPE backend
 
-CMD ["gunicorn", "-b", ":5001", "--threads", "4", "server:app"]
+CMD ["bash", "start.sh"]

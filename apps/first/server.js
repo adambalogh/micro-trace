@@ -5,13 +5,15 @@ var app = express();
 var http = require('http');
 
 app.get('/', function(req, res) {
-    http.get({agent: false, hostname: "second", port: 5001}, (response) => {
-        var body = '';
-        response.on('data', (chunk) => { body += chunk; });
-        response.on('end', () => {
-            res.send("sum of first 1000 natural number: " + body);
+    http.get(
+        {agent: false, hostname: "second-app-service.default", port: 8080},
+        (response) => {
+            var body = '';
+            response.on('data', (chunk) => { body += chunk; });
+            response.on('end', () => {
+                res.send("sum of first 1000 natural number: " + body);
+            });
         });
-    });
 });
 
-app.listen(3000, function() { console.log('listening on port 3000!') });
+app.listen(8080, function() { console.log('listening on port 8080!') });
