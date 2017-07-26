@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
+
+#include <thrift/transport/TSocket.h>
 
 #include "gen-cpp/Collector.h"
 #include "request_log.pb.h"
@@ -49,8 +52,17 @@ class ThriftLogger : public TraceLogger {
     void Log(const proto::RequestLog& log) override;
 
    private:
+    std::mutex mu_;
+
     static const int max_size_ = 100;
     std::vector<std::string> buffer_;
+
+    /*
+     * Indicates if we have connected to the Collector
+     */
+    bool connected_;
+
+    boost::shared_ptr<apache::thrift::transport::TTransport> transport_;
 
     std::unique_ptr<CollectorClient> client_;
 };

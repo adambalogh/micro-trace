@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 
 #include "google/protobuf/text_format.h"
@@ -21,7 +22,7 @@ using namespace apache::thrift::transport;
 
 namespace microtrace {
 
-const std::string COLLECTOR_UNIX_SOCKET = "/tmp/microtrace.thrift";
+const int COLLECTOR_PORT = 4138;
 
 void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::string str;
@@ -30,22 +31,29 @@ void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::cout << std::flush;
 }
 
-ThriftLogger::ThriftLogger() {
-    boost::shared_ptr<TTransport> socket(new TSocket(COLLECTOR_UNIX_SOCKET));
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+ThriftLogger::ThriftLogger() : connected_(false) {
+    boost::shared_ptr<TTransport> socket(
+        new TSocket("localhost", COLLECTOR_PORT));
+    transport_.reset(new TBufferedTransport(socket));
+    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport_));
     client_.reset(new CollectorClient(protocol));
-    transport->open();
 }
 
 void ThriftLogger::Log(const proto::RequestLog& log) {
     std::string str;
     log.SerializeToString(&str);
-    buffer_.push_back(std::move(str));
 
-    if (buffer_.size() > max_size_) {
-        client_->Collect(buffer_);
-        buffer_.clear();
+    {
+        std::unique_lock<std::mutex> l(mu_);
+        buffer_.push_back(std::move(str));
+        if (buffer_.size() > max_size_) {
+            if (!connected_) {
+                transport_->open();
+                connected_ = true;
+            }
+            client_->Collect(buffer_);
+            buffer_.clear();
+        }
     }
 }
 
