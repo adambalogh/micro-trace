@@ -18,9 +18,11 @@ const SQL_INSERT = 'INSERT INTO spans(json) VALUES %L';
 
 var server = thrift.createServer(Collector, {
     Collect: function(logs) {
+        // convert each item into into array
         for (var i = 0; i < logs.length; ++i) {
             logs[i] = [logs[i]];
         }
+
         var sql = format(SQL_INSERT, logs);
         pool.query(sql, (err, res) => {
             if (err) {

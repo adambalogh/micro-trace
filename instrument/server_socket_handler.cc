@@ -46,8 +46,8 @@ SocketHandler::Result ServerSocketHandler::BeforeRead(const void* buf,
 }
 
 bool ServerSocketHandler::ShouldTrace() const {
-    // sampling every 10th request
-    return (std::rand() % 100) < 10;
+    // sampling every ~20th request
+    return (std::rand() % 101) <= 5;
 }
 
 void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
