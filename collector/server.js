@@ -1,19 +1,27 @@
-var thrift = require('thrift'), Collector = require('./gen-nodejs/Collector');
+var thrift = require('thrift');
+var Collector = require('./gen-nodejs/Collector');
 
 const {Pool} = require('pg');
-const pool = new Pool();
 
-const PORT = 4138;
+const PORT = 9934;
 
-const SQL_INSERT = 'INSERT INTO spans(body) VALUES($1)';
+const pool = new Pool({
+    host: 'horton.elephantsql.com',
+    user: 'dciohjpo',
+    database: 'dciohjpo',
+    port: 5432,
+    password: 'yjfkAOIhJwx1JE-txPs1tFsdQ547RkPo'
+});
+
+const SQL_INSERT = 'INSERT INTO spans(json) VALUES($1)';
 
 var server = thrift.createServer(Collector, {
     Collect: function(logs) {
-        console.log('Collecting logs', logs.length);
+        console.log('Collect');
         for (var i = 0; i < logs.length; ++i) {
             pool.query(SQL_INSERT, [logs[i]], (err, res) => {
                 if (err) {
-                    console.err(err.stack);
+                    console.log(err.stack);
                 }
             });
         }
@@ -26,5 +34,5 @@ process.on('SIGINT', function() {
     process.exit();
 });
 
-console.log('Listening on', PORT);
-server.listen(PORT, 'localhost');
+console.log('Listening on localhost:', PORT);
+server.listen(PORT);
