@@ -30,6 +30,9 @@ app.get('/', function(req, res) {
 function traverse(body, span, depth) {
     body += Array(depth).join(' ');
     body += 'Call at ' + new Date(span.time * 1000) + '\n';
+    body += Array(depth).join(' ');
+    body += 'from: ' + span.client + ', to: ' + span.server + '\n';
+
     for (var i = 0; i < span.callees.length; ++i) {
         body = traverse(body, span.callees[i], depth + 2);
     }
