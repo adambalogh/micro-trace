@@ -3,41 +3,49 @@ import jsonpickle
 import json
 
 from pymongo import MongoClient
+import psycopg2
+import psycopg2.extras
 
 from trace import *
 from gen import request_log_pb2
 
-SIZE_BYTES = 32
+conn = psycopg2.connect(
+        "postgres://dciohjpo:yjfkAOIhJwx1JE-txPs1tFsdQ547RkPo@horton.elephantsql.com:5432/dciohjpo")
 
-def read_spans(file_name):
+def upload(traces):
+    cur = conn.cursor()
+    for trace in traces:
+        cur.execute("INSERT INTO traces (body) VALUES (%s)", [psycopg2.extras.Json(trace)])
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def load_spans():
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM spans")
+    protos = cur.fetchall()
+    cur.close()
+    conn.commit()
+
     spans = []
-    with open(file_name, 'rb') as f:
-        while True:
-            s = f.read(SIZE_BYTES)
-            if len(s) != SIZE_BYTES:
-                break
-            size = int(s, 16)
+    for proto in protos:
+        span = request_log_pb2.RequestLog()
+        ret = span.ParseFromString(proto[1])
 
-            proto_bin = f.read(size)
-            span = request_log_pb2.RequestLog()
-            try:
-                ret = span.ParseFromString(proto_bin)
-            except:
-                break
+        # Convert into custom Span obj
+        span_obj = make_span(span.time,
+                UUID(span.context.trace_id.high,
+                    span.context.trace_id.low),
+                UUID(span.context.span_id.high,
+                    span.context.span_id.low),
+                UUID(span.context.parent_span.high,
+                    span.context.parent_span.low),
+                span.conn.client_ip + ':' + str(span.conn.client_port),
+                span.conn.server_ip + ':' + str(span.conn.server_port)
+                )
 
-            # Convert into custom Span obj
-            span_obj = make_span(span.time,
-                    UUID(span.context.trace_id.high,
-                        span.context.trace_id.low),
-                    UUID(span.context.span_id.high,
-                        span.context.span_id.low),
-                    UUID(span.context.parent_span.high,
-                        span.context.parent_span.low))
-
-            spans.append(span_obj)
-            f.read(1) # consume new line
+        spans.append(span_obj)
     return spans
-
 
 def group_spans(spans):
     spans_map = {}
@@ -62,8 +70,8 @@ def process_trace(spans):
             start = span
             continue
 
+        # error
         if parent_span not in span_id:
-            print(str(span.trace_id), str(span.span_id), str(span.parent_span))
             continue
 
         span_id[parent_span].add_callee(span)
@@ -89,19 +97,12 @@ def mongo_client():
     client = MongoClient('mongodb://<user>:<password>@ds123193.mlab.com:23193/microtrace')
     return client
 
-# spans = read_spans('log.proto')
-# spans.extend(read_spans('log2.proto'))
-import test
-spans = test.spans
+# import test
+# spans = test.spans
 
-trace_id_map = group_spans(spans)
-traces = process(trace_id_map)
-data = json.loads(jsonpickle.encode(traces, unpicklable=False))
-
-# client = mongo_client()
-# db = client.microtrace
-# tc = db.traces_collection
-
-# result = tc.insert_many(data)
-# print(result.inserted_ids)
-
+if __name__ == "__main__":
+    spans = load_spans()
+    trace_id_map = group_spans(spans)
+    traces = process(trace_id_map)
+    data = json.loads(jsonpickle.encode(traces, unpicklable=False))
+    upload(data)

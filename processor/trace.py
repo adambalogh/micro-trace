@@ -13,9 +13,11 @@ class Context(object):
                 self.trace_id, self.span_id, self.parent_span)
 
 class Span(object):
-    def __init__(self, time, context):
+    def __init__(self, time, context, client, server):
         self.time = time
         self.context = context
+        self.client = client
+        self.server = server
         self.callees = []
 
     def add_callee(self, callee):
@@ -34,8 +36,8 @@ class Span(object):
         return '[time: {}, context: {}, num_callees: {}]'.format(
                 str(self.time), str(self.context), str(len(self.callees)))
 
-def make_span(time, trace_id, span_id, parent_span):
-    return Span(time, Context(trace_id, span_id, parent_span))
+def make_span(time, trace_id, span_id, parent_span, client, server):
+    return Span(time, Context(trace_id, span_id, parent_span), client, server)
 
 class UUID(object):
     def __init__(self, high, low):
