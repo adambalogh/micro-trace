@@ -52,4 +52,5 @@ inline char* string_arr(std::string& str) { return &str[0]; }
 extern std::shared_ptr<spdlog::logger> console_log;
 
 unsigned short get_port(const struct sockaddr* sa);
+bool is_localhost(const struct sockaddr* sa);
 }

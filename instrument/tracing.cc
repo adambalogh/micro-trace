@@ -155,9 +155,17 @@ int socket(int domain, int type, int protocol) {
  * We use connect to fiter out sockets that we are not interested in.
  */
 int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
+    const int port = get_port(addr);
+
+    // Don't trace connections to the collector
+    // TODO also check that it's localhost
+    if (port == ThriftLogger::COLLECTOR_PORT) {
+        DeleteSocket(sockfd);
+    }
+
     // We don't want to trace DNS requests, instead, we use uv_getaddrinfo keep
-    // track of the context
-    if (get_port(addr) == DNS_PORT) {
+    // track of the context in libuv, otherwise lookups are blocking
+    if (port == DNS_PORT) {
         DeleteSocket(sockfd);
     }
 

@@ -47,6 +47,8 @@ class StdoutTraceLogger : public TraceLogger {
 
 class ThriftLogger : public TraceLogger {
    public:
+    const static int COLLECTOR_PORT = 9934;
+
     ThriftLogger();
 
     void Log(const proto::RequestLog& log) override;

@@ -22,8 +22,6 @@ using namespace apache::thrift::transport;
 
 namespace microtrace {
 
-const int COLLECTOR_PORT = 4138;
-
 void StdoutTraceLogger::Log(const proto::RequestLog& log) {
     std::string str;
     TextFormat::PrintToString(log, &str);
