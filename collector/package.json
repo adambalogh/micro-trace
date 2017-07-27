@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "pg": "^7.0.2",
+        "pg-format": "^1.0.4",
         "thrift": "^0.10.0"
     }
 }

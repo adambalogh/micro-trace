@@ -1,6 +1,7 @@
 var thrift = require('thrift');
 var Collector = require('./gen-nodejs/Collector');
 
+var format = require('pg-format');
 const {Pool} = require('pg');
 
 const PORT = 9934;
@@ -13,18 +14,21 @@ const pool = new Pool({
     password: 'yjfkAOIhJwx1JE-txPs1tFsdQ547RkPo'
 });
 
-const SQL_INSERT = 'INSERT INTO spans(json) VALUES($1)';
+const SQL_INSERT = 'INSERT INTO spans(json) VALUES %L';
 
 var server = thrift.createServer(Collector, {
     Collect: function(logs) {
-        console.log('Collect');
         for (var i = 0; i < logs.length; ++i) {
-            pool.query(SQL_INSERT, [logs[i]], (err, res) => {
-                if (err) {
-                    console.log(err.stack);
-                }
-            });
+            logs[i] = [logs[i]];
         }
+        var sql = format(SQL_INSERT, logs);
+        pool.query(sql, (err, res) => {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log(res);
+            }
+        });
     }
 });
 
