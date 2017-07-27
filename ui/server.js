@@ -27,7 +27,25 @@ app.get('/', function(req, res) {
     });
 });
 
-app.get('/traces/:traceId', function(req, res) {});
+function traverse(body, span, depth) {
+    body += Array(depth).join(' ');
+    body += 'Call at ' + new Date(span.time * 1000) + '\n';
+    for (var i = 0; i < span.callees.length; ++i) {
+        body = traverse(body, span.callees[i], depth + 2);
+    }
+    return body;
+};
+
+app.get('/traces/:traceId', function(req, res) {
+    const traceId = req.params['traceId'];
+    pool.query(
+        'SELECT * FROM traces WHERE id = $1', [traceId], (err, response) => {
+            const start_span = response.rows[0].body.start;
+            var body = '';
+            body = traverse(body, start_span, 0);
+            res.send(body);
+        });
+});
 
 app.listen(
     3000, function() { console.log('Example app listening on port 3000!') });
