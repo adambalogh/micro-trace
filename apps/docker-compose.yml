@@ -3,7 +3,7 @@ services:
     first:
         build: first
         ports:
-            - "3000:3000"
+            - "3000:8080"
         security_opt:
             - seccomp:unconfined
         cap_add:
@@ -12,11 +12,11 @@ services:
     second:
         build: second
         ports:
-            - "5001:5001"
+            - "5001:8080"
         security_opt:
             - seccomp:unconfined
 
     third:
         build: third
         ports:
-            - "3131:3131"
+            - "3131:8080"

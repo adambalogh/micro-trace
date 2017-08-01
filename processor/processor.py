@@ -41,9 +41,8 @@ def load_spans():
                     span.context.span_id.low),
                 UUID(span.context.parent_span.high,
                     span.context.parent_span.low),
-                span.conn.client_ip + ':' + str(span.conn.client_port),
-                span.conn.server_ip + ':' + str(span.conn.server_port)
-                )
+                span.conn.client_hostname,
+                span.conn.server_hostname)
 
         spans.append(span_obj)
     return spans
