@@ -12,10 +12,29 @@ h1 {
   padding: 0px;
 }
 
-hr {
+hr.partial {
   width: 80%;
   margin-left: auto;
-  margin-right: auto,
+  margin-right: auto;
+}
+
+#trace-view {
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#trace-info {
+  width: 80%;
+  font-style: italic; 
+  font-family: Arial;
+  font-size: 15px;
+  margin-left: auto;
+  margin-right: auto;
+
+  margin-bottom: 30px;
+  padding: 0px 20px 10px 20px;
+  border-bottom: 1px dashed black;
 }
 
 #traces {
