@@ -15,7 +15,8 @@ conn = psycopg2.connect(
 def upload(traces):
     cur = conn.cursor()
     for trace in traces:
-        cur.execute("INSERT INTO traces (body) VALUES (%s)", [psycopg2.extras.Json(trace)])
+        cur.execute("INSERT INTO traces (body, num_spans, duration) VALUES (%s)",
+                [psycopg2.extras.Json(trace), trace.num_spans, trace.duration])
     conn.commit()
     cur.close()
     conn.close()

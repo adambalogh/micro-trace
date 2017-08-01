@@ -13,7 +13,7 @@ const pool = new Pool({
 });
 
 // App settings
-app.use(express.static('public'))
+app.use(express.static('public'));
 
     const html_template =
     '<html><head>%s<link rel="stylesheet" href="/main.css"/>' +
@@ -27,7 +27,7 @@ const trace_link = '<a href="traces/%1$d">#%1$d</a>';
 app.get('/', function(req, res) {
     console.log('index');
 
-    pool.query('SELECT id FROM traces', (err, response) => {
+    pool.query('SELECT id, num_spans, duration FROM traces', (err, response) => {
         var body = '<h1>MicroTrace</h1><hr>';
         body += '<table id="traces">';
         body +=
@@ -43,7 +43,7 @@ app.get('/', function(req, res) {
             body += '</tr>';
         });
         body += '</table>';
-        body += '</body></html>' res.send(
+        res.send(
             sprintf(html_template, '<title>MicroTrace</title>', body));
     });
 });
