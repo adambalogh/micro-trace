@@ -12,8 +12,13 @@ const pool = new Pool({
     password: 'yjfkAOIhJwx1JE-txPs1tFsdQ547RkPo'
 });
 
+// App settings
+app.use(express.static('public'))
 
-const trace_link = '<li><a href="traces/%1$d">Trace: %1$d</a></li>';
+const html_template = '<html><head>%s<link rel="stylesheet" href="/main.css"/>'
+  + '</head><body>%s</body></html>';
+
+const trace_link = '<a href="traces/%1$d">Trace #%1$d</a>';
 
 /*
  * Index page
@@ -21,33 +26,43 @@ const trace_link = '<li><a href="traces/%1$d">Trace: %1$d</a></li>';
 app.get('/', function(req, res) {
     console.log('index');
 
-    var body = '<html><head><title>MicroTrace</title></head>';
-    body += '<body><h1>MicroTrace traces</h1>';
-    body += '<ul>';
-
     pool.query('SELECT id FROM traces', (err, response) => {
+        var body = '<h1>MicroTrace</h1><hr>';
+        body += '<table id="traces">';
+        body += '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>'
+            + '<th class="duration">Duration</th></tr>';
+
         response.rows.forEach(function(row) {
             const id = row.id;
-            body += sprintf(trace_link, id);
+            body += '<tr>';
+            body += '<td>' + sprintf(trace_link, id) + '</td>';
+            body += '<td>5</td>';
+            body += '<td>1s</td>';
+            body += '</tr>';
         });
-        body += '</ul';
+        body += '</table>';
         body += '</body></html>'
-        res.send(body);
+        res.send(sprintf(html_template, '<title>MicroTrace traces</title>', body));
     });
 });
 
-const LEVEL_DEPTH = 5;
+const LEVEL_PADDING = 8;
+
+function formatDate(date) {
+  return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
+    + " on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDay();
+}
 
 function traverse(body, span, depth) {
     body += Array(depth).join('&nbsp');
-    body += 'Call at ' + new Date(span.time * 1000) + '<br>';
+    body += 'Call at ' + formatDate(new Date(span.time * 1000)) + '<br>';
     body += Array(depth).join('&nbsp');
     body += 'from: ' + span.client + ', to: ' + span.server + '<br>';
     body += '<hr>';
 
 
     for (var i = 0; i < span.callees.length; ++i) {
-        body = traverse(body, span.callees[i], depth + LEVEL_DEPTH);
+        body = traverse(body, span.callees[i], depth + LEVEL_PADDING);
     }
     return body;
 };
@@ -59,17 +74,13 @@ app.get('/traces/:traceId', function(req, res) {
     const traceId = req.params['traceId'];
     console.log('/traces/' + traceId);
 
-    var body = '<html><head><title>Trace #' + traceId + '</title></head>';
-    body += '<body>';
-    body += '<h1>Trace #' + traceId + '</h1>';
-
     pool.query(
         'SELECT * FROM traces WHERE id = $1', [traceId], (err, response) => {
+            var body = '<h1>Trace #' + traceId + '</h1>';
             const start_span = response.rows[0].body.start;
             body = traverse(body, start_span, 0);
-
-            body += '</body></html>';
-            res.send(body);
+            res.send(sprintf(html_template,
+                '<title>Trace #' + traceId + '</title/>', body));
         });
 });
 

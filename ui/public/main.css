@@ -1,0 +1,42 @@
+html {
+  font-family: 'Garamond';
+  font-size: 17px;
+
+  margin: 50px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 50px;
+  padding: 0px;
+}
+
+hr {
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto,
+}
+
+#traces {
+  text-align: center;
+  width: 55%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 30px;
+}
+
+#traces th {
+  padding-bottom: 14px;
+}
+
+#traces tr:nth-child(even) {
+    background-color: #EEEEEE;
+}
+
+#traces > .trace-id {
+  width: 50%;
+}
+
+#traces > .no-spans, #traces > .duration {
+}
+
