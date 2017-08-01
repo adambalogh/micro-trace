@@ -15,8 +15,9 @@ const pool = new Pool({
 // App settings
 app.use(express.static('public'))
 
-const html_template = '<html><head>%s<link rel="stylesheet" href="/main.css"/>'
-  + '</head><body>%s</body></html>';
+    const html_template =
+    '<html><head>%s<link rel="stylesheet" href="/main.css"/>' +
+    '</head><body>%s</body></html>';
 
 const trace_link = '<a href="traces/%1$d">#%1$d</a>';
 
@@ -29,28 +30,30 @@ app.get('/', function(req, res) {
     pool.query('SELECT id FROM traces', (err, response) => {
         var body = '<h1>MicroTrace</h1><hr>';
         body += '<table id="traces">';
-        body += '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>'
-            + '<th class="duration">Total Duration</th></tr>';
+        body +=
+            '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>' +
+            '<th class="duration">Total Duration</th></tr>';
 
         response.rows.forEach(function(row) {
             const id = row.id;
             body += '<tr>';
             body += '<td>' + sprintf(trace_link, id) + '</td>';
-            body += '<td>5</td>';
-            body += '<td>1s</td>';
+            body += '<td>' + row.num_spans + '</td>';
+            body += '<td>' + row.duration + '</td>';
             body += '</tr>';
         });
         body += '</table>';
-        body += '</body></html>'
-        res.send(sprintf(html_template, '<title>MicroTrace</title>', body));
+        body += '</body></html>' res.send(
+            sprintf(html_template, '<title>MicroTrace</title>', body));
     });
 });
 
 const LEVEL_PADDING = 8;
 
 function formatDate(date) {
-  return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
-    + " on " + date.getFullYear() + "/" + date.getMonth() + "/" + date.getDay();
+    return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() +
+        " on " + date.getFullYear() + "/" + date.getMonth() + "/" +
+        date.getDay();
 }
 
 function traverse(body, span, depth) {
@@ -79,11 +82,12 @@ app.get('/traces/:traceId', function(req, res) {
             var body = '<h1>Trace #' + traceId + '</h1>';
             const start_span = response.rows[0].body.start;
             body = traverse(body, start_span, 0);
-            res.send(sprintf(html_template,
-                '<title>Trace #' + traceId + '</title/>', body));
+            res.send(
+                sprintf(
+                    html_template, '<title>Trace #' + traceId + '</title/>',
+                    body));
         });
 });
 
 app.listen(
     3000, function() { console.log('Example app listening on port 3000!') });
-
