@@ -27,8 +27,14 @@ const trace_link = '<a href="traces/%1$d">#%1$d</a>';
 app.get('/', function(req, res) {
     console.log('index');
 
-    pool.query('SELECT id, num_spans, duration FROM traces', (err, response) => {
-        var body = '<h1>MicroTrace</h1><hr>';
+    pool.query('SELECT id, num_spans, duration FROM traces ORDER BY id DESC', (err, response) => {
+        if (err) {
+          console.log(err);
+          res.send(err);
+          return;
+        }
+
+        var body = '<h1>MicroTrace</h1><hr class="partial">';
         body += '<table id="traces">';
         body +=
             '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>' +
@@ -48,7 +54,6 @@ app.get('/', function(req, res) {
     });
 });
 
-const LEVEL_PADDING = 8;
 
 function formatDate(date) {
     return date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() +
@@ -56,12 +61,16 @@ function formatDate(date) {
         date.getDay();
 }
 
+const LEVEL_PADDING = 8;
+
 function traverse(body, span, depth) {
+    body += '<div class="span">';
     body += Array(depth).join('&nbsp');
-    body += 'Call at ' + formatDate(new Date(span.time * 1000)) + '<br>';
+    body += 'From <i>' + span.client + '</i> to <i>' + span.server + '</i>';
+    body += '<br>';
     body += Array(depth).join('&nbsp');
-    body += 'from: ' + span.client + ', to: ' + span.server + '<br>';
-    body += '<hr>';
+    body += 'at ' + formatDate(new Date(span.time * 1000)) + '<br>';
+    body += '</div>';
 
 
     for (var i = 0; i < span.callees.length; ++i) {
@@ -79,9 +88,19 @@ app.get('/traces/:traceId', function(req, res) {
 
     pool.query(
         'SELECT * FROM traces WHERE id = $1', [traceId], (err, response) => {
+            const trace = response.rows[0].body;
             var body = '<h1>Trace #' + traceId + '</h1>';
-            const start_span = response.rows[0].body.start;
+
+            body += '<div id="trace-info">';
+            body += 'Number of spans: ' + trace.num_spans;
+            body += ', Duration: ' + trace.duration;
+            body += '</div>';
+
+            body += '<div id="trace-view">';
+            body += '<h3>Spans:</h3><hr>';
+            const start_span = trace.start;
             body = traverse(body, start_span, 0);
+            body += '</div>';
             res.send(
                 sprintf(
                     html_template, '<title>Trace #' + traceId + '</title/>',
@@ -91,3 +110,4 @@ app.get('/traces/:traceId', function(req, res) {
 
 app.listen(
     3000, function() { console.log('Example app listening on port 3000!') });
+
