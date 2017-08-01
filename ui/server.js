@@ -18,7 +18,7 @@ app.use(express.static('public'))
 const html_template = '<html><head>%s<link rel="stylesheet" href="/main.css"/>'
   + '</head><body>%s</body></html>';
 
-const trace_link = '<a href="traces/%1$d">Trace #%1$d</a>';
+const trace_link = '<a href="traces/%1$d">#%1$d</a>';
 
 /*
  * Index page
@@ -30,7 +30,7 @@ app.get('/', function(req, res) {
         var body = '<h1>MicroTrace</h1><hr>';
         body += '<table id="traces">';
         body += '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>'
-            + '<th class="duration">Duration</th></tr>';
+            + '<th class="duration">Total Duration</th></tr>';
 
         response.rows.forEach(function(row) {
             const id = row.id;
@@ -42,7 +42,7 @@ app.get('/', function(req, res) {
         });
         body += '</table>';
         body += '</body></html>'
-        res.send(sprintf(html_template, '<title>MicroTrace traces</title>', body));
+        res.send(sprintf(html_template, '<title>MicroTrace</title>', body));
     });
 });
 

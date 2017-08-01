@@ -3,6 +3,7 @@ html {
   font-size: 17px;
 
   margin: 50px;
+  background: #FCFDFE;
 }
 
 h1 {
@@ -23,6 +24,12 @@ hr {
   margin-left: auto;
   margin-right: auto;
   margin-top: 30px;
+
+  border: none;
+}
+
+#traces td {
+  padding-bottom: 3px;
 }
 
 #traces th {
@@ -33,10 +40,11 @@ hr {
     background-color: #EEEEEE;
 }
 
-#traces > .trace-id {
-  width: 50%;
-}
+#traces .trace-id {                     
+  width: 46%;                             
+}                                         
 
-#traces > .no-spans, #traces > .duration {
-}
+#traces .no-spans, #traces .duration {
+  width: 27%;                             
+}                                         
 
