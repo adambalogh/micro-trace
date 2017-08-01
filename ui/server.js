@@ -64,11 +64,13 @@ function formatDate(date) {
 const LEVEL_PADDING = 8;
 
 function traverse(body, span, depth) {
+    body += '<div class="span">';
     body += Array(depth).join('&nbsp');
-    body += 'Call at ' + formatDate(new Date(span.time * 1000)) + '<br>';
+    body += 'From <i>' + span.client + '</i> to <i>' + span.server + '</i>';
+    body += '<br>';
     body += Array(depth).join('&nbsp');
-    body += 'from: ' + span.client + ', to: ' + span.server + '<br>';
-    body += '<hr>';
+    body += 'at ' + formatDate(new Date(span.time * 1000)) + '<br>';
+    body += '</div>';
 
 
     for (var i = 0; i < span.callees.length; ++i) {
@@ -95,6 +97,7 @@ app.get('/traces/:traceId', function(req, res) {
             body += '</div>';
 
             body += '<div id="trace-view">';
+            body += '<h3>Spans:</h3><hr>';
             const start_span = trace.start;
             body = traverse(body, start_span, 0);
             body += '</div>';

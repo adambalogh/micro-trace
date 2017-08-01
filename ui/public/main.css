@@ -34,7 +34,13 @@ hr.partial {
 
   margin-bottom: 30px;
   padding: 0px 20px 10px 20px;
-  border-bottom: 1px dashed black;
+  border-bottom: 2px solid #AAA;
+}
+
+.span {
+  margin: 0px;
+  padding: 8px 4px;
+  border-bottom: 1px dotted black;
 }
 
 #traces {
