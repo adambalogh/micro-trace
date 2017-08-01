@@ -99,7 +99,7 @@ def traverse(span):
         num_spans += c
         max_end = max(max_end, m)
 
-    return max_end
+    return (num_spans, max_end)
 
 
 
