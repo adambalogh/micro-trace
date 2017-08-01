@@ -94,9 +94,9 @@ def post_process(trace):
 def traverse(span):
     num_spans = 1
     max_end = span.time
-    for c in callees:
+    for c in span.callees:
         (n, m) = traverse(c)
-        num_spans += c
+        num_spans += n
         max_end = max(max_end, m)
 
     return (num_spans, max_end)
