@@ -78,24 +78,30 @@ def process_trace(spans):
 
     return Trace(start)
 
-
 def process(trace_id_map):
     traces = []
     for trace_id in trace_id_map.keys():
         traces.append(process_trace(trace_id_map[trace_id]))
+    for trace in traces:
+        post_process(trace)
     return traces
 
-def traverse(node, margin):
-    if node is None:
-        return
+def post_process(trace):
+    (num_spans, max_end) = traverse(trace.start)
+    trace.num_spans = num_spans
+    trace.duration = max_end - trace.start.time
 
-    print('-' * margin + str(node))
-    for c in node.callees:
-        traverse(c, margin+2)
+def traverse(span):
+    num_spans = 1
+    max_end = span.time
+    for c in callees:
+        (n, m) = traverse(c)
+        num_spans += c
+        max_end = max(max_end, m)
 
-def mongo_client():
-    client = MongoClient('mongodb://<user>:<password>@ds123193.mlab.com:23193/microtrace')
-    return client
+    return max_end
+
+
 
 # import test
 # spans = test.spans

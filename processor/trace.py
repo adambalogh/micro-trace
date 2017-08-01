@@ -2,6 +2,10 @@ class Trace(object):
     def __init__(self, start):
         self.start = start
 
+        self.duration = None
+        self.num_spans = None
+
+"""Uniquely identifies a span"""
 class Context(object):
     def __init__(self, trace_id, span_id, parent_span):
         self.trace_id = trace_id
