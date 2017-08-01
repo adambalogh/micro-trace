@@ -14,6 +14,7 @@ conn = psycopg2.connect(
 
 def upload(traces):
     cur = conn.cursor()
+    print 'uploading', len(traces), 'traces'
     for trace in traces:
         cur.execute("INSERT INTO traces (body, num_spans, duration) VALUES (%s, %s, %s)",
                 [psycopg2.extras.Json(trace), trace['num_spans'], trace['duration']])
@@ -45,6 +46,7 @@ def load_spans():
                 span.conn.server_hostname)
 
         spans.append(span_obj)
+    print 'loaded', len(spans), 'spans'
     return spans
 
 def group_spans(spans):
@@ -76,12 +78,15 @@ def process_trace(spans):
 
         span_id[parent_span].add_callee(span)
 
+    if start is None:
+        return None
     return Trace(start)
 
 def process(trace_id_map):
     traces = []
     for trace_id in trace_id_map.keys():
         traces.append(process_trace(trace_id_map[trace_id]))
+    traces = [trace for trace in traces if trace is not None]
     for trace in traces:
         post_process(trace)
     return traces
