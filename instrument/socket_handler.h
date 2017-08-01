@@ -27,12 +27,8 @@ struct Connection {
    public:
     Connection();
 
-    std::string to_string() const;
-
-    std::string client_ip;
-    unsigned short client_port;
-    std::string server_ip;
-    unsigned short server_port;
+    std::string client_hostname;
+    std::string server_hostname;
 };
 
 /*

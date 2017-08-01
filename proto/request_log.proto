@@ -3,13 +3,8 @@ syntax = "proto2";
 package proto;
 
 message Connection {
-    required string server_ip = 1;
-    required uint32 server_port = 2;
-    required string client_ip = 3;
-    required uint32 client_port = 4;
-
-    optional string client_service_name = 5;
-    optional string server_service_name = 6;
+    required string server_hostname = 1;
+    required string client_hostname = 2;
 }
 
 message Uuid {

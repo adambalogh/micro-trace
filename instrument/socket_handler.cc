@@ -13,18 +13,7 @@
 
 namespace microtrace {
 
-Connection::Connection()
-    : client_ip('.', INET6_ADDRSTRLEN), server_ip('.', INET6_ADDRSTRLEN) {}
-
-std::string Connection::to_string() const {
-    std::string str;
-    str += "[";
-    str += "client: " + client_ip + ":" + std::to_string(client_port);
-    str += ", ";
-    str += "server: " + server_ip + ":" + std::to_string(server_port);
-    str += "]";
-    return str;
-}
+Connection::Connection() {}
 
 static ServerType GetServerType() {
     auto type = std::getenv("MICROTRACE_SERVER_TYPE");
@@ -53,7 +42,7 @@ AbstractSocketHandler::AbstractSocketHandler(int sockfd, const SocketRole role,
       orig_(orig) {}
 
 void SetConnectionEndPoint(
-    const int fd, std::string* ip, short unsigned* port,
+    const int fd, std::string* hostname,
     std::function<int(int, struct sockaddr*, socklen_t*)> fn) {
     sockaddr_storage tmp_sockaddr;
     sockaddr* const sockaddr_ptr = reinterpret_cast<sockaddr*>(&tmp_sockaddr);
@@ -67,44 +56,42 @@ void SetConnectionEndPoint(
     // be successful
     VERIFY(ret == 0, "get(sock|peer)name was unsuccessful");
 
-    *port = get_port(sockaddr_ptr);
-    dst = inet_ntop(tmp_sockaddr.ss_family, sockaddr_ptr, string_arr(*ip),
-                    ip->size());
+    std::string ip;
+    ip.resize(INET6_ADDRSTRLEN);
+    dst = inet_ntop(tmp_sockaddr.ss_family, sockaddr_ptr, string_arr(ip),
+                    ip.size());
     // inet_ntop should also be successful here
-    VERIFY(dst == string_arr(*ip), "inet_ntop was unsuccessful");
+    VERIFY(dst == string_arr(ip), "inet_ntop was unsuccessful");
 
     // inet_ntop puts a null terminated string into ip
-    ip->resize(strlen(string_arr(*ip)));
+    ip.resize(strlen(string_arr(ip)));
+
+    *hostname = ip + ":" + std::to_string(get_port(sockaddr_ptr));
 }
 
 int AbstractSocketHandler::SetConnection() {
+    static char hostname_buf[400];
+    VERIFY(gethostname(&hostname_buf[0], 400) == 0, "gethostname unsuccessful");
+    const std::string hostname{&hostname_buf[0], strlen(&hostname_buf[0])};
+
     if (role_server()) {
         // Peer is the client
         SetConnectionEndPoint(
-            sockfd_, &conn_.client_ip, &conn_.client_port,
+            sockfd_, &conn_.client_hostname,
             [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
                 return orig().getpeername(fd, addr, addr_len);
             });
-        // We are the server
-        SetConnectionEndPoint(
-            sockfd_, &conn_.server_ip, &conn_.server_port,
-            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
-                return orig().getsockname(fd, addr, addr_len);
-            });
 
+        conn_.server_hostname = hostname;
     } else {
         // Peer is the server
         SetConnectionEndPoint(
-            sockfd_, &conn_.server_ip, &conn_.server_port,
+            sockfd_, &conn_.server_hostname,
             [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
                 return orig().getpeername(fd, addr, addr_len);
             });
-        // We are the client
-        SetConnectionEndPoint(
-            sockfd_, &conn_.client_ip, &conn_.client_port,
-            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
-                return orig().getsockname(fd, addr, addr_len);
-            });
+
+        conn_.client_hostname = hostname;
     }
 
     conn_init_ = true;

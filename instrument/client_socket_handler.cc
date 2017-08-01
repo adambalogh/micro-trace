@@ -17,8 +17,8 @@ namespace microtrace {
 struct RequestLogWrapper {
     ~RequestLogWrapper() {
         proto::Connection* conn = log.mutable_conn();
-        conn->release_server_ip();
-        conn->release_client_ip();
+        conn->release_server_hostname();
+        conn->release_client_hostname();
     }
 
     proto::RequestLog* operator->() { return &log; }
@@ -59,10 +59,8 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
            "FillRequestLog was called when conn_init is false");
 
     proto::Connection* conn = log->mutable_conn();
-    conn->set_allocated_server_ip(&conn_.server_ip);
-    conn->set_server_port(conn_.server_port);
-    conn->set_allocated_client_ip(&conn_.client_ip);
-    conn->set_client_port(conn_.client_port);
+    conn->set_allocated_server_hostname(&conn_.server_hostname);
+    conn->set_allocated_client_hostname(&conn_.client_hostname);
 
     proto::Context* ctx = log->mutable_context();
     ctx->mutable_trace_id()->set_high(context().trace().high());
