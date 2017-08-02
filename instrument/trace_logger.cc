@@ -44,7 +44,7 @@ void ThriftLogger::Log(const proto::RequestLog& log) {
     {
         std::unique_lock<std::mutex> l(mu_);
         buffer_.push_back(std::move(str));
-        if (buffer_.size() > max_size_) {
+        if (buffer_.size() >= max_size_) {
             if (!connected_) {
                 transport_->open();
                 connected_ = true;

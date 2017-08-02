@@ -56,7 +56,7 @@ class ThriftLogger : public TraceLogger {
    private:
     std::mutex mu_;
 
-    static const int max_size_ = 100;
+    static const int max_size_ = 200;
     std::vector<std::string> buffer_;
 
     /*
