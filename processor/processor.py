@@ -22,6 +22,8 @@ def get_recent_traces():
     cur.execute("SELECT * FROM traces ORDER BY ts DESC LIMIT 1000");
     traces = cur.fetchall()
     print 'fetched', len(traces), 'traces'
+    conn.commit()
+    cur.close()
     return {trace.start.trace_id: trace for trace in traces}
 
 """
@@ -35,7 +37,6 @@ def upload(traces):
                 [psycopg2.extras.Json(trace), trace['num_spans'], trace['duration']])
     conn.commit()
     cur.close()
-    conn.close()
 
 """
 Returns all the spans from the database.
@@ -44,8 +45,8 @@ def load_spans():
     cur = conn.cursor()
     cur.execute("SELECT * FROM spans")
     protos = cur.fetchall()
-    cur.close()
     conn.commit()
+    cur.close()
 
     spans = []
     for proto in protos:
@@ -141,12 +142,30 @@ def get_db_ids(traces):
             q.append(c)
     return ids
 
+def delete_spans(ids):
+    if not ids:
+        return
+    cur = conn.cursor()
+    cur.execute("DELETE FROM spans WHERE id IN %s", [tuple(ids)])
+    conn.commit()
+    cur.close()
+    print 'deleted', len(ids), 'spans'
 
 if __name__ == "__main__":
+    # get spans
     spans = load_spans()
+
+    # build traces
     trace_id_map = group_spans(spans)
     traces = process(trace_id_map)
+
+    # delete used spans from db
     db_ids = get_db_ids(traces)
-    print(len(db_ids))
+    delete_spans(db_ids)
+
+    # upload traces to db
     data = json.loads(jsonpickle.encode(traces, unpicklable=False))
-    # upload(data)
+    upload(data)
+
+    # try to insert unused spans into existing traces from db
+    spans = load_spans()
