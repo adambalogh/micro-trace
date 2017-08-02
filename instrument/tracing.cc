@@ -151,6 +151,22 @@ int socket(int domain, int type, int protocol) {
     return sockfd;
 }
 
+void HandleConnect(SocketInterface* sock, const struct sockaddr* addr) {
+    std::string ip;
+    if (addr->sa_family == AF_INET) {
+        char* ip_buf =
+            inet_ntoa(reinterpret_cast<const sockaddr_in*>(addr)->sin_addr);
+        ip = std::string{ip_buf, strlen(ip_buf)};
+    } else {
+        char ip_buf[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6,
+                  &(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_addr),
+                  ip_buf, INET6_ADDRSTRLEN);
+        ip = std::string{ip_buf, INET6_ADDRSTRLEN};
+    }
+    static_cast<ClientSocket*>(sock)->Connected(ip);
+}
+
 /*
  * We use connect to fiter out sockets that we are not interested in.
  */
@@ -170,6 +186,12 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
     }
 
     int ret = orig().connect(sockfd, addr, addrlen);
+
+    auto* sock = GetSocket(sockfd);
+    if (ret == 0 && sock) {
+        HandleConnect(sock, addr);
+    }
+
     return ret;
 }
 
@@ -180,8 +202,14 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
 int uv_tcp_connect(uv_connect_t* req, uv_tcp_t* handle,
                    const struct sockaddr* addr, uv_connect_cb cb) {
     int ret = orig().uv_tcp_connect(req, handle, addr, cb);
+
     auto* sock = GetSocket(uv_fd(handle));
-    sock->Async();
+    if (ret == 0 && sock) {
+        sock->Async();
+        // TODO resolve this, it should always call connect so this should not
+        // be necessary
+        HandleConnect(sock, addr);
+    }
     return ret;
 }
 

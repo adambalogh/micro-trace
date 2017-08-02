@@ -12,7 +12,7 @@
 
 namespace microtrace {
 
-ServiceIpMap ClientSocketHandler::service_ip_map_ = ServiceIpMap{};
+ServiceIpMap ClientSocketHandler::service_map_ = ServiceIpMap{};
 
 ServiceIpMap::ServiceIpMap() {
     int i = 0;
@@ -65,11 +65,22 @@ ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT, SocketState::WILL_WRITE,
                             orig),
       txn_(nullptr),
-      trace_logger_(trace_logger) {}
+      trace_logger_(trace_logger),
+      kubernetes_socket_(false) {}
 
 void ClientSocketHandler::Async() {
     type_ = SocketType::ASYNC;
     context_.reset(new Context(get_current_context()));
+}
+
+void ClientSocketHandler::HandleConnect(const std::string& ip) {
+    auto* service_name = service_map_.Get(ip);
+    if (service_name) {
+        kubernetes_socket_ = true;
+        conn_.server_hostname = *service_name;
+    } else {
+        conn_.server_hostname = ip;
+    }
 }
 
 SocketAction ClientSocketHandler::get_next_action(
@@ -142,10 +153,9 @@ bool ClientSocketHandler::SendContext() {
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
-    // Only send context if it is the start of a new transaction and it hasn't
-    // been sent before.
-    // TODO only send context to internal services
-    if (!is_context_processed() &&
+    // Only send context if we are connected to another Kubernetes pod, and it
+    // is the start of a new transaction and it hasn't been sent before.
+    if (kubernetes_socket_ && !is_context_processed() &&
         get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         return SendContext();
     }

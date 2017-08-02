@@ -75,22 +75,8 @@ int AbstractSocketHandler::SetConnection() {
     const std::string hostname{&hostname_buf[0], strlen(&hostname_buf[0])};
 
     if (role_server()) {
-        // Peer is the client
-        SetConnectionEndPoint(
-            sockfd_, &conn_.client_hostname,
-            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
-                return orig().getpeername(fd, addr, addr_len);
-            });
-
         conn_.server_hostname = hostname;
     } else {
-        // Peer is the server
-        SetConnectionEndPoint(
-            sockfd_, &conn_.server_hostname,
-            [](int fd, struct sockaddr* addr, socklen_t* addr_len) -> auto {
-                return orig().getpeername(fd, addr, addr_len);
-            });
-
         conn_.client_hostname = hostname;
     }
 

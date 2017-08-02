@@ -17,6 +17,7 @@ class ClientSocket : public InstrumentedSocket {
                  const OriginalFunctions &orig);
 
     void Async() override;
+    void Connected(const std::string &ip);
 
     ssize_t RecvFrom(void *buf, size_t len, int flags,
                      struct sockaddr *src_addr, socklen_t *addrlen) override;

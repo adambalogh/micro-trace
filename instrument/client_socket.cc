@@ -19,6 +19,10 @@ ClientSocket::ClientSocket(const int fd,
 
 void ClientSocket::Async() { handler_->Async(); }
 
+void ClientSocket::Connected(const std::string &ip) {
+    handler_->HandleConnect(ip);
+}
+
 ssize_t ClientSocket::RecvFrom(void *buf, size_t len, int flags,
                                struct sockaddr *src_addr, socklen_t *addrlen) {
     handler_->BeforeRead(buf, len);
