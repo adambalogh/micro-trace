@@ -12,7 +12,7 @@
 
 namespace microtrace {
 
-ServiceIpMap ClientSocketHandler::service_ip_map_ = ServiceIpMap{};
+ServiceIpMap ClientSocketHandler::service_map_ = ServiceIpMap{};
 
 ServiceIpMap::ServiceIpMap() {
     int i = 0;
@@ -60,16 +60,36 @@ struct RequestLogWrapper {
     proto::RequestLog log;
 };
 
+static std::string GetHostname() {
+    static char hostname_buf[400];
+    VERIFY(gethostname(&hostname_buf[0], 400) == 0, "gethostname unsuccessful");
+    return std::string{&hostname_buf[0], strlen(&hostname_buf[0])};
+}
+
 ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
                                          const OriginalFunctions& orig)
     : AbstractSocketHandler(sockfd, SocketRole::CLIENT, SocketState::WILL_WRITE,
                             orig),
       txn_(nullptr),
-      trace_logger_(trace_logger) {}
+      trace_logger_(trace_logger),
+      kubernetes_socket_(false) {
+    // We can already set the hostname, it is constant
+    conn_.client_hostname = GetHostname();
+}
 
 void ClientSocketHandler::Async() {
     type_ = SocketType::ASYNC;
     context_.reset(new Context(get_current_context()));
+}
+
+void ClientSocketHandler::HandleConnect(const std::string& ip) {
+    auto* service_name = service_map_.Get(ip);
+    if (service_name) {
+        kubernetes_socket_ = true;
+        conn_.server_hostname = *service_name;
+    } else {
+        conn_.server_hostname = ip;
+    }
 }
 
 SocketAction ClientSocketHandler::get_next_action(
@@ -87,9 +107,6 @@ SocketAction ClientSocketHandler::get_next_action(
 }
 
 void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
-    VERIFY(conn_init_ == true,
-           "FillRequestLog was called when conn_init is false");
-
     proto::Connection* conn = log->mutable_conn();
     conn->set_allocated_server_hostname(&conn_.server_hostname);
     conn->set_allocated_client_hostname(&conn_.client_hostname);
@@ -142,10 +159,9 @@ bool ClientSocketHandler::SendContext() {
 }
 
 bool ClientSocketHandler::SendContextIfNecessary() {
-    // Only send context if it is the start of a new transaction and it hasn't
-    // been sent before.
-    // TODO only send context to internal services
-    if (!is_context_processed() &&
+    // Only send context if we are connected to another Kubernetes pod, and it
+    // is the start of a new transaction and it hasn't been sent before.
+    if (kubernetes_socket_ && !is_context_processed() &&
         get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         return SendContext();
     }
@@ -179,10 +195,6 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
 
     VERIFY(ret > 0, "write invalid return value");
 
-    if (!conn_init_) {
-        SetConnection();
-    }
-
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         txn_.reset(new Transaction);
         txn_->Start();
@@ -213,10 +225,6 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     }
 
     VERIFY(ret > 0, "read invalid return value");
-
-    if (!conn_init_) {
-        SetConnection();
-    }
 
     // New incoming response
     if (get_next_action(SocketOperation::READ) == SocketAction::RECV_RESPONSE) {

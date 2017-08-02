@@ -61,10 +61,6 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
 
     VERIFY(ret > 0, "read invalid return value");
 
-    if (!conn_init_) {
-        SetConnection();
-    }
-
     // New transaction
     if (get_next_action(SocketOperation::READ) == SocketAction::RECV_REQUEST) {
         // If we are frontend, generate a random context
@@ -110,10 +106,6 @@ void ServerSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     }
 
     VERIFY(ret > 0, "write invalid return value");
-
-    if (!conn_init_) {
-        SetConnection();
-    }
 
     state_ = SocketState::WROTE;
 }
