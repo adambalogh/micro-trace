@@ -15,11 +15,15 @@ const pool = new Pool({
 // App settings
 app.use(express.static('public'));
 
-    const html_template =
+const html_template =
     '<html><head>%s<link rel="stylesheet" href="/main.css"/>' +
     '</head><body>%s</body></html>';
 
 const trace_link = '<a href="traces/%1$d">#%1$d</a>';
+
+function round(num) {
+    return parseFloat(Math.round(num * 1000) / 1000).toFixed(3);
+}
 
 /*
  * Index page
@@ -45,7 +49,7 @@ app.get('/', function(req, res) {
             body += '<tr>';
             body += '<td>' + sprintf(trace_link, id) + '</td>';
             body += '<td>' + row.num_spans + '</td>';
-            body += '<td>' + row.duration + '</td>';
+            body += '<td>' + round(row.duration) + 's</td>';
             body += '</tr>';
         });
         body += '</table>';
@@ -63,18 +67,17 @@ function formatDate(date) {
 
 const LEVEL_PADDING = 8;
 
-function round(num) {
-    return parseFloat(Math.round(num * 1000) / 1000).toFixed(3);
-}
+
 
 function traverse(body, span, depth) {
     body += '<div class="span">';
     body += Array(depth).join('&nbsp');
-    body += 'From <i>' + span.client + '</i> to <i>' + span.server + '</i>';
+    body += 'From <b>' + span.client + '</b>';
+    body += ' to <b>' + span.server.toLowerCase() + '</b>';
     body += '<br>';
     body += Array(depth).join('&nbsp');
-    body += '<i>time</i>: ' + formatDate(new Date(span.time * 1000)) 
-      + ', <i>duration</i>: ' + round(span.duration) + 's<br>';
+    body += 'time: ' + formatDate(new Date(span.time * 1000)) 
+      + ', duration: ' + round(span.duration) + 's<br>';
     body += '</div>';
 
 
@@ -98,7 +101,7 @@ app.get('/traces/:traceId', function(req, res) {
 
             body += '<div id="trace-info">';
             body += 'Number of spans: ' + trace.num_spans;
-            body += ', Duration: ' + trace.duration;
+            body += ', Duration: ' + trace.duration + 's';
             body += '</div>';
 
             body += '<div id="trace-view">';
