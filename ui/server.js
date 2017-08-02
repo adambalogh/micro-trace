@@ -63,13 +63,18 @@ function formatDate(date) {
 
 const LEVEL_PADDING = 8;
 
+function round(num) {
+    return parseFloat(Math.round(num * 1000) / 1000).toFixed(3);
+}
+
 function traverse(body, span, depth) {
     body += '<div class="span">';
     body += Array(depth).join('&nbsp');
     body += 'From <i>' + span.client + '</i> to <i>' + span.server + '</i>';
     body += '<br>';
     body += Array(depth).join('&nbsp');
-    body += 'at ' + formatDate(new Date(span.time * 1000)) + '<br>';
+    body += '<i>time</i>: ' + formatDate(new Date(span.time * 1000)) 
+      + ', <i>duration</i>: ' + round(span.duration) + 's<br>';
     body += '</div>';
 
 
