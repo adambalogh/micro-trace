@@ -27,7 +27,7 @@ int main() {
     transport->open();
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 100000; ++i) {
         client.proxy_add(10, 9);
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
