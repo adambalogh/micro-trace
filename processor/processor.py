@@ -43,7 +43,8 @@ def load_spans():
                 UUID(span.context.parent_span.high,
                     span.context.parent_span.low),
                 span.conn.client_hostname,
-                span.conn.server_hostname)
+                span.conn.server_hostname,
+                span.duration)
 
         spans.append(span_obj)
     print 'loaded', len(spans), 'spans'
