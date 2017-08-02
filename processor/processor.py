@@ -1,5 +1,6 @@
 import struct
 import jsonpickle
+from jsonpickle import unpickler
 import json
 from collections import deque
 
@@ -33,8 +34,10 @@ def upload(traces):
     cur = conn.cursor()
     print 'uploading', len(traces), 'traces'
     for trace in traces:
-        cur.execute("INSERT INTO traces (body, num_spans, duration) VALUES (%s, %s, %s)",
-                [psycopg2.extras.Json(trace), trace['num_spans'], trace['duration']])
+        trace_id = trace['start']['context']['trace_id']['py/state']
+        cur.execute(
+                "INSERT INTO traces (body, trace_id, num_spans, duration) VALUES (%s, %s, %s, %s)",
+                [psycopg2.extras.Json(trace), trace_id, trace['num_spans'], trace['duration']])
     conn.commit()
     cur.close()
 
@@ -151,6 +154,53 @@ def delete_spans(ids):
     cur.close()
     print 'deleted', len(ids), 'spans'
 
+def delete_traces(trace_ids):
+    if not ids:
+        return
+    cur = conn.cursor()
+    cur.execute("DELETE FROM traces WHERE trace_id IN %s",
+            [tuple([str(id) for id in ids])])
+    conn.commit()
+    cur.close()
+    print 'deleted', len(ids), 'traces'
+
+def get_trace(trace_id):
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM traces WHERE trace_id=%s", [str(trace_id)])
+    trace = cur.fetchone()
+    return trace
+
+def unprocessed_traces(trace_id_map):
+    db_ids = set()
+    traces = []
+    for trace_id in trace_id_map.keys():
+        trace = get_trace(trace_id)
+        if trace:
+            (ids, trace) = extend_trace(trace[2], trace_id_map[trace_id])
+            if ids:
+                db_ids.update(ids)
+                traces.append(trace)
+    return (db_ids, traces)
+
+def extend_trace(old_trace_json, spans):
+    u = unpickler.Unpickler()
+    trace = u.restore(old_trace_json)
+    span_map = {}
+    q = deque()
+    q.append(trace.start)
+    while q:
+        span = q.pop()
+        span_map[span.context.span_id] = span
+        for c in span.callees:
+            q.append(c)
+    ids = set()
+    for span in spans:
+        if span.context.parent_span in span_map:
+            parent_span = span_map[span.context.parent_span]
+            parent_span.add_callee(span)
+            ids.add(span.db_id)
+    return (ids, trace)
+
 if __name__ == "__main__":
     # get spans
     spans = load_spans()
@@ -164,8 +214,21 @@ if __name__ == "__main__":
     delete_spans(db_ids)
 
     # upload traces to db
-    data = json.loads(jsonpickle.encode(traces, unpicklable=False))
+    data = json.loads(jsonpickle.encode(traces))
     upload(data)
 
     # try to insert unused spans into existing traces from db
     spans = load_spans()
+    trace_id_map = group_spans(spans)
+    print 'got', len(trace_id_map), 'traces unprocessed'
+    (ids, new_traces) = unprocessed_traces(trace_id_map)
+    print 'extended', len(new_traces), 'traces'
+    for trace in new_traces:
+        post_process(trace)
+    data = json.loads(jsonpickle.encode(new_traces))
+    upload(data)
+
+    delete_spans(ids)
+    delete_traces([trace.start.context.trace_id for trace in new_traces])
+
+
