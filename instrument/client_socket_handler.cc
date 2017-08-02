@@ -1,7 +1,9 @@
 #include "client_socket_handler.h"
 
+#include <unistd.h>
 #include <chrono>
 #include <iostream>
+#include <regex>
 
 #include "spdlog/spdlog.h"
 
@@ -9,6 +11,36 @@
 #include "orig_functions.h"
 
 namespace microtrace {
+
+ServiceIpMap ClientSocketHandler::service_ip_map_ = ServiceIpMap{};
+
+ServiceIpMap::ServiceIpMap() {
+    int i = 0;
+    std::regex re("(.+)_SERVICE_HOST=(.+)");
+    std::smatch match;
+
+    while (environ[i]) {
+        std::string env_var{environ[i], strlen(environ[i])};
+        try {
+            if (std::regex_search(env_var, match, re)) {
+                std::string service_name = match[1];
+                std::string ip = match[2];
+                map_.emplace(ip, service_name);
+            }
+        } catch (std::regex_error& e) {
+            std::cout << e.what() << std::endl;
+        }
+        ++i;
+    }
+}
+
+const std::string* ServiceIpMap::Get(const std::string& ip) {
+    const auto it = map_.find(ip);
+    if (it == map_.end()) {
+        return nullptr;
+    }
+    return &(it->second);
+}
 
 /*
  * Wraps a proto::RequestLog. On destruction, it releases the fields that have

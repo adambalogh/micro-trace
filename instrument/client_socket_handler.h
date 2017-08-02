@@ -9,6 +9,24 @@ namespace microtrace {
 
 struct RequestLogWrapper;
 
+class ServiceIpMap {
+   public:
+    ServiceIpMap();
+
+   private:
+    /*
+     * Returns the service name belonging to the given ip address.
+     *
+     * If no service is found, it returns a nullptr.
+     */
+    const std::string* Get(const std::string& ip);
+
+    /*
+     * Maps ip addresses to Kubernetes service names
+     */
+    std::unordered_map<std::string, std::string> map_;
+};
+
 /*
  * A transaction is a request-respone sequence between this client and
  * a server.
@@ -91,6 +109,8 @@ class ClientSocketHandler : public AbstractSocketHandler {
     bool SendContextIfNecessary();
 
     void FillRequestLog(RequestLogWrapper& log);
+
+    static ServiceIpMap service_ip_map_;
 
     /*
      * Represents the current transaction that is going through this socket.
