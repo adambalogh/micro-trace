@@ -95,7 +95,7 @@ def process(trace_id_map):
 def post_process(trace):
     (num_spans, max_end) = traverse(trace.start)
     trace.num_spans = num_spans
-    trace.duration = max_end - trace.start.time
+    trace.duration = trace.start.duration
 
 def traverse(span):
     num_spans = 1
