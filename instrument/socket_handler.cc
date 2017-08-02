@@ -35,52 +35,8 @@ AbstractSocketHandler::AbstractSocketHandler(int sockfd, const SocketRole role,
       role_(role),
       state_(state),
       num_transactions_(0),
-      conn_init_(false),
       type_(SocketType::BLOCKING),
       server_type_(GetServerType()),
       context_processed_(false),
       orig_(orig) {}
-
-void SetConnectionEndPoint(
-    const int fd, std::string* hostname,
-    std::function<int(int, struct sockaddr*, socklen_t*)> fn) {
-    sockaddr_storage tmp_sockaddr;
-    sockaddr* const sockaddr_ptr = reinterpret_cast<sockaddr*>(&tmp_sockaddr);
-    socklen_t addr_len = sizeof(tmp_sockaddr);
-
-    int ret;
-    const char* dst;
-
-    ret = fn(fd, sockaddr_ptr, &addr_len);
-    // At this point, both getsockname and getpeername should
-    // be successful
-    VERIFY(ret == 0, "get(sock|peer)name was unsuccessful");
-
-    std::string ip;
-    ip.resize(INET6_ADDRSTRLEN);
-    dst = inet_ntop(tmp_sockaddr.ss_family, sockaddr_ptr, string_arr(ip),
-                    ip.size());
-    // inet_ntop should also be successful here
-    VERIFY(dst == string_arr(ip), "inet_ntop was unsuccessful");
-
-    // inet_ntop puts a null terminated string into ip
-    ip.resize(strlen(string_arr(ip)));
-
-    *hostname = ip + ":" + std::to_string(get_port(sockaddr_ptr));
-}
-
-int AbstractSocketHandler::SetConnection() {
-    static char hostname_buf[400];
-    VERIFY(gethostname(&hostname_buf[0], 400) == 0, "gethostname unsuccessful");
-    const std::string hostname{&hostname_buf[0], strlen(&hostname_buf[0])};
-
-    if (role_server()) {
-        conn_.server_hostname = hostname;
-    } else {
-        conn_.client_hostname = hostname;
-    }
-
-    conn_init_ = true;
-    return 0;
-}
 }

@@ -154,17 +154,6 @@ class AbstractSocketHandler : public SocketHandler {
     bool is_context_processed() const { return context_processed_; }
 
    protected:
-    /*
-     * Sets up the Connection ID of the socket.
-     *
-     * Should only be called if the socket is connected to an endpoint,
-     * e.g. it has been connect()-ed or accept()-ed
-     *
-     * On success, it returns 0, otherwise it returns a standard error code,
-     * returned by the Socket API functions.
-     */
-    int SetConnection();
-
     const int sockfd_;
 
     /*
@@ -189,19 +178,6 @@ class AbstractSocketHandler : public SocketHandler {
      * Number of transactions that went through this socket.
      */
     int num_transactions_;
-
-    /*
-     * Indicates if conn_ has been successfully set up, it DOES NOT indicate
-     * whether the socket is connected or not, although if its value is
-     * true, it also means that the socket is connected.
-     */
-    bool conn_init_;
-
-    /*
-     * The connection this socket represents. Remains the same throughout
-     * the socket's lifetime, and becomes invalid after Close() has been called.
-     */
-    Connection conn_;
 
     /*
      * Indicates if the socket is blocking or non-blocking.

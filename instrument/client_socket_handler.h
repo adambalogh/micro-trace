@@ -92,6 +92,8 @@ class ClientSocketHandler : public AbstractSocketHandler {
     bool has_txn() const { return static_cast<bool>(txn_); }
 
    private:
+    int SetConnection();
+
     /*
      * Sends the current context to the other end.
      *
@@ -110,6 +112,12 @@ class ClientSocketHandler : public AbstractSocketHandler {
     bool SendContextIfNecessary();
 
     void FillRequestLog(RequestLogWrapper& log);
+
+    /*
+     * The connection this socket represents. Remains the same throughout
+     * the socket's lifetime, and becomes invalid after Close() has been called.
+     */
+    Connection conn_;
 
     /*
      * Stores IP addesses to service names.
