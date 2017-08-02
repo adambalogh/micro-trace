@@ -112,6 +112,7 @@ bool ClientSocketHandler::SendContext() {
 bool ClientSocketHandler::SendContextIfNecessary() {
     // Only send context if it is the start of a new transaction and it hasn't
     // been sent before.
+    // TODO only send context to internal services
     if (!is_context_processed() &&
         get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         return SendContext();
