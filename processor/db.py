@@ -103,7 +103,7 @@ def delete_traces(trace_ids):
             [tuple([str(id) for id in trace_ids])])
     conn.commit()
     cur.close()
-    print 'deleted', len(ids), 'traces'
+    print 'deleted', len(trace_ids), 'traces'
 
 def get_trace(trace_id):
     cur = conn.cursor()

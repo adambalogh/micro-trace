@@ -1,7 +1,7 @@
 import struct
+import json
 import jsonpickle
 from jsonpickle import unpickler
-import json
 from collections import deque
 
 import db
@@ -75,7 +75,7 @@ def unprocessed_traces(trace_id_map):
     for trace_id in trace_id_map.keys():
         trace = db.get_trace(trace_id)
         if trace:
-            (ids, trace) = extend_trace(trace[2], trace_id_map[trace_id])
+            (ids, trace) = extend_trace(trace[1], trace_id_map[trace_id])
 
             if ids:
                 db_ids.update(ids)
@@ -126,10 +126,10 @@ if __name__ == "__main__":
     print 'extended', len(new_traces), 'traces'
     for trace in new_traces:
         post_process(trace)
-    data = json.loads(jsonpickle.encode(new_traces))
-    db.upload(data)
 
     db.delete_spans(ids)
     db.delete_traces([trace.start.context.trace_id for trace in new_traces])
 
+    data = json.loads(jsonpickle.encode(new_traces))
+    db.upload(data)
 
