@@ -32,7 +32,7 @@ app.get('/', function(req, res) {
     console.log('index');
 
     pool.query(
-        'SELECT trace_id, num_spans, duration FROM traces ORDER BY id DESC',
+        'SELECT trace_id, num_spans, duration FROM traces ORDER BY ts DESC',
         (err, response) => {
             if (err) {
                 console.log(err);
@@ -94,7 +94,7 @@ app.get('/traces/:traceId', function(req, res) {
     console.log('/traces/' + traceId);
 
     pool.query(
-        'SELECT * FROM traces WHERE trace_id = $1', [traceId],
+        'SELECT * FROM traces WHERE trace_id=$1', [traceId],
         (err, response) => {
             const trace = response.rows[0].body;
             var body = '<h1>Trace #' + traceId + '</h1>';
