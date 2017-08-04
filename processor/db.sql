@@ -10,5 +10,5 @@ create table traces(
 -- spans table
 create table spans(
     id int serial,
-    json bodya -- TODO this should not be called json, its protobuf
+    json bytea -- TODO this should not be called json, its protobuf
 );
