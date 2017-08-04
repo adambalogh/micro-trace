@@ -19,7 +19,7 @@ const html_template =
     '<html><head>%s<link rel="stylesheet" href="/main.css"/>' +
     '</head><body>%s</body></html>';
 
-const trace_link = '<a href="traces/%1$s">#%1$s</a>';
+const trace_link = '<a href="traces/%1$s">%1$s</a>';
 
 function round(num) {
     return parseFloat(Math.round(num * 1000) / 1000).toFixed(3);
