@@ -41,7 +41,7 @@ def load_spans():
                 span.duration)
 
         spans.append(span_obj)
-    print 'loaded', len(spans), 'spans'
+    print('loaded', len(spans), 'spans')
     return spans
 
 """
@@ -51,7 +51,7 @@ def get_recent_traces():
     cur = conn.cursor()
     cur.execute("SELECT * FROM traces ORDER BY ts DESC LIMIT 1000");
     traces = cur.fetchall()
-    print 'fetched', len(traces), 'traces'
+    print('fetched', len(traces), 'traces')
     conn.commit()
     cur.close()
     return {trace.start.trace_id: trace for trace in traces}
@@ -61,7 +61,7 @@ Saves the given traces to the database.
 """
 def upload(traces):
     cur = conn.cursor()
-    print 'uploading', len(traces), 'traces'
+    print('uploading', len(traces), 'traces')
     for trace in traces:
         trace_id = trace['start']['context']['trace_id']['py/state']
         cur.execute(
@@ -93,7 +93,7 @@ def delete_spans(ids):
     cur.execute("DELETE FROM spans WHERE id IN %s", [tuple(ids)])
     conn.commit()
     cur.close()
-    print 'deleted', len(ids), 'spans'
+    print('deleted', len(ids), 'spans')
 
 def delete_traces(trace_ids):
     if not trace_ids:
@@ -103,7 +103,7 @@ def delete_traces(trace_ids):
             [tuple([str(id) for id in trace_ids])])
     conn.commit()
     cur.close()
-    print 'deleted', len(trace_ids), 'traces'
+    print('deleted', len(trace_ids), 'traces')
 
 def get_trace(trace_id):
     cur = conn.cursor()

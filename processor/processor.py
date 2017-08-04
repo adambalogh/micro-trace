@@ -121,9 +121,9 @@ if __name__ == "__main__":
     # try to insert unused spans into existing traces from db
     spans = db.load_spans()
     trace_id_map = group_spans(spans)
-    print 'got', len(trace_id_map), 'traces unprocessed'
+    print('got', len(trace_id_map), 'traces unprocessed')
     (ids, new_traces) = unprocessed_traces(trace_id_map)
-    print 'extended', len(new_traces), 'traces'
+    print('extended', len(new_traces), 'traces')
     for trace in new_traces:
         post_process(trace)
 
