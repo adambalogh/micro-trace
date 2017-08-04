@@ -45,29 +45,17 @@ def load_spans():
     return spans
 
 """
-Returns the 1000 most recent traces from the database.
-"""
-def get_recent_traces():
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM traces ORDER BY ts DESC LIMIT 1000");
-    traces = cur.fetchall()
-    print('fetched', len(traces), 'traces')
-    conn.commit()
-    cur.close()
-    return {trace.start.trace_id: trace for trace in traces}
-
-"""
 Saves the given traces to the database.
 """
 def upload(traces):
     cur = conn.cursor()
-    print('uploading', len(traces), 'traces')
     for trace in traces:
         trace_id = trace['start']['context']['trace_id']['py/state']
         cur.execute(
                 "INSERT INTO traces (body, trace_id, num_spans, duration) VALUES (%s, %s, %s, %s)",
                 [psycopg2.extras.Json(trace), trace_id, trace['num_spans'], trace['duration']])
     conn.commit()
+    print('uploaded', len(traces), 'traces')
     cur.close()
 
 """
@@ -86,6 +74,9 @@ def get_db_ids(traces):
             q.append(c)
     return ids
 
+"""
+Deletes spans from the database with the given IDs
+"""
 def delete_spans(ids):
     if not ids:
         return
@@ -95,6 +86,9 @@ def delete_spans(ids):
     cur.close()
     print('deleted', len(ids), 'spans')
 
+"""
+Deletes traces from the database with the given IDs
+"""
 def delete_traces(trace_ids):
     if not trace_ids:
         return
@@ -110,6 +104,4 @@ def get_trace(trace_id):
     cur.execute("SELECT * FROM traces WHERE trace_id=%s", [str(trace_id)])
     trace = cur.fetchone()
     return trace
-
-
 
