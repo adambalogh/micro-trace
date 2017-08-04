@@ -31,31 +31,32 @@ function round(num) {
 app.get('/', function(req, res) {
     console.log('index');
 
-    pool.query('SELECT id, num_spans, duration FROM traces ORDER BY id DESC', (err, response) => {
-        if (err) {
-          console.log(err);
-          res.send(err);
-          return;
-        }
+    pool.query(
+        'SELECT trace_id, num_spans, duration FROM traces ORDER BY id DESC',
+        (err, response) => {
+            if (err) {
+                console.log(err);
+                res.send(err);
+                return;
+            }
 
-        var body = '<h1>MicroTrace</h1><hr class="partial">';
-        body += '<table id="traces">';
-        body +=
-            '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>' +
-            '<th class="duration">Total Duration</th></tr>';
+            var body = '<h1>MicroTrace</h1><hr class="partial">';
+            body += '<table id="traces">';
+            body +=
+                '<tr><th class="trace-id">Trace ID</th><th class="no-spans">Number of Spans</th>' +
+                '<th class="duration">Total Duration</th></tr>';
 
-        response.rows.forEach(function(row) {
-            const id = row.id;
-            body += '<tr>';
-            body += '<td>' + sprintf(trace_link, id) + '</td>';
-            body += '<td>' + row.num_spans + '</td>';
-            body += '<td>' + round(row.duration) + 's</td>';
-            body += '</tr>';
+            response.rows.forEach(function(row) {
+                const id = row.trace_id;
+                body += '<tr>';
+                body += '<td>' + sprintf(trace_link, id) + '</td>';
+                body += '<td>' + row.num_spans + '</td>';
+                body += '<td>' + round(row.duration) + 's</td>';
+                body += '</tr>';
+            });
+            body += '</table>';
+            res.send(sprintf(html_template, '<title>MicroTrace</title>', body));
         });
-        body += '</table>';
-        res.send(
-            sprintf(html_template, '<title>MicroTrace</title>', body));
-    });
 });
 
 
@@ -67,8 +68,6 @@ function formatDate(date) {
 
 const LEVEL_PADDING = 8;
 
-
-
 function traverse(body, span, depth) {
     body += '<div class="span">';
     body += Array(depth).join('&nbsp');
@@ -76,8 +75,8 @@ function traverse(body, span, depth) {
     body += ' to <b>' + span.server.toLowerCase() + '</b>';
     body += '<br>';
     body += Array(depth).join('&nbsp');
-    body += 'time: ' + formatDate(new Date(span.time * 1000)) 
-      + ', duration: ' + round(span.duration) + 's<br>';
+    body += 'time: ' + formatDate(new Date(span.time * 1000)) + ', duration: ' +
+        round(span.duration) + 's<br>';
     body += '</div>';
 
 
@@ -95,7 +94,8 @@ app.get('/traces/:traceId', function(req, res) {
     console.log('/traces/' + traceId);
 
     pool.query(
-        'SELECT * FROM traces WHERE id = $1', [traceId], (err, response) => {
+        'SELECT * FROM traces WHERE trace_id = $1', [traceId],
+        (err, response) => {
             const trace = response.rows[0].body;
             var body = '<h1>Trace #' + traceId + '</h1>';
 
@@ -118,4 +118,3 @@ app.get('/traces/:traceId', function(req, res) {
 
 app.listen(
     3000, function() { console.log('Example app listening on port 3000!') });
-
