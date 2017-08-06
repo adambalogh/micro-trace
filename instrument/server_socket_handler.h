@@ -6,7 +6,15 @@ namespace microtrace {
 
 class ServerSocketHandler : public AbstractSocketHandler {
    public:
-    ServerSocketHandler(int sockfd, const OriginalFunctions& orig);
+    ServerSocketHandler(int sockfd, const OriginalFunctions& orig)
+        : AbstractSocketHandler(sockfd, SocketState::WILL_READ, orig) {}
+
+    virtual void ContextReadCallback(std::unique_ptr<Context> c) = 0;
+};
+
+class ServerSocketHandlerImpl : public ServerSocketHandler {
+   public:
+    ServerSocketHandlerImpl(int sockfd, const OriginalFunctions& orig);
 
     void Async() override;
 
@@ -21,7 +29,7 @@ class ServerSocketHandler : public AbstractSocketHandler {
 
     SocketAction get_next_action(const SocketOperation op) const override;
 
-    void ContextReadCallback(std::unique_ptr<Context> c);
+    void ContextReadCallback(std::unique_ptr<Context> c) override;
 
    private:
     bool ShouldTrace() const;

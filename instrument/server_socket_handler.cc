@@ -9,13 +9,13 @@
 
 namespace microtrace {
 
-ServerSocketHandler::ServerSocketHandler(int sockfd,
-                                         const OriginalFunctions& orig)
-    : AbstractSocketHandler(sockfd, SocketState::WILL_READ, orig) {}
+ServerSocketHandlerImpl::ServerSocketHandlerImpl(int sockfd,
+                                                 const OriginalFunctions& orig)
+    : ServerSocketHandler(sockfd, orig) {}
 
-void ServerSocketHandler::Async() { type_ = SocketType::ASYNC; }
+void ServerSocketHandlerImpl::Async() { type_ = SocketType::ASYNC; }
 
-SocketAction ServerSocketHandler::get_next_action(
+SocketAction ServerSocketHandlerImpl::get_next_action(
     const SocketOperation op) const {
     if (op == SocketOperation::WRITE) {
         if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
@@ -29,27 +29,28 @@ SocketAction ServerSocketHandler::get_next_action(
     return SocketAction::NONE;
 }
 
-void ServerSocketHandler::ContextReadCallback(std::unique_ptr<Context> c) {
+void ServerSocketHandlerImpl::ContextReadCallback(std::unique_ptr<Context> c) {
     VERIFY(c, "ContextReadCallback called with empty context");
     context_ = std::move(c);
     context_processed_ = true;
 }
 
-SocketHandler::Result ServerSocketHandler::BeforeRead(const void* buf,
-                                                      size_t len) {
+SocketHandler::Result ServerSocketHandlerImpl::BeforeRead(const void* buf,
+                                                          size_t len) {
     LOG_ERROR_IF(
         state_ == SocketState::WILL_WRITE,
-        "ServerSocketHandler that was expected to write, read instead");
+        "ServerSocketHandlerImpl that was expected to write, read instead");
 
     return Result::Ok;
 }
 
-bool ServerSocketHandler::ShouldTrace() const {
+bool ServerSocketHandlerImpl::ShouldTrace() const {
     // sampling every ~20th request
     return (std::rand() % 101) <= 5;
 }
 
-void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
+void ServerSocketHandlerImpl::AfterRead(const void* buf, size_t len,
+                                        ssize_t ret) {
     if (ret == 0) {
         // peer shutdown
         return;
@@ -92,14 +93,14 @@ void ServerSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     state_ = SocketState::READ;
 }
 
-SocketHandler::Result ServerSocketHandler::BeforeWrite(const struct iovec* iov,
-                                                       int iovcnt) {
+SocketHandler::Result ServerSocketHandlerImpl::BeforeWrite(
+    const struct iovec* iov, int iovcnt) {
     set_current_context(context());
     return Result::Ok;
 }
 
-void ServerSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
-                                     ssize_t ret) {
+void ServerSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
+                                         ssize_t ret) {
     if (ret == -1 || ret == 0) {
         return;
     }
@@ -109,7 +110,9 @@ void ServerSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     state_ = SocketState::WROTE;
 }
 
-SocketHandler::Result ServerSocketHandler::BeforeClose() { return Result::Ok; }
+SocketHandler::Result ServerSocketHandlerImpl::BeforeClose() {
+    return Result::Ok;
+}
 
-void ServerSocketHandler::AfterClose(int ret) {}
+void ServerSocketHandlerImpl::AfterClose(int ret) {}
 }

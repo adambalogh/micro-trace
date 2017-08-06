@@ -58,9 +58,8 @@ class Transaction {
 
 class ClientSocketHandler : public AbstractSocketHandler {
    public:
-    ClientSocketHandler(int sockfd, SocketState state,
-                        const OriginalFunctions& orig)
-        : AbstractSocketHandler(sockfd, state, orig) {}
+    ClientSocketHandler(int sockfd, const OriginalFunctions& orig)
+        : AbstractSocketHandler(sockfd, SocketState::WILL_WRITE, orig) {}
 
     virtual void HandleConnect(const std::string& ip) = 0;
     virtual bool has_txn() const = 0;
