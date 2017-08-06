@@ -8,16 +8,21 @@
 #include <unistd.h>
 #include <chrono>
 
+#include "fakeit.hpp"
+
 #include "context.h"
 #include "test_util.h"
 
 using namespace microtrace;
+using namespace fakeit;
+
+static Mock<OriginalFunctions> mock;
+static OriginalFunctions *orig_obj;
+
+int last = 0;
 
 namespace microtrace {
-OriginalFunctions &orig() {
-    static EmptyOriginalFunctions o;
-    return o;
-}
+OriginalFunctions &orig() { return *orig_obj; }
 }
 
 int SERVER_PORT = 8543;
@@ -26,7 +31,29 @@ int DUMP_SERVER_PORT = 7354;
 const char *const MSG = "aaaaaaaaaa";
 const int MSG_LEN = 10;
 
-class TraceTest : public ::testing::Test {};
+void CreateMock() {
+    mock.Reset();
+
+    When(Method(mock, read)).AlwaysReturn(1);
+    When(Method(mock, write))
+        .AlwaysDo([](int fd, const void *buf, size_t count) { return count; });
+    When(Method(mock, accept))
+        .AlwaysDo([](int sockfd, struct sockaddr *addr,
+                     socklen_t *addrlen) -> auto { return ++last; });
+    When(Method(mock, socket))
+        .AlwaysDo([](int domain, int type, int protocol) -> auto {
+            return ++last;
+        });
+    When(Method(mock, connect)).AlwaysReturn(0);
+    When(Method(mock, close)).AlwaysReturn(0);
+
+    orig_obj = &mock.get();
+}
+
+class TraceTest : public ::testing::Test {
+   public:
+    virtual void SetUp() { CreateMock(); }
+};
 
 TEST_F(TraceTest, CurrentContext) {
     std::thread server_thread{[]() {
@@ -281,7 +308,7 @@ TEST_F(TraceTest, BlockingConnectionPool) {
     server_thread.join();
 }
 
-TEST_F(TraceTest, ContextPassing) {
+TEST_F(TraceTest, ContextSending) {
     std::thread server_thread{[]() {
         int ret;
 
@@ -295,7 +322,7 @@ TEST_F(TraceTest, ContextPassing) {
             accept(server, (struct sockaddr *)&cli_addr, &clilen);
         ASSERT_GT(client, -1);
 
-        char buf[MSG_LEN];
+        char buf[MSG_LEN] = {'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'};
 
         // Read first
         ret = read(client, &buf, MSG_LEN);
@@ -305,8 +332,29 @@ TEST_F(TraceTest, ContextPassing) {
 
         // Send response to third party
         const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
-        write(dump_client, &buf, MSG_LEN);
+        ret = write(dump_client, &buf, MSG_LEN);
+
+        Verify(
+            // Context send
+            Method(mock, write)
+                .Matching([dump_client](int fd, const void *buf, size_t count) {
+                    return fd == dump_client && count == sizeof(ContextStorage);
+                }),
+
+            // Buf send
+            Method(mock, write)
+                .Matching(
+                    [dump_client, buf](int fd, const void *b, size_t count) {
+                        return fd == dump_client && count == MSG_LEN;
+                    }))
+            .Exactly(Once);
+        VerifyNoOtherInvocations(Method(mock, write));
 
     }};
+    server_thread.join();
+}
+
+TEST_F(TraceTest, OnlySendContextToInternalService) {
+    std::thread server_thread{[]() {}};
     server_thread.join();
 }
