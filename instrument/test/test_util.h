@@ -16,11 +16,11 @@ void set_nonblock(int fd) {
 }
 
 /*
- * Returns a socket that's connected to localhost:port
+ * Returns a socket that's connected to ip:port
  */
-static int CreateClientSocket(int port) {
+static int CreateClientSocketIp(std::string ip, int port) {
     struct sockaddr_in serv_addr;
-    serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15");
+    serv_addr.sin_addr.s_addr = inet_addr(ip.c_str());
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = port;
 
@@ -29,15 +29,20 @@ static int CreateClientSocket(int port) {
     return client;
 }
 
+static int CreateClientSocket(int port) {
+    return CreateClientSocketIp("10.0.2.15", port);
+}
+
 /*
- * Returns a socket that's bind to localhost:port
+ * Returns a socket that's bind to ip:port
  */
-static int CreateServerSocket(int port) {
+
+static int CreateServerSocketIp(std::string ip, int port) {
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = port;
-    serv_addr.sin_addr.s_addr = inet_addr("10.0.2.15");
+    serv_addr.sin_addr.s_addr = inet_addr(ip.c_str());
 
     int server = socket(AF_INET, SOCK_STREAM, 0);
     assert(server != -1);
@@ -47,6 +52,10 @@ static int CreateServerSocket(int port) {
     bind(server, reinterpret_cast<struct sockaddr *>(&serv_addr),
          sizeof(serv_addr));
     return server;
+}
+
+static int CreateServerSocket(int port) {
+    return CreateServerSocketIp("10.0.2.15", port);
 }
 
 /*

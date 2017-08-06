@@ -355,6 +355,43 @@ TEST_F(TraceTest, ContextSending) {
 }
 
 TEST_F(TraceTest, OnlySendContextToInternalService) {
-    std::thread server_thread{[]() {}};
+    std::thread server_thread{[]() {
+        int ret;
+
+        const int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
+
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(client, -1);
+
+        char buf[MSG_LEN];
+
+        // Read first
+        ret = read(client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        const Context first_context = get_current_context();
+        EXPECT_FALSE(first_context.is_zero());
+
+        // Open connection to "external" service
+        // Send request to third party
+        const int dump_client =
+            CreateClientSocketIp("194.3.5.2", DUMP_SERVER_PORT);
+        ret = write(dump_client, &buf, MSG_LEN);
+
+        Verify(
+            // Buf send
+            Method(mock, write)
+                .Matching(
+                    [dump_client, buf](int fd, const void *b, size_t count) {
+                        return fd == dump_client && count == MSG_LEN;
+                    }))
+            .Exactly(Once);
+        VerifyNoOtherInvocations(Method(mock, write));
+
+    }};
     server_thread.join();
 }
