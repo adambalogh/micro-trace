@@ -75,7 +75,8 @@ void Context::NewSpan() {
 }
 
 bool operator==(const Context& a, const Context& b) {
-    return a.trace() == b.trace() && a.span() == b.span();
+    return a.trace() == b.trace() && a.span() == b.span() &&
+           a.parent_span() == b.parent_span();
 }
 
 bool operator!=(const Context& a, const Context& b) {

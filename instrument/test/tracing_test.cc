@@ -175,7 +175,15 @@ TEST_F(TraceTest, PropagateTrace) {
 
         // Read first
         ret = read(first_client, &buf, MSG_LEN);
+        Context zeroth_context = get_current_context();
+
+        // Write response
+        ret = write(first_client, &buf, MSG_LEN);
+
+        // Start second transaction with first -- This should start a new trace
+        ret = read(first_client, &buf, MSG_LEN);
         const Context first_context = get_current_context();
+        EXPECT_FALSE(Context::IsSameTrace(zeroth_context, first_context));
 
         // Read second
         ret = read(second_client, &buf, MSG_LEN);
@@ -195,6 +203,7 @@ TEST_F(TraceTest, PropagateTrace) {
 
         // Read dump client's response
         ret = read(dump_client, &buf, MSG_LEN);
+        // Reading the response should have started a new span
         EXPECT_EQ(second_context.trace(), get_current_context().trace());
         EXPECT_NE(second_context.span(), get_current_context().span());
         EXPECT_EQ(second_context.span(), get_current_context().parent_span());
@@ -244,11 +253,11 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         // Read first half of request from second
         ret = read(second_client, &buf, MSG_LEN);
         const Context second_context = get_current_context();
-        EXPECT_FALSE(Context::SameTrace(first_context, second_context));
+        EXPECT_FALSE(Context::IsSameTrace(first_context, second_context));
 
         // Read response from connection pool -- this should set first_context
         ret = read(connection_pool, &buf, MSG_LEN);
-        ASSERT_TRUE(Context::SameTrace(first_context, get_current_context()));
+        ASSERT_TRUE(Context::IsSameTrace(first_context, get_current_context()));
 
         // Read second half of request from second
         ret = read(second_client, &buf, MSG_LEN);
@@ -258,8 +267,10 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         // Write to connection pool-- this is a new transaction and should be
         // associated with second_context
         ret = write(connection_pool, &buf, MSG_LEN);
-        EXPECT_TRUE(Context::SameTrace(second_context, get_current_context()));
-        EXPECT_FALSE(Context::SameTrace(first_context, get_current_context()));
+        EXPECT_TRUE(
+            Context::IsSameTrace(second_context, get_current_context()));
+        EXPECT_FALSE(
+            Context::IsSameTrace(first_context, get_current_context()));
 
         ASSERT_EQ(0, close(first_client));
         ASSERT_EQ(0, close(second_client));
@@ -267,5 +278,35 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         ASSERT_EQ(0, close(server));
     }};
 
+    server_thread.join();
+}
+
+TEST_F(TraceTest, ContextPassing) {
+    std::thread server_thread{[]() {
+        int ret;
+
+        const int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
+
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(client, -1);
+
+        char buf[MSG_LEN];
+
+        // Read first
+        ret = read(client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        const Context first_context = get_current_context();
+        EXPECT_FALSE(first_context.is_zero());
+
+        // Send response to third party
+        const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
+        write(dump_client, &buf, MSG_LEN);
+
+    }};
     server_thread.join();
 }

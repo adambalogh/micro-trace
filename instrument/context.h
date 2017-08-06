@@ -91,7 +91,7 @@ class Context {
      */
     Context(ContextStorage ctx);
 
-    static bool SameTrace(const Context& a, const Context& b) {
+    static bool IsSameTrace(const Context& a, const Context& b) {
         return a.trace() == b.trace();
     }
 
