@@ -58,23 +58,21 @@ class Transaction {
 
 class ClientSocketHandler : public AbstractSocketHandler {
    public:
-    ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
-                        const OriginalFunctions& orig);
+    ClientSocketHandler(int sockfd, SocketState state,
+                        const OriginalFunctions& orig)
+        : AbstractSocketHandler(sockfd, state, orig) {}
 
-    /*
-     * Indicates if this socket is blocking or non-blocking.
-     *
-     * The only difference it makes is how the context is followed.
-     * If the type is BLOCKING, we assume that the socket might be from a
-     * connection pool in a threaded-server, so the context is copied before
-     * every outgoing write. If it is non-blocking, we assume that it's not part
-     * of a connection pool, so the context is only copied when the socket is
-     * set up, and remains the same throughout its lifetime.
-     *
-     * By default, it is BLOCKING.
-     */
+    virtual void HandleConnect(const std::string& ip) = 0;
+    virtual bool has_txn() const = 0;
+};
+
+class ClientSocketHandlerImpl : public ClientSocketHandler {
+   public:
+    ClientSocketHandlerImpl(int sockfd, TraceLogger* trace_logger,
+                            const OriginalFunctions& orig);
+
     virtual void Async() override;
-    void HandleConnect(const std::string& ip);
+    void HandleConnect(const std::string& ip) override;
 
     virtual Result BeforeRead(const void* buf, size_t len) override;
     virtual void AfterRead(const void* buf, size_t len, ssize_t ret) override;
@@ -89,7 +87,7 @@ class ClientSocketHandler : public AbstractSocketHandler {
     virtual SocketAction get_next_action(
         const SocketOperation op) const override;
 
-    bool has_txn() const { return static_cast<bool>(txn_); }
+    bool has_txn() const override { return static_cast<bool>(txn_); }
 
    private:
     int SetConnection();
@@ -107,7 +105,8 @@ class ClientSocketHandler : public AbstractSocketHandler {
     /*
      * Sends the context only if it is the beginning of a new request.
      *
-     * Returns false if the context was necessary to send but was unsuccessful.
+     * Returns false if the context was necessary to send but was
+     * unsuccessful.
      */
     bool SendContextIfNecessary();
 
@@ -115,7 +114,8 @@ class ClientSocketHandler : public AbstractSocketHandler {
 
     /*
      * The connection this socket represents. Remains the same throughout
-     * the socket's lifetime, and becomes invalid after Close() has been called.
+     * the socket's lifetime, and becomes invalid after Close() has been
+     * called.
      */
     Connection conn_;
 

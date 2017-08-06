@@ -98,7 +98,7 @@ static void HandleAccept(const int sockfd) {
     if (sockfd == -1) {
         return;
     }
-    auto handler = std::make_unique<ServerSocketHandler>(sockfd, orig());
+    auto handler = std::make_unique<ServerSocketHandlerImpl>(sockfd, orig());
     auto socket =
         std::make_unique<ServerSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
@@ -142,7 +142,7 @@ int socket(int domain, int type, int protocol) {
         return sockfd;
     }
 
-    auto handler = std::make_unique<ClientSocketHandler>(
+    auto handler = std::make_unique<ClientSocketHandlerImpl>(
         sockfd, thrift_instance().get(), orig());
     auto socket =
         std::make_unique<ClientSocket>(sockfd, std::move(handler), orig());

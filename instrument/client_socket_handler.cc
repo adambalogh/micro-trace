@@ -12,7 +12,7 @@
 
 namespace microtrace {
 
-ServiceIpMap ClientSocketHandler::service_map_ = ServiceIpMap{};
+ServiceIpMap ClientSocketHandlerImpl::service_map_ = ServiceIpMap{};
 
 ServiceIpMap::ServiceIpMap() {
     int i = 0;
@@ -66,9 +66,10 @@ static std::string GetHostname() {
     return std::string{&hostname_buf[0], strlen(&hostname_buf[0])};
 }
 
-ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
-                                         const OriginalFunctions& orig)
-    : AbstractSocketHandler(sockfd, SocketState::WILL_WRITE, orig),
+ClientSocketHandlerImpl::ClientSocketHandlerImpl(int sockfd,
+                                                 TraceLogger* trace_logger,
+                                                 const OriginalFunctions& orig)
+    : ClientSocketHandler(sockfd, SocketState::WILL_WRITE, orig),
       txn_(nullptr),
       trace_logger_(trace_logger),
       kubernetes_socket_(false) {
@@ -76,12 +77,12 @@ ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
     conn_.client_hostname = GetHostname();
 }
 
-void ClientSocketHandler::Async() {
+void ClientSocketHandlerImpl::Async() {
     type_ = SocketType::ASYNC;
     context_.reset(new Context(get_current_context()));
 }
 
-void ClientSocketHandler::HandleConnect(const std::string& ip) {
+void ClientSocketHandlerImpl::HandleConnect(const std::string& ip) {
     auto* service_name = service_map_.Get(ip);
     if (service_name) {
         kubernetes_socket_ = true;
@@ -91,7 +92,7 @@ void ClientSocketHandler::HandleConnect(const std::string& ip) {
     }
 }
 
-SocketAction ClientSocketHandler::get_next_action(
+SocketAction ClientSocketHandlerImpl::get_next_action(
     const SocketOperation op) const {
     if (op == SocketOperation::WRITE) {
         if (state_ == SocketState::WILL_WRITE || state_ == SocketState::READ) {
@@ -105,7 +106,7 @@ SocketAction ClientSocketHandler::get_next_action(
     return SocketAction::NONE;
 }
 
-void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
+void ClientSocketHandlerImpl::FillRequestLog(RequestLogWrapper& log) {
     proto::Connection* conn = log->mutable_conn();
     conn->set_allocated_server_hostname(&conn_.server_hostname);
     conn->set_allocated_client_hostname(&conn_.client_hostname);
@@ -124,7 +125,7 @@ void ClientSocketHandler::FillRequestLog(RequestLogWrapper& log) {
     log->set_role(proto::RequestLog::CLIENT);
 }
 
-bool ClientSocketHandler::SendContextBlocking() {
+bool ClientSocketHandlerImpl::SendContextBlocking() {
     // This should succeed at first - the send buffer is empty at this point
     auto ret =
         orig_.write(fd(), reinterpret_cast<const void*>(&context().storage()),
@@ -134,7 +135,7 @@ bool ClientSocketHandler::SendContextBlocking() {
 }
 
 // TODO implement properly
-bool ClientSocketHandler::SendContextAsync() {
+bool ClientSocketHandlerImpl::SendContextAsync() {
     auto ret =
         orig_.write(fd(), reinterpret_cast<const void*>(&context().storage()),
                     sizeof(ContextStorage));
@@ -143,7 +144,7 @@ bool ClientSocketHandler::SendContextAsync() {
     return true;
 }
 
-bool ClientSocketHandler::SendContext() {
+bool ClientSocketHandlerImpl::SendContext() {
     bool result;
     if (type_ == SocketType::BLOCKING) {
         result = SendContextBlocking();
@@ -157,7 +158,7 @@ bool ClientSocketHandler::SendContext() {
     return result;
 }
 
-bool ClientSocketHandler::SendContextIfNecessary() {
+bool ClientSocketHandlerImpl::SendContextIfNecessary() {
     // Only send context if we are connected to another Kubernetes pod, and it
     // is the start of a new transaction and it hasn't been sent before.
     if (kubernetes_socket_ && !is_context_processed() &&
@@ -167,8 +168,8 @@ bool ClientSocketHandler::SendContextIfNecessary() {
     return true;
 }
 
-SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
-                                                       int iovcnt) {
+SocketHandler::Result ClientSocketHandlerImpl::BeforeWrite(
+    const struct iovec* iov, int iovcnt) {
     // New transaction
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
         // Only copy current context if it is a blocking socket, because the
@@ -186,8 +187,8 @@ SocketHandler::Result ClientSocketHandler::BeforeWrite(const struct iovec* iov,
     return Result::Ok;
 }
 
-void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
-                                     ssize_t ret) {
+void ClientSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
+                                         ssize_t ret) {
     if (ret == -1 || ret == 0) {
         return;
     }
@@ -203,16 +204,17 @@ void ClientSocketHandler::AfterWrite(const struct iovec* iov, int iovcnt,
     state_ = SocketState::WROTE;
 }
 
-SocketHandler::Result ClientSocketHandler::BeforeRead(const void* buf,
-                                                      size_t len) {
+SocketHandler::Result ClientSocketHandlerImpl::BeforeRead(const void* buf,
+                                                          size_t len) {
     LOG_ERROR_IF(
         state_ == SocketState::WILL_WRITE,
-        "ClientSocketHandler that was expected to write, read instead");
+        "ClientSocketHandlerImpl that was expected to write, read instead");
 
     return Result::Ok;
 }
 
-void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
+void ClientSocketHandlerImpl::AfterRead(const void* buf, size_t len,
+                                        ssize_t ret) {
     set_current_context(context());
 
     if (ret == 0) {
@@ -248,7 +250,9 @@ void ClientSocketHandler::AfterRead(const void* buf, size_t len, ssize_t ret) {
     state_ = SocketState::READ;
 }
 
-SocketHandler::Result ClientSocketHandler::BeforeClose() { return Result::Ok; }
+SocketHandler::Result ClientSocketHandlerImpl::BeforeClose() {
+    return Result::Ok;
+}
 
-void ClientSocketHandler::AfterClose(int ret) {}
+void ClientSocketHandlerImpl::AfterClose(int ret) {}
 }
