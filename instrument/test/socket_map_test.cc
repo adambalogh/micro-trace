@@ -20,7 +20,8 @@ TEST(SocketMapTest, SetGetDelete) {
     SocketMap map;
 
     auto socket = std::make_unique<ClientSocket>(
-        0, DumbSocketHandler::New(0, SocketRole::CLIENT), empty_orig);
+        0, std::make_unique<DumbClientSocketHandler>(0, empty_orig),
+        empty_orig);
 
     map.Set(0, std::move(socket));
     EXPECT_NE(nullptr, map.Get(0));
@@ -38,14 +39,16 @@ TEST(SocketMapTest, Resize) {
 
     // Add first socket in range
     auto first_socket = std::make_unique<ClientSocket>(
-        0, DumbSocketHandler::New(0, SocketRole::CLIENT), empty_orig);
+        0, std::make_unique<DumbClientSocketHandler>(0, empty_orig),
+        empty_orig);
     map.Set(0, std::move(first_socket));
     auto* first_ptr = map.Get(0);
 
     // Add second socket out of range
     const int out_of_range = SocketMap::DEFAULT_SIZE * 10;
     auto second_socket = std::make_unique<ClientSocket>(
-        out_of_range, DumbSocketHandler::New(out_of_range, SocketRole::CLIENT),
+        out_of_range,
+        std::make_unique<DumbClientSocketHandler>(out_of_range, empty_orig),
         empty_orig);
     map.Set(out_of_range, std::move(second_socket));
     auto* second_ptr = map.Get(out_of_range);

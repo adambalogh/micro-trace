@@ -35,10 +35,11 @@ const int IOVCNT = 1;
 const int RET = 55;
 
 const EmptyOriginalFunctions empty_orig;
+NullLogger logger;
 
 TEST(ClientSocketTest, Init) {
     ClientSocket socket{
-        FD, std::make_unique<DumbClientSocketHandler>(FD, SocketRole::CLIENT),
+        FD, std::make_unique<DumbClientSocketHandler>(FD, logger, empty_orig),
         empty_orig};
 
     EXPECT_EQ(FD, socket.fd());
@@ -57,7 +58,7 @@ TEST(ClientSocketTest, SocketApiCalls) {
 
     OriginalFunctions& mock_orig = mock.get();
     ClientSocket socket{
-        FD, std::make_unique<DumbClientSocketHandler>(FD, SocketRole::CLIENT),
+        FD, std::make_unique<DumbClientSocketHandler>(FD, logger, empty_orig),
         mock_orig};
 
     EXPECT_EQ(RET, socket.Read(BUF, LEN));
