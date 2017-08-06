@@ -34,9 +34,7 @@ class DumbClientSocketHandler : public ClientSocketHandler {
 
     virtual SocketType type() const { return SocketType::BLOCKING; }
 
-    const Context &context() const { return ctx_; }
     bool has_context() const { return true; }
-    ServerType server_type() const { return ServerType::FRONTEND; }
     bool is_context_processed() const { return false; }
 };
 
@@ -65,10 +63,6 @@ class DumbServerSocketHandler : public ServerSocketHandler {
     }
 
     virtual SocketType type() const { return SocketType::BLOCKING; }
-
-    const Context &context() const { return ctx_; }
-    bool has_context() const { return true; }
-    ServerType server_type() const { return ServerType::FRONTEND; }
     bool is_context_processed() const { return false; }
 
    private:

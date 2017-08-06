@@ -17,8 +17,9 @@ OBJ += $(addprefix $(BUILD_DIR)/,$(THRIFT_SRC:.cpp=.o))
 BENCHMARKS = tracing_benchmark.cc
 BENCHMARK_EXEC = $(addprefix $(BENCH_DIR)/,$(BENCHMARKS:.cc=))
 
-TESTS = context_test.cc tracing_test.cc instrumented_socket_test.cc socket_map_test.cc
+TESTS = context_test.cc socket_map_test.cc tracing_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
+TEST_FLAGS = -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_USE_OWN_TR1_TUPLE=0
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
 LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lthrift -lpthread
@@ -46,7 +47,7 @@ all: $(OUT)
 install:
 	sudo cp $(OUT) /usr/local/lib/.
 
-# Shared library build
+# Shared library build -- final stage
 $(OUT): $(OBJ) $(PROTO_OBJ)
 	$(CXX) $(OUT_FLAGS) $(CXXFLAGS) $(LIBFLAGS) $(RELEASE_FLAGS) $(OBJ) $(PROTO_OBJ) -o $@ $(LIBS) 
 
@@ -67,14 +68,15 @@ $(BUILD_DIR)/%.o: $(SRCS_DIR)/gen-cpp/%.cpp $(PROTO_OBJ)
 $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.cc $(PROTO_OBJ)
 	$(CXX) $(CXXFLAGS) $(LIBFLAGS) $(INCLUDES) -c $< -o $@
 
-
 # tracing_test build
 $(BUILD_DIR)/tracing_test: $(SRCS_DIR)/test/tracing_test.cc $(OBJ) $(SRCS_DIR)/test/test_util.h
-	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(subst $(BUILD_DIR)/orig_functions.o,,$(OBJ)) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
+	$(CXX) $(CXXFLAGS) $(TEST_FLAGS) -I $(SRCS_DIR) $(INCLUDES) \
+	   	$(subst $(BUILD_DIR)/orig_functions.o,,$(OBJ)) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 # Test build
 $(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OBJ) $(SRCS_DIR)/test/test_util.h
-	$(CXX) $(CXXFLAGS) -I $(SRCS_DIR) $(INCLUDES) $(OBJ) $(PROTO_OBJ) $< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
+	$(CXX) $(CXXFLAGS) $(TEST_FLAGS) -I $(SRCS_DIR) $(INCLUDES) $(OBJ) $(PROTO_OBJ) \
+	   	$< -o $@ -lgtest -lgtest_main $(LIBS) $(PROTOLIB)
 
 # Benchmark build
 $(BUILD_DIR)/%: $(SRCS_DIR)/test/%.cc $(OUT)
