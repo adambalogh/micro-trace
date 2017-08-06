@@ -17,8 +17,6 @@ ServerSocket::ServerSocket(const int fd,
       ctx_buf_start_(0) {
     VERIFY(fd_ == handler_->fd(),
            "handler and underlying socket's fd is not the same");
-    VERIFY(handler_->role_server(),
-           "ServerSocket given a non-server socket handler");
 }
 
 void ServerSocket::Async() { handler_->Async(); }

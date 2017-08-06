@@ -11,8 +11,7 @@ namespace microtrace {
 
 ServerSocketHandler::ServerSocketHandler(int sockfd,
                                          const OriginalFunctions& orig)
-    : AbstractSocketHandler(sockfd, SocketRole::SERVER, SocketState::WILL_READ,
-                            orig) {}
+    : AbstractSocketHandler(sockfd, SocketState::WILL_READ, orig) {}
 
 void ServerSocketHandler::Async() { type_ = SocketType::ASYNC; }
 

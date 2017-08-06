@@ -13,8 +13,6 @@ ClientSocket::ClientSocket(const int fd,
     : InstrumentedSocket(fd, orig), handler_(std::move(handler)) {
     VERIFY(fd_ == handler_->fd(),
            "handler and underlying socket's fd is not the same");
-    VERIFY(handler_->role_client(),
-           "ClientSocket given a non-client socket handler");
 }
 
 void ClientSocket::Async() { handler_->Async(); }

@@ -27,12 +27,11 @@ static ServerType GetServerType() {
     VERIFY(false, "invalid MICROTRACE_SERVER_TYPE env {}", type);
 }
 
-AbstractSocketHandler::AbstractSocketHandler(int sockfd, const SocketRole role,
+AbstractSocketHandler::AbstractSocketHandler(int sockfd,
                                              const SocketState state,
                                              const OriginalFunctions& orig)
     : sockfd_(sockfd),
       context_(nullptr),
-      role_(role),
       state_(state),
       num_transactions_(0),
       type_(SocketType::BLOCKING),

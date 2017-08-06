@@ -13,11 +13,6 @@ struct OriginalFunctions;
 /*
  * Identifies a unique connection between two machines.
  *
- * Sockets can be divided into 2 groups: server and client role (see SocketRole
- * for explanation). Since both sockets in a connection know their role, the
- * connection objects should look the same on both endpoints. This makes it
- * easier to match logs.
- *
  * We use strings for storing IP addressed in order to make it easier to debug
  * logs.
  *
@@ -43,7 +38,6 @@ struct Connection {
  * In addition, if a socket is a Client, we know that its first operation will
  * be a write(), and if it is a Server, it will do a read() first.
  */
-enum class SocketRole { CLIENT, SERVER };
 
 enum class SocketState { WILL_READ, READ, WILL_WRITE, WROTE, CLOSED };
 
@@ -115,10 +109,6 @@ class SocketHandler {
      */
     virtual SocketAction get_next_action(const SocketOperation op) const = 0;
 
-    virtual SocketRole role() const = 0;
-    virtual bool role_server() const = 0;
-    virtual bool role_client() const = 0;
-
     virtual SocketType type() const = 0;
 
     virtual ServerType server_type() const = 0;
@@ -128,8 +118,7 @@ class SocketHandler {
 
 class AbstractSocketHandler : public SocketHandler {
    public:
-    AbstractSocketHandler(int sockfd, const SocketRole role,
-                          const SocketState state,
+    AbstractSocketHandler(int sockfd, const SocketState state,
                           const OriginalFunctions& orig);
 
     int fd() const override { return sockfd_; }
@@ -142,10 +131,6 @@ class AbstractSocketHandler : public SocketHandler {
     }
 
     bool has_context() const override { return static_cast<bool>(context_); }
-
-    SocketRole role() const override { return role_; }
-    bool role_server() const override { return role_ == SocketRole::SERVER; }
-    bool role_client() const override { return role_ == SocketRole::CLIENT; }
 
     SocketType type() const override { return type_; }
 
@@ -160,14 +145,6 @@ class AbstractSocketHandler : public SocketHandler {
      * Stores the current context. Initially empty.
      */
     std::unique_ptr<Context> context_;
-
-    /*
-     * Indicates whether this socket is being used as a client, or as a
-     * server in this connection, e.g. whenever a socket is accepted, it will
-     * act as a server. This is a valid assumption because we require
-     * aplications to use a request-response communication method.
-     */
-    const SocketRole role_;
 
     /*
      * Records the state of the socket.

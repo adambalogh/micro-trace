@@ -68,8 +68,7 @@ static std::string GetHostname() {
 
 ClientSocketHandler::ClientSocketHandler(int sockfd, TraceLogger* trace_logger,
                                          const OriginalFunctions& orig)
-    : AbstractSocketHandler(sockfd, SocketRole::CLIENT, SocketState::WILL_WRITE,
-                            orig),
+    : AbstractSocketHandler(sockfd, SocketState::WILL_WRITE, orig),
       txn_(nullptr),
       trace_logger_(trace_logger),
       kubernetes_socket_(false) {
