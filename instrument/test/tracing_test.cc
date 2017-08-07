@@ -449,7 +449,8 @@ TEST_F(TraceTest, BackendServerReadsContext) {
 
         VerifyNoOtherInvocations(Method(mock, read));
 
-        // check that the context we sent is set as current_context
+        // check that the context we sent is set as current_context, and a new
+        // span has been started
         EXPECT_TRUE(get_current_context().IsChildOf(ctx));
 
     }};
