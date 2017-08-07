@@ -95,6 +95,11 @@ class Context {
         return a.trace() == b.trace();
     }
 
+    bool IsChildOf(const Context& parent) const {
+        return trace() == parent.trace() && parent_span() == parent.span() &&
+               span() != parent.span();
+    }
+
     const uuid_t& trace() const { return context_.trace_id; }
     const uuid_t& span() const { return context_.span_id; }
     const uuid_t& parent_span() const { return context_.parent_span; }

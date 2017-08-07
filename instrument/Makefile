@@ -96,6 +96,6 @@ benchmark: $(BENCHMARK_EXEC)
 	@echo 'benchmarks compiled'
 
 test: ctest 
-	for test_bin in $(TEST_EXEC); do \
+	@for test_bin in $(TEST_EXEC); do \
 		MICROTRACE_SERVER_TYPE=frontend MAIN_SERVICE_HOST=10.0.2.15 $$test_bin ; \
 	done

@@ -34,7 +34,9 @@ const int MSG_LEN = 10;
 void CreateMock() {
     mock.Reset();
 
-    When(Method(mock, read)).AlwaysReturn(1);
+    When(Method(mock, read)).AlwaysDo([](int fd, void *buf, size_t count) {
+        return count;
+    });
     When(Method(mock, write))
         .AlwaysDo([](int fd, const void *buf, size_t count) { return count; });
     When(Method(mock, accept))
@@ -391,6 +393,103 @@ TEST_F(TraceTest, OnlySendContextToInternalService) {
                     }))
             .Exactly(Once);
         VerifyNoOtherInvocations(Method(mock, write));
+
+    }};
+    server_thread.join();
+}
+
+TEST_F(TraceTest, BackendServerReadsContext) {
+    // Set server type to backend so it reads the context
+    putenv("MICROTRACE_SERVER_TYPE=backend");
+
+    Context ctx;
+
+    When(Method(mock, read))
+        .Do([&ctx](int fd, void *buf, size_t count) {
+            std::memcpy(buf, (void *)&ctx.storage(), sizeof(ContextStorage));
+            return count;
+        })
+        .Do([](int fd, void *buf, size_t count) { return count; });
+    orig_obj = &mock.get();
+
+    std::thread server_thread{[&ctx]() {
+        int ret;
+
+        const int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
+
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(client, -1);
+
+        char buf[MSG_LEN];
+
+        // Read request
+        ret = read(client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        const Context first_context = get_current_context();
+        EXPECT_FALSE(first_context.is_zero());
+
+        Verify(
+            // Context read
+            Method(mock, read)
+                .Matching([client](int fd, const void *buf, size_t count) {
+                    return fd == client && count == sizeof(ContextStorage);
+                }),
+
+            // Real read
+            Method(mock, read)
+                .Matching([client](int fd, const void *buf, size_t count) {
+                    return fd == client && count == MSG_LEN;
+                }))
+            .Exactly(Once);
+
+        VerifyNoOtherInvocations(Method(mock, read));
+
+        // check that the context we sent is set as current_context
+        EXPECT_TRUE(get_current_context().IsChildOf(ctx));
+
+    }};
+    server_thread.join();
+}
+
+TEST_F(TraceTest, FrontendServerDoesNotReadContext) {
+    // Set server type to backend so it reads the context
+    putenv("MICROTRACE_SERVER_TYPE=frontend");
+
+    std::thread server_thread{[]() {
+        int ret;
+
+        const int server = CreateServerSocket(SERVER_PORT);
+        ret = listen(server, 5);
+
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        memset(&cli_addr, 0, sizeof(cli_addr));
+        const int client =
+            accept(server, (struct sockaddr *)&cli_addr, &clilen);
+        ASSERT_GT(client, -1);
+
+        char buf[MSG_LEN];
+
+        // Read request
+        ret = read(client, &buf, MSG_LEN);
+        EXPECT_FALSE(is_context_undefined());
+        const Context first_context = get_current_context();
+        EXPECT_FALSE(first_context.is_zero());
+
+        Verify(
+            // Real read
+            Method(mock, read)
+                .Matching([client](int fd, const void *buf, size_t count) {
+                    return fd == client && count == MSG_LEN;
+                }))
+            .Exactly(Once);
+
+        VerifyNoOtherInvocations(Method(mock, read));
 
     }};
     server_thread.join();
