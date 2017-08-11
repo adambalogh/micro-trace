@@ -188,7 +188,7 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
     int ret = orig().connect(sockfd, addr, addrlen);
 
     auto* sock = GetSocket(sockfd);
-    if (ret == 0 && sock) {
+    if (sock) {
         HandleConnect(sock, addr);
     }
 

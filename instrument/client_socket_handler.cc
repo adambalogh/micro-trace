@@ -177,7 +177,17 @@ SocketHandler::Result ClientSocketHandlerImpl::BeforeWrite(
         // thread handles a single user request, current context is what we
         // need.
         if (type_ == SocketType::BLOCKING) {
-            context_.reset(new Context(get_current_context()));
+            // If the context is undefined at the moment, it means that some
+            // setup communications is being done which cannot and should not be
+            // attributed to user requests.
+            //
+            // In this case we assign a zero context to it, which means it won't
+            // be traced.
+            if (!is_context_undefined()) {
+                context_.reset(new Context(get_current_context()));
+            } else {
+                context_ = Context::Zero();
+            }
         }
     }
 

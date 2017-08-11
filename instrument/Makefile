@@ -22,12 +22,12 @@ TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 TEST_FLAGS = -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_USE_OWN_TR1_TUPLE=0
 
 INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
-LIBS = -L /usr/local/lib -ldl -pthread -lprotobuf -lthrift -lpthread
+LIBS = -L /usr/local/lib -ldl -pthread /usr/local/lib/libthrift.a /usr/local/lib/libprotobuf.a
 
 CXX = g++-5
 CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
-LIBFLAGS = -fPIC -DDEBUG
-OUT_FLAGS = -fvisibility=hidden -shared -DBUILDING_LIBMICROTRACE -DHAVE_VISIBILITY
+LIBFLAGS = -fPIC -DDEBUG -static-libstdc++ 
+OUT_FLAGS = -fvisibility=hidden -shared
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
 
 PROTOC = protoc
