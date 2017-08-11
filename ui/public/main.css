@@ -20,6 +20,9 @@ hr.partial {
 
 #trace-view {
   width: 80%;
+  overflow-x: scroll;
+  white-space:nowrap;
+
   margin-left: auto;
   margin-right: auto;
 }
