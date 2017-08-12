@@ -16,6 +16,26 @@ const pool = new Pool({
 
 const SQL_INSERT = 'INSERT INTO spans(json) VALUES %L';
 
+var sending = false;
+var queue = [];
+
+function send() {
+    sending = true;
+    var sql = format(SQL_INSERT, logs);
+    pool.query(sql, (err, res) => {
+        sending = false;
+        if (err) {
+            console.log(err);
+        } else {
+            console.log(res);
+        }
+
+        if (queue.length) {
+            send();
+        }
+    });
+}
+
 var server = thrift.createServer(Collector, {
     Collect: function(logs) {
         // convert each item into into array
@@ -23,14 +43,11 @@ var server = thrift.createServer(Collector, {
             logs[i] = [logs[i]];
         }
 
-        var sql = format(SQL_INSERT, logs);
-        pool.query(sql, (err, res) => {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log(res);
-            }
-        });
+        queue = queue.concat(logs);
+
+        if (!sending) {
+            send();
+        }
     }
 });
 
