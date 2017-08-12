@@ -20,17 +20,19 @@ static PrefixTreeNode BuildTree(const std::vector<std::string>& list) {
 }
 
 void PrefixTreeNode::Add(const char c) {
-    VERIFY(c >= 0 && c <= NUM_ALPHABET, "char outside range: {}", c);
+    VERIFY(c >= 0 && c <= MAX_CHAR, "char outside range: {}", c);
     children_[c] = std::make_unique<PrefixTreeNode>();
 }
 
-PrefixTreeNode* PrefixTreeNode::Get(const char c) {
-    VERIFY(c >= 0 && c <= NUM_ALPHABET, "char outside range: {}", c);
+PrefixTreeNode* PrefixTreeNode::Get(const char c) const {
+    VERIFY(c >= 0 && c <= MAX_CHAR, "char outside range: {}", c);
     if (!children_[c]) {
         return nullptr;
     }
     return children_[c].get();
 }
+
+PrefixTree::PrefixTree(const PrefixTreeNode* head) : current_(head) {}
 
 bool PrefixTree::Advance(char c) {
     VERIFY(current_, "Advance called");

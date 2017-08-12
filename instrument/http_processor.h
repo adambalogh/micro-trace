@@ -14,17 +14,17 @@ class PrefixTreeNode {
     void Add(const char c);
 
     // Returns the node assoc. to c, nullptr if empty.
-    PrefixTreeNode* Get(const char c);
+    PrefixTreeNode* Get(const char c) const;
 
     void mark_finish() { finish_ = true; }
     bool is_finish() const { return finish_; }
 
    private:
-    static const int NUM_ALPHABET = 26;
+    static const int MAX_CHAR = 256;
 
     bool finish_;
 
-    std::array<std::unique_ptr<PrefixTreeNode>, NUM_ALPHABET> children_;
+    std::array<std::unique_ptr<PrefixTreeNode>, MAX_CHAR> children_;
 };
 
 class PrefixTree {
@@ -36,7 +36,7 @@ class PrefixTree {
     bool is_finish() const { return current_->is_finish(); }
 
    private:
-    PrefixTreeNode* current_;
+    const PrefixTreeNode* current_;
 };
 
 class HttpProcessor {
