@@ -17,7 +17,7 @@ OBJ += $(addprefix $(BUILD_DIR)/,$(THRIFT_SRC:.cpp=.o))
 BENCHMARKS = tracing_benchmark.cc
 BENCHMARK_EXEC = $(addprefix $(BENCH_DIR)/,$(BENCHMARKS:.cc=))
 
-TESTS = context_test.cc socket_map_test.cc tracing_test.cc
+TESTS = context_test.cc socket_map_test.cc tracing_test.cc http_processor_test.cc
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 TEST_FLAGS = -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_USE_OWN_TR1_TUPLE=0
 

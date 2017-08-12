@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <functional>
 #include <string>
 
 #include "common.h"
@@ -41,9 +40,16 @@ class PrefixTree {
 
 class HttpProcessor {
    public:
-    HttpProcessor(std::function<void(std::string)> url_cb);
+    HttpProcessor();
 
     bool Process(const char* buf, size_t len);
+
+    bool has_url() const { return has_url_; }
+
+    const std::string& url() const {
+        VERIFY(has_url_, "url called when not set");
+        return url_buffer_;
+    }
 
    private:
     static const char SPACE = ' ';
@@ -52,8 +58,8 @@ class HttpProcessor {
     State state_ = State::METHOD;
     bool valid_;
 
-    std::function<void(std::string)> url_cb_;
     std::string url_buffer_;
+    bool has_url_;
 
     PrefixTree tree_;
 };

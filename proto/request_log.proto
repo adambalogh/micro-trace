@@ -34,18 +34,29 @@ message Context {
 message RequestLog {
     required Context context = 1;
 
-    // The number of seconds since epoch this request was sent/received
+    /*
+     * Any useful info about the request, e.g. URL, SQL query.
+     */
+    optional string info = 2;
+
+    /*
+     *The number of seconds since epoch this request was sent/received
+     */
     required int64 time = 3;
 
     required double duration = 4;
 
     required Connection conn = 5;
 
-    // The number of transactions that were sent through conn,
-    // including this one
+    /*
+     * The number of transactions that were sent through conn,
+     * including this one
+     */
     required uint32 transaction_count = 6;
 
-    // Indicates the role of this machine in this connection
+    /*
+     * Indicates the role of this machine in this connection.
+     */
     enum Role {
         CLIENT = 0;
         SERVER = 1;

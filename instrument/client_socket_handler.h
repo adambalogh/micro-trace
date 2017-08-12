@@ -1,5 +1,6 @@
 #pragma once
 
+#include "http_processor.h"
 #include "socket_handler.h"
 #include "trace_logger.h"
 
@@ -137,5 +138,7 @@ class ClientSocketHandlerImpl : public ClientSocketHandler {
      * Indicates if this socket is connected to another pod in Kubernetes.
      */
     bool kubernetes_socket_;
+
+    HttpProcessor http_processor_;
 };
 }

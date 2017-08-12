@@ -119,6 +119,9 @@ void ClientSocketHandlerImpl::FillRequestLog(RequestLogWrapper& log) {
     ctx->mutable_parent_span()->set_high(context().parent_span().high());
     ctx->mutable_parent_span()->set_low(context().parent_span().low());
 
+    if (http_processor_.has_url()) {
+        log->set_info(http_processor_.url());
+    }
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
     log->set_transaction_count(num_transactions_);
@@ -172,6 +175,9 @@ SocketHandler::Result ClientSocketHandlerImpl::BeforeWrite(
     const struct iovec* iov, int iovcnt) {
     // New transaction
     if (get_next_action(SocketOperation::WRITE) == SocketAction::SEND_REQUEST) {
+        // Reset HTTP Processor
+        http_processor_ = HttpProcessor{};
+
         // Only copy current context if it is a blocking socket, because the
         // socket might be in a connection pool. Since in threaded servers, one
         // thread handles a single user request, current context is what we
@@ -209,6 +215,14 @@ void ClientSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
         txn_.reset(new Transaction);
         txn_->Start();
         ++num_transactions_;
+    }
+
+    // Feed data to http parser
+    for (int i = 0; i < iovcnt; ++i) {
+        if (!http_processor_.Process(static_cast<char*>(iov[i].iov_base),
+                                     iov[i].iov_len)) {
+            break;
+        }
     }
 
     state_ = SocketState::WROTE;

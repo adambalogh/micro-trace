@@ -5,11 +5,7 @@
 using namespace microtrace;
 
 TEST(HttpProcessor, Match) {
-    bool called = false;
-    HttpProcessor p{[&called](std::string url) {
-        called = true;
-        EXPECT_EQ("http://www.google.com", url);
-    }};
+    HttpProcessor p;
 
     const char* msg = "GET http://www.google.com rega";
     const int MSG_LEN = 30;
@@ -20,23 +16,22 @@ TEST(HttpProcessor, Match) {
     msg += 1;
     EXPECT_FALSE(p.Process(msg, 24));
 
-    EXPECT_TRUE(called);
+    EXPECT_TRUE(p.has_url());
+    EXPECT_EQ("http://www.google.com", p.url());
 }
 
 TEST(HttpProcessor, InvalidMethod) {
-    bool called = false;
-    HttpProcessor p{[&called](std::string url) { called = true; }};
+    HttpProcessor p;
 
     const char* msg = "YO http://www.google.com rega";
     const int MSG_LEN = 30;
 
     EXPECT_FALSE(p.Process(msg, 1));
-    EXPECT_FALSE(called);
+    EXPECT_FALSE(p.has_url());
 }
 
 TEST(HttpProcessor, NoSpaceAfterURL) {
-    bool called = false;
-    HttpProcessor p{[&called](std::string url) { called = true; }};
+    HttpProcessor p;
 
     const char* msg = "GET http://www.google.com";
 
@@ -46,5 +41,5 @@ TEST(HttpProcessor, NoSpaceAfterURL) {
     msg += 1;
     EXPECT_TRUE(p.Process(msg, 22));
 
-    EXPECT_FALSE(called);
+    EXPECT_FALSE(p.has_url());
 }

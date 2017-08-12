@@ -45,8 +45,7 @@ static const std::vector<std::string> METHODS{
 
 static const PrefixTreeNode tree = BuildTree(METHODS);
 
-HttpProcessor::HttpProcessor(std::function<void(std::string)> url_cb)
-    : valid_(true), url_cb_(url_cb), tree_(&tree) {}
+HttpProcessor::HttpProcessor() : valid_(true), tree_(&tree) {}
 
 bool HttpProcessor::Process(const char* buf, size_t len) {
     for (size_t i = 0; i < len; ++i) {
@@ -72,7 +71,7 @@ bool HttpProcessor::Process(const char* buf, size_t len) {
                 if (buf[i] == SPACE) {
                     // URL cannot be empty
                     if (!url_buffer_.empty()) {
-                        url_cb_(std::move(url_buffer_));
+                        has_url_ = true;
                     }
                     valid_ = false;
                 } else {
