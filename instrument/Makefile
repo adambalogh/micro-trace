@@ -7,7 +7,7 @@ OUT = $(addprefix $(BUILD_DIR)/, $(LIB_NAME))
 
 SRCS_DIR = $(PWD)
 SRCS = tracing.cc orig_functions.cc context.cc socket_handler.cc \
-	  client_socket_handler.cc server_socket_handler.cc common.cc trace_logger.cc \
+	  client_socket_handler.cc server_socket_handler.cc common.cc trace_logger.cc http_processor.cc \
 	  client_socket.cc server_socket.cc
 THRIFT_SRC = Collector.cpp 
 
