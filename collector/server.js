@@ -21,7 +21,8 @@ var queue = [];
 
 function send() {
     sending = true;
-    var sql = format(SQL_INSERT, logs);
+    var sql = format(SQL_INSERT, queue);
+    queue = [];
     pool.query(sql, (err, res) => {
         sending = false;
         if (err) {
