@@ -38,7 +38,8 @@ def load_spans():
                     span.context.parent_span.low),
                 span.conn.client_hostname,
                 span.conn.server_hostname,
-                span.duration)
+                span.duration,
+                span.info)
 
         spans.append(span_obj)
     print('loaded', len(spans), 'spans')

@@ -9,6 +9,6 @@ create table traces(
 
 -- spans table
 create table spans(
-    id int serial,
+    id serial,
     json bytea -- TODO this should not be called json, its protobuf
 );
