@@ -55,7 +55,7 @@ class HttpProcessor {
     static const char SPACE = ' ';
     enum class State { METHOD, URL };
 
-    State state_ = State::METHOD;
+    State state_;
     bool valid_;
 
     std::string url_buffer_;
