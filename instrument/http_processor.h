@@ -32,7 +32,10 @@ class PrefixTree {
 
     bool Advance(char c);
 
-    bool is_finish() const { return current_->is_finish(); }
+    bool is_finish() const {
+        if (!current_) return false;
+        return current_->is_finish();
+    }
 
    private:
     const PrefixTreeNode* current_;
@@ -55,7 +58,7 @@ class HttpProcessor {
     static const char SPACE = ' ';
     enum class State { METHOD, URL };
 
-    State state_ = State::METHOD;
+    State state_;
     bool valid_;
 
     std::string url_buffer_;

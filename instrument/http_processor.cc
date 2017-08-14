@@ -2,11 +2,21 @@
 
 namespace microtrace {
 
+static PrefixTreeNode BuildTree(const std::vector<std::string>& list);
+
+static const std::vector<std::string> METHODS{
+    "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE"};
+
+const PrefixTreeNode& tree() {
+    static const PrefixTreeNode tree_ = BuildTree(METHODS);
+    return tree_;
+}
+
 static PrefixTreeNode BuildTree(const std::vector<std::string>& list) {
     PrefixTreeNode head;
-    PrefixTreeNode* curr = &head;
 
     for (const auto& str : list) {
+        PrefixTreeNode* curr = &head;
         for (size_t i = 0; i < str.size(); ++i) {
             auto* n = curr->Get(str[i]);
             if (n == nullptr) {
@@ -25,7 +35,9 @@ void PrefixTreeNode::Add(const char c) {
 }
 
 PrefixTreeNode* PrefixTreeNode::Get(const char c) const {
-    VERIFY(c >= 0 && c <= MAX_CHAR, "char outside range: {}", c);
+    if (!(c >= 0 && c < MAX_CHAR)) {
+        return nullptr;
+    }
     if (!children_[c]) {
         return nullptr;
     }
@@ -34,18 +46,14 @@ PrefixTreeNode* PrefixTreeNode::Get(const char c) const {
 
 PrefixTree::PrefixTree(const PrefixTreeNode* head) : current_(head) {}
 
-bool PrefixTree::Advance(char c) {
+bool PrefixTree::Advance(const char c) {
     VERIFY(current_, "Advance called");
     current_ = current_->Get(c);
     return current_;
 }
 
-static const std::vector<std::string> METHODS{
-    "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE"};
-
-static const PrefixTreeNode tree = BuildTree(METHODS);
-
-HttpProcessor::HttpProcessor() : valid_(true), tree_(&tree) {}
+HttpProcessor::HttpProcessor()
+    : state_(State::METHOD), valid_(true), has_url_(false), tree_(&tree()) {}
 
 bool HttpProcessor::Process(const char* buf, size_t len) {
     for (size_t i = 0; i < len; ++i) {
@@ -61,9 +69,7 @@ bool HttpProcessor::Process(const char* buf, size_t len) {
                         state_ = State::URL;
                     }
                 } else {
-                    if (!tree_.Advance(buf[i])) {
-                        valid_ = false;
-                    }
+                    valid_ = tree_.Advance(buf[i]);
                 }
                 break;
             case State::URL:
