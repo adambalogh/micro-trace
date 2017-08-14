@@ -32,7 +32,10 @@ class PrefixTree {
 
     bool Advance(char c);
 
-    bool is_finish() const { return current_->is_finish(); }
+    bool is_finish() const {
+        if (!current_) return false;
+        return current_->is_finish();
+    }
 
    private:
     const PrefixTreeNode* current_;
