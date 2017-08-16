@@ -76,7 +76,10 @@ function traverse(body, span, depth) {
     body += '<br>';
     body += Array(depth).join('&nbsp');
     body += 'time: ' + formatDate(new Date(span.time * 1000)) + ', duration: ' +
-        round(span.duration) + 's<br>';
+        round(span.duration) + 's';
+    body += '<br>';
+    body += Array(depth).join('&nbsp');
+    body += 'request info: ' + span.info;
     body += '</div>';
 
 
