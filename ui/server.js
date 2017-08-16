@@ -51,7 +51,7 @@ app.get('/', function(req, res) {
                 body += '<tr>';
                 body += '<td>' + sprintf(trace_link, id) + '</td>';
                 body += '<td>' + row.num_spans + '</td>';
-                body += '<td>' + round(row.duration) + 's</td>';
+                body += '<td>' + Math.floor(row.duration) + 'ms</td>';
                 body += '</tr>';
             });
             body += '</table>';
@@ -76,7 +76,7 @@ function traverse(body, span, depth) {
     body += '<br>';
     body += Array(depth).join('&nbsp');
     body += 'time: ' + formatDate(new Date(span.time * 1000)) + ', duration: ' +
-        round(span.duration) + 's';
+        Math.floor(span.duration) + 'ms';
     body += '<br>';
     body += Array(depth).join('&nbsp');
     body += 'request info: ' + span.info;
@@ -104,7 +104,7 @@ app.get('/traces/:traceId', function(req, res) {
 
             body += '<div id="trace-info">';
             body += 'Number of spans: ' + trace.num_spans;
-            body += ', Duration: ' + trace.duration + 's';
+            body += ', Duration: ' + trace.duration + 'ms';
             body += '</div>';
 
             body += '<div id="trace-view">';
