@@ -27,7 +27,7 @@ def process_trace(spans):
         parent_span = span.parent_span()
 
         # We found the first span in the trace
-        if parent_span == span.trace():
+        if span.span() == span.trace():
             assert start is None
             start = span
             continue
@@ -55,7 +55,6 @@ def post_process(trace):
     (num_spans, max_end) = traverse(trace.start)
     trace.num_spans = num_spans
     trace.duration = trace.start.duration
-
 
 def traverse(span):
     num_spans = 1
