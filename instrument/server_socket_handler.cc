@@ -10,8 +10,9 @@
 namespace microtrace {
 
 ServerSocketHandlerImpl::ServerSocketHandlerImpl(int sockfd,
+                                                 TraceLogger* trace_logger,
                                                  const OriginalFunctions& orig)
-    : ServerSocketHandler(sockfd, orig) {}
+    : ServerSocketHandler(sockfd, orig), trace_logger_(trace_logger) {}
 
 void ServerSocketHandlerImpl::Async() { type_ = SocketType::ASYNC; }
 
@@ -72,6 +73,8 @@ void ServerSocketHandlerImpl::AfterRead(const void* buf, size_t len,
             // that this shouldn't be traced
             if (ShouldTrace()) {
                 context_.reset(new Context);
+                client_txn_.reset(new Transaction);
+                client_txn_->Start();
             } else {
                 context_ = Context::Zero();
             }
@@ -80,9 +83,9 @@ void ServerSocketHandlerImpl::AfterRead(const void* buf, size_t len,
         // and context_ is already set through ContextReadCallback.
         else {
             VERIFY(context_, "Backend server context is empty");
+            context_->NewSpan();  // We generate new span in this case
         }
 
-        context_->NewSpan();
         set_current_context(*context_);
         ++num_transactions_;
     }
@@ -101,6 +104,29 @@ SocketHandler::Result ServerSocketHandlerImpl::BeforeWrite(
     return Result::Ok;
 }
 
+void ServerSocketHandlerImpl::LogSpan() const {
+    proto::RequestLog log;
+    proto::Connection* conn = log.mutable_conn();
+    conn->set_server_hostname(GetHostname());
+    conn->set_client_hostname("END-USER");
+
+    proto::Context* ctx = log.mutable_context();
+    ctx->mutable_trace_id()->set_high(context().trace().high());
+    ctx->mutable_trace_id()->set_low(context().trace().low());
+    ctx->mutable_span_id()->set_high(context().trace().high());
+    ctx->mutable_span_id()->set_low(context().trace().low());
+    ctx->mutable_parent_span()->set_high(context().trace().high());
+    ctx->mutable_parent_span()->set_low(context().trace().high());
+
+    log.set_time(client_txn_->start());
+    log.set_duration(client_txn_->duration());
+    log.set_transaction_count(num_transactions_);
+    log.set_role(proto::RequestLog::SERVER);
+
+    // Make log
+    trace_logger_->Log(log);
+}
+
 void ServerSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
                                          ssize_t ret) {
     if (ret == -1 || ret == 0) {
@@ -108,6 +134,17 @@ void ServerSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
     }
 
     VERIFY(ret > 0, "write invalid return value");
+
+    // Start writing response
+    if (get_next_action(SocketOperation::WRITE) ==
+        SocketAction::SEND_RESPONSE) {
+        // If client_txn_ is not empty, it means that this trace is
+        // traced, we do not need to check for non-zero context.
+        if (client_txn_) {
+            client_txn_->End();
+            LogSpan();
+        }
+    }
 
     state_ = SocketState::WROTE;
 }

@@ -2,8 +2,6 @@
 
 #include <netinet/in.h>
 
-#include "spdlog/spdlog.h"
-
 namespace microtrace {
 
 std::shared_ptr<spdlog::logger> console_log =
@@ -27,5 +25,11 @@ bool is_localhost(const struct sockaddr* sa) {
     } else {
         VERIFY(false, "invalid socket address family");
     }
+}
+
+std::string GetHostname() {
+    static char hostname_buf[400];
+    VERIFY(gethostname(&hostname_buf[0], 400) == 0, "gethostname unsuccessful");
+    return std::string{&hostname_buf[0], strlen(&hostname_buf[0])};
 }
 }

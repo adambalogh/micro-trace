@@ -1,6 +1,7 @@
 #pragma once
 
 #include "socket_handler.h"
+#include "trace_logger.h"
 
 namespace microtrace {
 
@@ -14,7 +15,8 @@ class ServerSocketHandler : public AbstractSocketHandler {
 
 class ServerSocketHandlerImpl : public ServerSocketHandler {
    public:
-    ServerSocketHandlerImpl(int sockfd, const OriginalFunctions& orig);
+    ServerSocketHandlerImpl(int sockfd, TraceLogger* trace_logger,
+                            const OriginalFunctions& orig);
 
     void Async() override;
 
@@ -33,5 +35,15 @@ class ServerSocketHandlerImpl : public ServerSocketHandler {
 
    private:
     bool ShouldTrace() const;
+
+    void LogSpan() const;
+
+    /*
+     * If this is a frontend server, it stores the current transaction we are
+     * processing. Otherwise it is always empty.
+     */
+    std::unique_ptr<Transaction> client_txn_;
+
+    TraceLogger* const trace_logger_;
 };
 }
