@@ -98,7 +98,8 @@ static void HandleAccept(const int sockfd) {
     if (sockfd == -1) {
         return;
     }
-    auto handler = std::make_unique<ServerSocketHandlerImpl>(sockfd, orig());
+    auto handler = std::make_unique<ServerSocketHandlerImpl>(
+        sockfd, thrift_instance().get(), orig());
     auto socket =
         std::make_unique<ServerSocket>(sockfd, std::move(handler), orig());
     SaveSocket(std::move(socket));
@@ -157,12 +158,15 @@ void HandleConnect(SocketInterface* sock, const struct sockaddr* addr) {
         char* ip_buf =
             inet_ntoa(reinterpret_cast<const sockaddr_in*>(addr)->sin_addr);
         ip = std::string{ip_buf, strlen(ip_buf)};
-    } else {
+    } else if (addr->sa_family == AF_INET6) {
         char ip_buf[INET6_ADDRSTRLEN];
         inet_ntop(AF_INET6,
                   &(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_addr),
                   ip_buf, INET6_ADDRSTRLEN);
-        ip = std::string{ip_buf, INET6_ADDRSTRLEN};
+        ip = std::string{ip_buf, strlen(ip_buf)};
+    } else {
+        // Assume its AF_LOCAL
+        ip = "localhost";
     }
     static_cast<ClientSocket*>(sock)->Connected(ip);
 }

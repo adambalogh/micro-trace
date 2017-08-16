@@ -42,14 +42,16 @@
 
 namespace microtrace {
 
+extern std::shared_ptr<spdlog::logger> console_log;
+
 inline int uv_fd(const uv_stream_t* stream) { return stream->io_watcher.fd; }
 inline int uv_fd(const uv_tcp_t* tcp) {
     return uv_fd(reinterpret_cast<const uv_stream_t*>(tcp));
 }
 
-inline char* string_arr(std::string& str) { return &str[0]; }
+std::string GetHostname();
 
-extern std::shared_ptr<spdlog::logger> console_log;
+inline char* string_arr(std::string& str) { return &str[0]; }
 
 unsigned short get_port(const struct sockaddr* sa);
 bool is_localhost(const struct sockaddr* sa);

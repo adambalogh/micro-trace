@@ -5,8 +5,6 @@
 #include <iostream>
 #include <regex>
 
-#include "spdlog/spdlog.h"
-
 #include "common.h"
 #include "orig_functions.h"
 
@@ -40,30 +38,6 @@ const std::string* ServiceIpMap::Get(const std::string& ip) {
         return nullptr;
     }
     return &(it->second);
-}
-
-/*
- * Wraps a proto::RequestLog. On destruction, it releases the fields that have
- * been borrowed, and not owned by the underlying RequestLog.
- */
-struct RequestLogWrapper {
-    ~RequestLogWrapper() {
-        proto::Connection* conn = log.mutable_conn();
-        conn->release_server_hostname();
-        conn->release_client_hostname();
-    }
-
-    proto::RequestLog* operator->() { return &log; }
-
-    const proto::RequestLog& get() const { return log; }
-
-    proto::RequestLog log;
-};
-
-static std::string GetHostname() {
-    static char hostname_buf[400];
-    VERIFY(gethostname(&hostname_buf[0], 400) == 0, "gethostname unsuccessful");
-    return std::string{&hostname_buf[0], strlen(&hostname_buf[0])};
 }
 
 ClientSocketHandlerImpl::ClientSocketHandlerImpl(int sockfd,
@@ -120,7 +94,7 @@ void ClientSocketHandlerImpl::FillRequestLog(RequestLogWrapper& log) {
     ctx->mutable_parent_span()->set_low(context().parent_span().low());
 
     if (http_processor_.has_url()) {
-        log->set_info(http_processor_.url());
+        log->set_info("HTTP: " + http_processor_.url());
     }
     log->set_time(txn_->start());
     log->set_duration(txn_->duration());
@@ -219,10 +193,8 @@ void ClientSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
 
     // Feed data to http parser
     for (int i = 0; i < iovcnt; ++i) {
-        if (!http_processor_.Process(static_cast<char*>(iov[i].iov_base),
-                                     iov[i].iov_len)) {
-            break;
-        }
+        http_processor_.Process(static_cast<char*>(iov[i].iov_base),
+                                iov[i].iov_len);
     }
 
     state_ = SocketState::WROTE;

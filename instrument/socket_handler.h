@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 
 #include "common.h"
@@ -24,6 +25,52 @@ struct Connection {
 
     std::string client_hostname;
     std::string server_hostname;
+};
+
+/*
+ * A transaction is a request-respone sequence between this client and
+ * a server.
+ */
+class Transaction {
+   public:
+    void Start() {
+        system_start_ = std::chrono::system_clock::now();
+        start_ = std::chrono::steady_clock::now();
+    }
+
+    void End() { end_ = std::chrono::steady_clock::now(); }
+
+    time_t start() const {
+        return std::chrono::system_clock::to_time_t(system_start_);
+    }
+
+    double duration() const {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(end_ -
+                                                                     start_)
+            .count();
+    }
+
+   private:
+    std::chrono::time_point<std::chrono::system_clock> system_start_;
+    std::chrono::time_point<std::chrono::steady_clock> start_;
+    std::chrono::time_point<std::chrono::steady_clock> end_;
+};
+
+/*
+ * Wraps a proto::RequestLog. On destruction, it releases the fields that have
+ * been borrowed, and not owned by the underlying RequestLog.
+ */
+struct RequestLogWrapper {
+    ~RequestLogWrapper() {
+        proto::Connection* conn = log.mutable_conn();
+        conn->release_server_hostname();
+        conn->release_client_hostname();
+    }
+
+    proto::RequestLog* operator->() { return &log; }
+    const proto::RequestLog& get() const { return log; }
+
+    proto::RequestLog log;
 };
 
 /*

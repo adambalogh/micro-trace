@@ -52,7 +52,7 @@ struct ContextStorage {
     }
 
     ContextStorage()
-        : trace_id(Uuid{}), span_id(trace_id), parent_span(trace_id) {}
+        : trace_id(Uuid{}), span_id(Uuid{}), parent_span(trace_id) {}
 
     std::string to_string() const {
         return "trace_id: " + trace_id.to_string() + "\nspan_id: " +
