@@ -116,7 +116,7 @@ void ServerSocketHandlerImpl::LogSpan() const {
     ctx->mutable_span_id()->set_high(context().trace().high());
     ctx->mutable_span_id()->set_low(context().trace().low());
     ctx->mutable_parent_span()->set_high(context().trace().high());
-    ctx->mutable_parent_span()->set_low(context().trace().high());
+    ctx->mutable_parent_span()->set_low(context().trace().low());
 
     log.set_time(client_txn_->start());
     log.set_duration(client_txn_->duration());

@@ -36,6 +36,7 @@ using namespace microtrace;
 namespace microtrace {
 
 static const int DNS_PORT = 53;
+static const int PG_PORT = 5432;
 
 // TODO make these easy to switch
 static std::shared_ptr<TraceLogger> null_logger(new NullTraceLogger);
@@ -189,6 +190,12 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
         DeleteSocket(sockfd);
     }
 
+    // We don't trace Postgres sockets, it is traced through the Postgres client
+    // library functions
+    if (port == PG_PORT) {
+        DeleteSocket(sockfd);
+    }
+
     int ret = orig().connect(sockfd, addr, addrlen);
 
     auto* sock = GetSocket(sockfd);
@@ -310,7 +317,36 @@ pg_t pg() {
 }
 
 PGresult* PQexec(PGconn* conn, const char* command) {
-    std::cout << std::string{command, strlen(command)} << std::endl
-              << std::flush;
-    return pg()(conn, command);
+    if (!is_context_undefined() && !get_current_context().is_zero()) {
+        Context context = get_current_context();
+
+        proto::RequestLog log;
+        proto::Connection* log_conn = log.mutable_conn();
+        log_conn->set_server_hostname("Postgres");
+        log_conn->set_client_hostname(GetHostname());
+
+        proto::Context* ctx = log.mutable_context();
+        ctx->mutable_trace_id()->set_high(context.trace().high());
+        ctx->mutable_trace_id()->set_low(context.trace().low());
+        ctx->mutable_span_id()->set_high(context.span().high());
+        ctx->mutable_span_id()->set_low(context.span().low());
+        ctx->mutable_parent_span()->set_high(context.parent_span().high());
+        ctx->mutable_parent_span()->set_low(context.parent_span().low());
+
+        log.set_time(0);
+        log.set_duration(0);
+        log.set_transaction_count(0);
+        log.set_role(proto::RequestLog::CLIENT);
+        log.set_info("SQL: " + std::string{command, strlen(command)});
+
+        PGresult* res = pg()(conn, command);
+        thrift_instance().get()->Log(log);
+
+        context.NewSpan();
+        set_current_context(context);
+
+        return res;
+    } else {
+        return pg()(conn, command);
+    }
 }
