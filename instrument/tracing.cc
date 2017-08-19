@@ -293,3 +293,24 @@ int close(int fd) {
 
     return orig().close(fd);
 }
+
+typedef PGresult* (*pg_t)(PGconn* conn, const char* command);
+
+pg_t pg() {
+    static thread_local pg_t fun = nullptr;
+    if (fun == nullptr) {
+        void* handle = dlopen(
+            "/usr/local/lib/python2.7/site-packages/psycopg2/.libs/"
+            "libpq-9c51d239.so.5.9",
+            RTLD_NOW);
+        fun = (pg_t)dlsym(handle, "PQexec");
+        dlclose(handle);
+    }
+    return fun;
+}
+
+PGresult* PQexec(PGconn* conn, const char* command) {
+    std::cout << std::string{command, strlen(command)} << std::endl
+              << std::flush;
+    return pg()(conn, command);
+}

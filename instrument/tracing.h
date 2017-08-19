@@ -1,5 +1,8 @@
 #pragma once
 
+struct PGconn;
+struct PGresult;
+
 /*
  * These are the functions that we instrument in order to trace requests.
  *
@@ -34,4 +37,6 @@ int uv_accept(uv_stream_t *server, uv_stream_t *client);
 int uv_getaddrinfo(uv_loop_t *loop, uv_getaddrinfo_t *req,
                    uv_getaddrinfo_cb getaddrinfo_cb, const char *node,
                    const char *service, const struct addrinfo *hints);
+
+PGresult *PQexec(PGconn *conn, const char *command);
 }
