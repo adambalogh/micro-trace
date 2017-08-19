@@ -19,8 +19,8 @@ TEST(Context, Unique) {
 
 TEST(Context, New) {
     Context ctx;
-    EXPECT_EQ(ctx.trace(), ctx.span());
-    EXPECT_EQ(ctx.span(), ctx.parent_span());
+    EXPECT_EQ(ctx.trace(), ctx.parent_span());
+    EXPECT_NE(ctx.trace(), ctx.span());
 }
 
 TEST(Context, NewSpan) {
@@ -33,7 +33,7 @@ TEST(Context, NewSpan) {
     const auto second_span = ctx.span();
     EXPECT_EQ(orig_trace, ctx.trace());
     EXPECT_NE(orig_span, ctx.span());
-    EXPECT_EQ(orig_parent, ctx.parent_span());
+    EXPECT_EQ(orig_span, ctx.parent_span());
 
     ctx.NewSpan();
     EXPECT_EQ(orig_trace, ctx.trace());

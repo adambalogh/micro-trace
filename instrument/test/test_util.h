@@ -159,6 +159,10 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     mutable int last_socket = 0;
 
    public:
+    ::PGresult *PQexec(::PGconn *conn, const char *command) const {
+        return nullptr;
+    }
+
     int socket(int domain, int type, int protocol) const {
         return ++last_socket;
     }
