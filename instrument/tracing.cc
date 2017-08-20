@@ -322,7 +322,7 @@ PGresult* PQexec(PGconn* conn, const char* command) {
 
         proto::RequestLog log;
         proto::Connection* log_conn = log.mutable_conn();
-        log_conn->set_server_hostname("Postgres");
+        log_conn->set_server_hostname("Postgres Database");
         log_conn->set_client_hostname(GetHostname());
 
         proto::Context* ctx = log.mutable_context();
@@ -333,13 +333,18 @@ PGresult* PQexec(PGconn* conn, const char* command) {
         ctx->mutable_parent_span()->set_high(context.parent_span().high());
         ctx->mutable_parent_span()->set_low(context.parent_span().low());
 
-        log.set_time(0);
-        log.set_duration(0);
-        log.set_transaction_count(0);
+        log.set_transaction_count(1);
         log.set_role(proto::RequestLog::CLIENT);
         log.set_info("SQL: " + std::string{command, strlen(command)});
 
+        Transaction txn;
+
+        txn.Start();
         PGresult* res = pg()(conn, command);
+        txn.End();
+
+        log.set_time(txn.start());
+        log.set_duration(txn.duration());
         thrift_instance().get()->Log(log);
 
         context.NewSpan();
