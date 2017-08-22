@@ -57,6 +57,10 @@ class TraceTest : public ::testing::Test {
     virtual void SetUp() { CreateMock(); }
 };
 
+/*
+ * In this test, we make sure that when a new transaction is started,
+ * a context is created.
+ */
 TEST_F(TraceTest, CurrentContext) {
     std::thread server_thread{[]() {
         EXPECT_TRUE(is_context_undefined());
@@ -86,10 +90,9 @@ TEST_F(TraceTest, CurrentContext) {
         EXPECT_FALSE(is_context_undefined());
         const Context context = get_current_context();
 
+        // we don't clear the current context if a related socket is closed
         ASSERT_EQ(0, close(server));
         EXPECT_EQ(context, get_current_context());
-
-        // we don't clear the current context if a related socket is closed
         ASSERT_EQ(0, close(client));
         EXPECT_EQ(context, get_current_context());
     }};
@@ -98,18 +101,16 @@ TEST_F(TraceTest, CurrentContext) {
 
 /*
  * In this test, we make sure that whenever we successfully read from or
- * write to an instrumented socket, it's context is set as the current
- * context
+ * write to a socket, it's context is set as the current context.
  */
 TEST_F(TraceTest, TraceSwitch) {
     std::thread server_thread{[]() {
         EXPECT_TRUE(is_context_undefined());
 
-        int ret;
-
         const int server = CreateServerSocket(SERVER_PORT);
-        ret = listen(server, 5);
+        listen(server, 5);
 
+        // Accept first_client
         struct sockaddr_in cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
@@ -117,6 +118,7 @@ TEST_F(TraceTest, TraceSwitch) {
             accept(server, (struct sockaddr *)&cli_addr, &clilen);
         ASSERT_GT(first_client, -1);
 
+        // Accept second_client
         clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
         const int second_client =
@@ -125,44 +127,32 @@ TEST_F(TraceTest, TraceSwitch) {
 
         char buf[MSG_LEN];
 
-        // Read first
-        ret = read(first_client, &buf, MSG_LEN);
+        // Read first_client
+        read(first_client, &buf, MSG_LEN);
         EXPECT_FALSE(is_context_undefined());
         const Context first_context = get_current_context();
 
-        // Read second
-        ret = read(second_client, &buf, MSG_LEN);
+        // Read second_client
+        read(second_client, &buf, MSG_LEN);
         EXPECT_FALSE(is_context_undefined());
         const Context second_context = get_current_context();
         EXPECT_NE(first_context, second_context);
 
-        // Read first
-        ret = read(first_client, &buf, MSG_LEN);
+        // Read first_client
+        read(first_client, &buf, MSG_LEN);
         EXPECT_EQ(first_context, get_current_context());
 
-        // Write first
-        ret = write(first_client, &buf, MSG_LEN);
+        // Write first_client
+        write(first_client, &buf, MSG_LEN);
         EXPECT_EQ(first_context, get_current_context());
 
-        // Write second
-        ret = write(second_client, &buf, MSG_LEN);
+        // Write second_client
+        write(second_client, &buf, MSG_LEN);
         EXPECT_EQ(second_context, get_current_context());
 
-        // Write second
-        ret = write(second_client, &buf, MSG_LEN);
+        // Write second_client
+        write(second_client, &buf, MSG_LEN);
         EXPECT_EQ(second_context, get_current_context());
-
-        // Unsuccessful read first (client closed conn)
-        // ret = read(first_client, &buf, MSG_LEN);
-        // ASSERT_EQ(0, ret);
-        // EXPECT_EQ(first_context, get_current_context());
-
-        // TODO figure out how to simulate write error
-        // Unsuccessful write second
-        // close(second_client);
-        // ret = write(second_client, &buf, MSG_LEN);
-        // ASSERT_EQ(-1, ret);
-        // ASSERT_EQ(second_context, get_current_context());
 
         ASSERT_EQ(0, close(server));
         ASSERT_EQ(0, close(first_client));
@@ -171,22 +161,18 @@ TEST_F(TraceTest, TraceSwitch) {
 }
 
 /*
- * In this test we make sure that the current_context is attached to sockets
- * that are opened in the application.
- *
- * There are 3 threads (servers) communicating with each other:
- *
- * local_thread <--> server_thread <--> dump_server_thread
+ * In this test, we test several functionalities, including context switching,
+ * creating new spans at the start of new transactions and attaching the current
+ * context to newly created client sockets.
  */
-TEST_F(TraceTest, PropagateTrace) {
+TEST_F(TraceTest, SampleApplication) {
     std::thread server_thread{[]() {
         EXPECT_TRUE(is_context_undefined());
 
-        int ret;
-
         int server = CreateServerSocket(SERVER_PORT);
-        ret = listen(server, 5);
+        listen(server, 5);
 
+        // Accept first_client
         struct sockaddr_in cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
@@ -194,6 +180,7 @@ TEST_F(TraceTest, PropagateTrace) {
             accept(server, (struct sockaddr *)&cli_addr, &clilen);
         ASSERT_GT(first_client, -1);
 
+        // Accept second_client
         clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
         int second_client =
@@ -202,36 +189,41 @@ TEST_F(TraceTest, PropagateTrace) {
 
         char buf[MSG_LEN];
 
-        // Read first
-        ret = read(first_client, &buf, MSG_LEN);
+        // Read from first_client -- this is the first transaction with
+        // first_client
+        read(first_client, &buf, MSG_LEN);
         Context zeroth_context = get_current_context();
 
-        // Write response
-        ret = write(first_client, &buf, MSG_LEN);
+        // Write response to first_client
+        write(first_client, &buf, MSG_LEN);
+        write(first_client, &buf, MSG_LEN);
 
-        // Start second transaction with first -- This should start a new trace
-        ret = read(first_client, &buf, MSG_LEN);
+        // Read from first_client -- this is the start of the the second
+        // transaction with first_client, and should start a
+        // new trace
+        read(first_client, &buf, MSG_LEN);
         const Context first_context = get_current_context();
         EXPECT_FALSE(Context::IsSameTrace(zeroth_context, first_context));
 
-        // Read second
-        ret = read(second_client, &buf, MSG_LEN);
+        // Read from second_client
+        read(second_client, &buf, MSG_LEN);
         const Context second_context = get_current_context();
 
         // Open connection to dump server
         // Note: we are in second_client's context now
         const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
 
-        // Write to dump client
-        ret = write(dump_client, &buf, MSG_LEN);
+        // Write to dump_client
+        write(dump_client, &buf, MSG_LEN);
         EXPECT_EQ(second_context, get_current_context());
 
-        // Read first
-        ret = read(first_client, &buf, MSG_LEN);
+        // Read from first_client
+        read(first_client, &buf, MSG_LEN);
         EXPECT_EQ(first_context, get_current_context());
 
-        // Read dump client's response
-        ret = read(dump_client, &buf, MSG_LEN);
+        // Read dump_client's response
+        read(dump_client, &buf, MSG_LEN);
+
         // Reading the response should have started a new span
         EXPECT_EQ(second_context.trace(), get_current_context().trace());
         EXPECT_NE(second_context.span(), get_current_context().span());
@@ -249,12 +241,13 @@ TEST_F(TraceTest, BlockingConnectionPool) {
     std::thread server_thread{[this]() {
         int ret;
 
-        // Create connection in advance, before any requests
+        // Create connection in advance, before any requests have arrived
         const int connection_pool = CreateClientSocket(DUMP_SERVER_PORT);
 
         int server = CreateServerSocket(SERVER_PORT);
         ret = listen(server, 5);
 
+        // Accept first_client
         struct sockaddr_in cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
@@ -262,6 +255,7 @@ TEST_F(TraceTest, BlockingConnectionPool) {
             accept(server, (struct sockaddr *)&cli_addr, &clilen);
         ASSERT_GT(first_client, -1);
 
+        // Accept second_client
         clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
         const int second_client =
@@ -270,25 +264,26 @@ TEST_F(TraceTest, BlockingConnectionPool) {
 
         char buf[MSG_LEN];
 
-        // Read request from first
+        // Read request from first_client
         ret = read(first_client, &buf, MSG_LEN);
         const Context first_context = get_current_context();
 
-        // Write to connection pool -- this should be associated with
-        // first_context
+        // Write to connection in connection pool -- this should be associated
+        // with first_context
         ret = write(connection_pool, &buf, MSG_LEN);
         EXPECT_EQ(first_context, get_current_context());
 
-        // Read first half of request from second
+        // Read first half of request from second_client
         ret = read(second_client, &buf, MSG_LEN);
         const Context second_context = get_current_context();
         EXPECT_FALSE(Context::IsSameTrace(first_context, second_context));
 
-        // Read response from connection pool -- this should set first_context
+        // Read response from connection pool -- this should be part of
+        // first_context's trace
         ret = read(connection_pool, &buf, MSG_LEN);
         ASSERT_TRUE(Context::IsSameTrace(first_context, get_current_context()));
 
-        // Read second half of request from second
+        // Read second half of request from second_client
         ret = read(second_client, &buf, MSG_LEN);
         EXPECT_FALSE(is_context_undefined());
         ASSERT_EQ(second_context, get_current_context());
@@ -301,22 +296,34 @@ TEST_F(TraceTest, BlockingConnectionPool) {
         EXPECT_FALSE(
             Context::IsSameTrace(first_context, get_current_context()));
 
-        ASSERT_EQ(0, close(first_client));
-        ASSERT_EQ(0, close(second_client));
-        ASSERT_EQ(0, close(connection_pool));
-        ASSERT_EQ(0, close(server));
+        close(first_client);
+        close(second_client);
+        close(connection_pool);
+        close(server);
     }};
 
     server_thread.join();
 }
 
-TEST_F(TraceTest, ContextSending) {
+/*
+ * This test verifiess that the context is attached to all outgoing messages
+ * being sent to other internal microservices.
+ */
+TEST_F(TraceTest, ContextIsSentToInternalServices) {
+    const std::string internal_service_ip = "10.0.2.15";
+
+    // In Kubernetes, all internal serices have their IP address set as an
+    // environment variable on all machines. This indicates that it is an
+    // internal server
+    putenv("DUMP_SERVICE_HOST=" + internal_service_ip);
+
     std::thread server_thread{[]() {
         int ret;
 
         const int server = CreateServerSocket(SERVER_PORT);
         ret = listen(server, 5);
 
+        // Acccept first_client
         struct sockaddr_in cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
@@ -326,43 +333,50 @@ TEST_F(TraceTest, ContextSending) {
 
         char buf[MSG_LEN] = {'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'};
 
-        // Read first
+        // Read from first_client
         ret = read(client, &buf, MSG_LEN);
         EXPECT_FALSE(is_context_undefined());
         const Context first_context = get_current_context();
         EXPECT_FALSE(first_context.is_zero());
 
-        // Send response to third party
-        const int dump_client = CreateClientSocket(DUMP_SERVER_PORT);
+        // Send request to an "internal" microservice
+        const int dump_client =
+            CreateClientSocket(internal_service_ip, DUMP_SERVER_PORT);
         ret = write(dump_client, &buf, MSG_LEN);
 
         Verify(
-            // Context send
+            // Context is sent first
             Method(mock, write)
                 .Matching([dump_client](int fd, const void *buf, size_t count) {
                     return fd == dump_client && count == sizeof(ContextStorage);
                 }),
 
-            // Buf send
+            // Next, the actual message
             Method(mock, write)
                 .Matching(
                     [dump_client, buf](int fd, const void *b, size_t count) {
                         return fd == dump_client && count == MSG_LEN;
                     }))
             .Exactly(Once);
+
+        // Nothing else is sent
         VerifyNoOtherInvocations(Method(mock, write));
 
     }};
     server_thread.join();
 }
 
-TEST_F(TraceTest, OnlySendContextToInternalService) {
+/*
+ * In this test, we verify that the context is not sent to external services.
+ */
+TEST_F(TraceTest, ContextIsNOTSentToExternalServices) {
     std::thread server_thread{[]() {
         int ret;
 
         const int server = CreateServerSocket(SERVER_PORT);
         ret = listen(server, 5);
 
+        // Accept client
         struct sockaddr_in cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
@@ -378,32 +392,40 @@ TEST_F(TraceTest, OnlySendContextToInternalService) {
         const Context first_context = get_current_context();
         EXPECT_FALSE(first_context.is_zero());
 
-        // Open connection to "external" service
-        // Send request to third party
+        // Open connection to "external" server. Note that no environment
+        // variable has been set with this IP address, so it should be
+        // considered an external server
         const int dump_client =
             CreateClientSocketIp("194.3.5.2", DUMP_SERVER_PORT);
         ret = write(dump_client, &buf, MSG_LEN);
 
         Verify(
-            // Buf send
+            // Only the message is sent, no context
             Method(mock, write)
                 .Matching(
                     [dump_client, buf](int fd, const void *b, size_t count) {
                         return fd == dump_client && count == MSG_LEN;
                     }))
             .Exactly(Once);
+        // Nothing else was sent
         VerifyNoOtherInvocations(Method(mock, write));
 
     }};
     server_thread.join();
 }
 
+/*
+ * In this test, we verify that backend servers read the context first at the
+ * start of every new transaction, and use that context as current_context.
+ */
 TEST_F(TraceTest, BackendServerReadsContext) {
     // Set server type to backend so it reads the context
     putenv("MICROTRACE_SERVER_TYPE=backend");
 
+    // Create a random context
     Context ctx;
 
+    // Set up read, so it first returns the context, and next the message
     When(Method(mock, read))
         .Do([&ctx](int fd, void *buf, size_t count) {
             std::memcpy(buf, (void *)&ctx.storage(), sizeof(ContextStorage));
@@ -418,6 +440,7 @@ TEST_F(TraceTest, BackendServerReadsContext) {
         const int server = CreateServerSocket(SERVER_PORT);
         ret = listen(server, 5);
 
+        // Accept client
         struct sockaddr_in cli_addr;
         socklen_t clilen = sizeof(cli_addr);
         memset(&cli_addr, 0, sizeof(cli_addr));
@@ -434,29 +457,35 @@ TEST_F(TraceTest, BackendServerReadsContext) {
         EXPECT_FALSE(first_context.is_zero());
 
         Verify(
-            // Context read
+            // Verify that the context is read first
             Method(mock, read)
                 .Matching([client](int fd, const void *buf, size_t count) {
                     return fd == client && count == sizeof(ContextStorage);
                 }),
 
-            // Real read
+            // Next, the actual message is read
             Method(mock, read)
                 .Matching([client](int fd, const void *buf, size_t count) {
                     return fd == client && count == MSG_LEN;
                 }))
             .Exactly(Once);
 
+        // No other read
         VerifyNoOtherInvocations(Method(mock, read));
 
         // check that the context we sent is set as current_context, and a new
         // span has been started
+        EXPECT_TRUE(Context::IsSameTrace(ctx, get_current_context()));
         EXPECT_TRUE(get_current_context().IsChildOf(ctx));
 
     }};
     server_thread.join();
 }
 
+/*
+ * In this test we verify that frontend servers do not try to read the context
+ * at the start of every new transaction.
+ */
 TEST_F(TraceTest, FrontendServerDoesNotReadContext) {
     // Set server type to backend so it reads the context
     putenv("MICROTRACE_SERVER_TYPE=frontend");
@@ -490,6 +519,7 @@ TEST_F(TraceTest, FrontendServerDoesNotReadContext) {
                 }))
             .Exactly(Once);
 
+        // No other read
         VerifyNoOtherInvocations(Method(mock, read));
 
     }};
