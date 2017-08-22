@@ -315,9 +315,10 @@ TEST_F(TraceTest, ContextIsSentToInternalServices) {
     // In Kubernetes, all internal serices have their IP address set as an
     // environment variable on all machines. This indicates that it is an
     // internal server
-    putenv("DUMP_SERVICE_HOST=" + internal_service_ip);
+    putenv(const_cast<char *>(
+        ("DUMP_SERVICE_HOST=" + internal_service_ip).c_str()));
 
-    std::thread server_thread{[]() {
+    std::thread server_thread{[&internal_service_ip]() {
         int ret;
 
         const int server = CreateServerSocket(SERVER_PORT);
@@ -341,7 +342,7 @@ TEST_F(TraceTest, ContextIsSentToInternalServices) {
 
         // Send request to an "internal" microservice
         const int dump_client =
-            CreateClientSocket(internal_service_ip, DUMP_SERVER_PORT);
+            CreateClientSocketIp(internal_service_ip, DUMP_SERVER_PORT);
         ret = write(dump_client, &buf, MSG_LEN);
 
         Verify(

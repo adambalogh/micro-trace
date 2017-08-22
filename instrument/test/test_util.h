@@ -29,6 +29,10 @@ static int CreateClientSocketIp(std::string ip, int port) {
     return client;
 }
 
+static int CreateClientSocket(int port) {
+    return CreateClientSocketIp("10.0.2.5", port);
+}
+
 /*
  * Returns a socket that's bind to ip:port
  */
@@ -155,6 +159,7 @@ class EmptyOriginalFunctions : public OriginalFunctions {
     mutable int last_socket = 0;
 
    public:
+    struct MYSQL;
     int mysql_query(MYSQL *mysql, const char *stmt_str) const { return 0; }
 
     int socket(int domain, int type, int protocol) const {

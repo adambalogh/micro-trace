@@ -21,7 +21,7 @@ TESTS = context_test.cc socket_map_test.cc tracing_test.cc http_processor_test.c
 TEST_EXEC = $(addprefix $(BUILD_DIR)/,$(TESTS:.cc=))
 TEST_FLAGS = -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_USE_OWN_TR1_TUPLE=0
 
-INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR)
+INCLUDES = -I /usr/local/include -I $(PROTO_GEN_DIR) -I /usr/include/postgresql
 LIBS = -L /usr/local/lib -ldl -pthread /usr/local/lib/libthrift.a /usr/local/lib/libprotobuf.a
 
 CXX = g++-5
