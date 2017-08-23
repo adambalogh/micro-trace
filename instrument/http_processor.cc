@@ -70,6 +70,8 @@ bool HttpProcessor::Process(const char* buf, size_t len) {
                     }
                 } else {
                     valid_ = tree_.Advance(buf[i]);
+                    // Add HTTP method to url
+                    url_buffer_ += buf[i];
                 }
                 break;
             case State::URL:
@@ -81,6 +83,8 @@ bool HttpProcessor::Process(const char* buf, size_t len) {
                     }
                     valid_ = false;
                 } else {
+                    // space after HTTP method
+                    url_buffer_ += " ";
                     url_buffer_ += buf[i];
                 }
                 break;

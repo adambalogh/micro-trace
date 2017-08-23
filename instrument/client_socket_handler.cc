@@ -193,8 +193,10 @@ void ClientSocketHandlerImpl::AfterWrite(const struct iovec* iov, int iovcnt,
 
     // Feed data to http parser
     for (int i = 0; i < iovcnt; ++i) {
-        http_processor_.Process(static_cast<char*>(iov[i].iov_base),
-                                iov[i].iov_len);
+        http_processor_.Process(
+            static_cast<char*>(iov[i].iov_base),
+            // do not feed data that has not been sent
+            std::min(static_cast<size_t>(ret), iov[i].iov_len));
     }
 
     state_ = SocketState::WROTE;
