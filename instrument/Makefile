@@ -26,7 +26,7 @@ LIBS = -L /usr/local/lib -ldl -pthread /usr/local/lib/libthrift.a /usr/local/lib
 
 CXX = g++-5
 CXXFLAGS = -Wall -std=c++17 -MP -MD -fext-numeric-literals -O3 -g
-LIBFLAGS = -fPIC -DDEBUG -static-libstdc++ 
+LIBFLAGS = -fPIC -DNDEBUG -static-libstdc++ 
 OUT_FLAGS = -fvisibility=hidden -shared
 NO_WHOLE_ARCHIVE = -Wl,-no-whole-archive
 

@@ -46,10 +46,8 @@ SocketHandler::Result ServerSocketHandlerImpl::BeforeRead(const void* buf,
 }
 
 bool ServerSocketHandlerImpl::ShouldTrace() const {
-    // TODO make this run-time configurable
-    return true;
-    // sampling every ~20th request
-    return (std::rand() % 101) <= 5;
+    // sample 1% of reqs
+    return (std::rand() % 100) <= 0;
 }
 
 void ServerSocketHandlerImpl::AfterRead(const void* buf, size_t len,
